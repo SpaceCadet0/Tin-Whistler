@@ -39,8 +39,14 @@ const item: Variants = {
  */
 export function Stagger({ children, className, as = 'div' }: { children: ReactNode; className?: string; as?: 'div' | 'ol' | 'ul' }) {
   const Cmp = as === 'ol' ? motion.ol : as === 'ul' ? motion.ul : motion.div
+  // "once" in-view reveals never re-fire, so items added later (e.g. a new filter result)
+  // would stay hidden; remount the container whenever the set of children changes
+  const signature = Children.toArray(children)
+    .map((c) => (isValidElement(c) ? String(c.key) : ''))
+    .join('|')
   return (
-    <Cmp className={className} variants={container} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.1 }}>
+    // amount "some": a fraction threshold never triggers on long lists taller than the screen
+    <Cmp key={signature} className={className} variants={container} initial="hidden" whileInView="show" viewport={{ once: true, amount: 'some' }}>
       {Children.map(children, (child) => {
         if (isValidElement(child) && child.type === 'li') {
           const el = child as ReactElement<React.LiHTMLAttributes<HTMLLIElement>>

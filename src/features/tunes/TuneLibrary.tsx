@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useT } from '../../i18n'
 import { tuneDurationSec, usedNotes } from '../../music/tune'
@@ -8,6 +8,7 @@ import { useAllTunes } from '../../state/tunes'
 import { Icon } from '../../ui/Icon'
 import { ButtonLink, Chip, cn, Difficulty, EmptyState, PageHeader, ProgressBar } from '../../ui/primitives'
 import { Stagger } from '../../ui/motion'
+import { stopPreview, togglePreview, usePreview } from './preview'
 
 function TuneCard({ tune }: { tune: Tune }) {
   const { t } = useT()
@@ -15,8 +16,10 @@ function TuneCard({ tune }: { tune: Tune }) {
   const notes = usedNotes(tune)
   const mins = Math.max(1, Math.round(tuneDurationSec(tune) / 60))
   return (
-    <Link to={`/tunes/${tune.id}`} className="group flex flex-col gap-3 rounded-[var(--radius-card)] border border-line/70 bg-surface p-5 shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift">
-      <div className="flex items-start justify-between gap-3">
+    // the preview button sits beside the link, not inside it (no nested interactive elements)
+    <div className="group relative grid min-w-0 grid-cols-1">
+    <Link to={`/tunes/${tune.id}`} className="flex flex-col gap-3 rounded-[var(--radius-card)] border border-line/70 bg-surface p-5 shadow-soft transition group-hover:-translate-y-0.5 group-hover:shadow-lift">
+      <div className="flex items-start justify-between gap-3 pr-12">
         <div className="min-w-0">
           <p className="line-clamp-2 font-display text-xl leading-tight font-semibold">{tune.title}</p>
           <p className="truncate text-sm text-ink-soft">{tune.composer ?? t(`tuneType.${tune.type}`)}</p>
@@ -52,6 +55,38 @@ function TuneCard({ tune }: { tune: Tune }) {
         <ProgressBar value={(tp?.step ?? 0) / 7} height={6} label={t('tune.learning')} />
       </div>
     </Link>
+    <PreviewButton tune={tune} />
+    </div>
+  )
+}
+
+/** Listen to the opening without leaving the list; a ring shows how much is left. */
+function PreviewButton({ tune }: { tune: Tune }) {
+  const { t } = useT()
+  const { playing, progress } = usePreview(tune.id)
+  const label = playing ? t('tunes.stopPreview') : t('tunes.preview', { title: tune.title })
+  const r = 20
+  const c = 2 * Math.PI * r
+  return (
+    <button
+      type="button"
+      onClick={() => togglePreview(tune)}
+      aria-label={label}
+      title={label}
+      aria-pressed={playing}
+      className={cn(
+        'absolute top-4 right-4 grid h-11 w-11 cursor-pointer place-items-center rounded-full transition group-hover:-translate-y-0.5 active:scale-95',
+        playing ? 'bg-moss text-on-moss' : 'bg-moss-soft text-moss hover:bg-moss hover:text-on-moss',
+      )}
+    >
+      {playing && (
+        <svg viewBox="0 0 44 44" className="absolute inset-0 -rotate-90" aria-hidden="true">
+          <circle cx="22" cy="22" r={r} fill="none" stroke="currentColor" strokeOpacity={0.3} strokeWidth="2.5" />
+          <circle cx="22" cy="22" r={r} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - progress)} />
+        </svg>
+      )}
+      <Icon name={playing ? 'stop' : 'play'} size={18} className={playing ? undefined : 'translate-x-px'} />
+    </button>
   )
 }
 
@@ -60,6 +95,7 @@ export default function TuneLibrary() {
   const tunes = useAllTunes()
   const [query, setQuery] = useState('')
   const [level, setLevel] = useState<'all' | 'easy' | 'mid' | 'hard'>('all')
+  useEffect(() => stopPreview, [])
   const filtered = tunes.filter((x) => {
     if (query && !`${x.title} ${x.composer ?? ''} ${x.type}`.toLowerCase().includes(query.toLowerCase())) return false
     if (level === 'easy') return x.difficulty <= 1
