@@ -105,7 +105,7 @@ export default function TuneEditor() {
   }
 
   const doSave = async () => {
-    await save(tune)
+    if (!(await save(tune))) return
     setDirty(false)
     toast({ kind: 'info', title: t('editor.saved') })
   }

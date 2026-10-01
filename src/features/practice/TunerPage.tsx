@@ -6,6 +6,7 @@ import { getWhistle } from '../../music/whistles'
 import { useProgress } from '../../state/progress'
 import { useSession } from '../../state/session'
 import { useSettings } from '../../state/settings'
+import { useShallow } from 'zustand/react/shallow'
 import { TunerGauge } from '../../ui/feedback/Feedback'
 import { MicControl } from '../../ui/feedback/MicControl'
 import { Button, Card, cn, PageHeader, ProgressBar, Slider } from '../../ui/primitives'
@@ -16,7 +17,7 @@ const CALIBRATE_SECONDS = 3
 export default function TunerPage() {
   const { t } = useT()
   const { micWanted, setMicWanted } = useSession()
-  const { a4, offsetCents, whistleId, set } = useSettings()
+  const { a4, offsetCents, whistleId, set } = useSettings(useShallow((s) => ({ a4: s.a4, offsetCents: s.offsetCents, whistleId: s.whistleId, set: s.set })))
   const tonic = getWhistle(whistleId).baseMidi
   const recordLock = useProgress((s) => s.recordTunerLock)
   const [calib, setCalib] = useState<{ samples: number[]; progress: number } | null>(null)

@@ -1,4 +1,4 @@
-import { fingeringsEqual } from '../music/fingerings'
+import { fingeringsEqual, toFingering } from '../music/fingerings'
 import type { Attack, Fingering, HoleState, OrnamentType, Phrase, Register, TuneNote, TuneSection } from '../music/types'
 import { fingeringForMidi, midiForFingering } from '../music/whistles'
 
@@ -259,7 +259,7 @@ export function recognizeTab(img: RGBAImage, whistleId = 'D'): RecognitionResult
         if (core > 0.3) conf -= 0.2
         return 0
       })
-      const fingering = holes as unknown as Fingering
+      const fingering = toFingering(holes)
       // rings: red pixels in an annulus around a hole
       let ringHole: number | undefined
       let best = 0

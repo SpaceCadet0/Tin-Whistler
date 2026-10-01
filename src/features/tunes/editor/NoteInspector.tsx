@@ -1,8 +1,8 @@
 import { whistleSynth } from '../../../audio/WhistleSynth'
 import { useT } from '../../../i18n'
-import { fingeringsEqual } from '../../../music/fingerings'
+import { fingeringsEqual, tapHole } from '../../../music/fingerings'
 import { noteFingering } from '../../../music/ornaments'
-import type { Attack, Fingering, HoleState, OrnamentType, Register, TuneNote } from '../../../music/types'
+import type { Attack, Fingering, OrnamentType, Register, TuneNote } from '../../../music/types'
 import { fingeringForMidi, midiForFingering, whistleLabel, whistleNotes } from '../../../music/whistles'
 import { Button, cn, Segmented } from '../../../ui/primitives'
 import { WhistleView } from '../../../ui/whistle/WhistleView'
@@ -38,10 +38,8 @@ export function NoteInspector({ note, whistleId, onChange, onInsert, onDelete, o
   }
 
   const toggleHole = (i: number) => {
-    const cur = fg?.fingering ?? ([1, 1, 1, 1, 1, 1] as Fingering)
-    const h = [...cur] as HoleState[]
-    h[i] = cur[i] === 1 ? 0 : cur[i] === 0 ? 0.5 : 1
-    const f = h as unknown as Fingering
+    const cur: Fingering = fg?.fingering ?? [1, 1, 1, 1, 1, 1]
+    const f = tapHole(cur, i, true)
     setPitch(midiForFingering(f, register, whistleId), f)
   }
 

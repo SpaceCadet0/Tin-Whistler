@@ -4,6 +4,7 @@ import { ACHIEVEMENTS, newlyUnlocked, type ProgressSnapshot } from '../engine/pr
 import { computeStreak, updateMastery, XP } from '../engine/progress/levels'
 import { appStorage, todayKey } from '../lib/storage'
 import { toast } from '../lib/toast'
+import { isFiniteNumber, isRecord, sanitizeAgainst } from '../lib/validate'
 import { useSettings } from './settings'
 
 export interface NoteStat {
@@ -90,6 +91,30 @@ const INITIAL = {
   gameBestCombo: 0,
   importedTunes: 0,
   log: [],
+}
+
+/** Keep the entries of a map that pass `ok`; one bad entry must not cost the rest of the history. */
+const pickEntries = <V,>(x: Record<string, unknown>, ok: (v: unknown) => boolean): Record<string, V> =>
+  Object.fromEntries(Object.entries(x).filter(([, v]) => ok(v))) as Record<string, V>
+
+/**
+ * Persisted progress with malformed fields replaced by their initial values. Maps are repaired
+ * entry by entry (whatever is dropped here is gone once the store persists again).
+ */
+export function sanitizeProgress(persisted: unknown): Partial<typeof INITIAL> {
+  const p = sanitizeAgainst(INITIAL, persisted, { ear: (x) => isRecord(x) && Object.values(x).every(isFiniteNumber) }) as Partial<ProgressState>
+  if (p.completedLessons) p.completedLessons = pickEntries(p.completedLessons, isRecord)
+  if (p.noteStats) p.noteStats = pickEntries(p.noteStats, isRecord)
+  if (p.transitions) p.transitions = pickEntries(p.transitions, isRecord)
+  if (p.days) p.days = pickEntries(p.days, isRecord)
+  if (p.achievements) p.achievements = pickEntries(p.achievements, isFiniteNumber)
+  if (p.tunes) {
+    const tunes = pickEntries<TuneProgress>(p.tunes, isRecord)
+    for (const [id, t] of Object.entries(tunes)) if (!isRecord(t.sections)) tunes[id] = { ...t, sections: {} }
+    p.tunes = tunes
+  }
+  if (p.log) p.log = p.log.filter(isRecord)
+  return p as Partial<typeof INITIAL>
 }
 
 const lang = () => useSettings.getState().language
@@ -292,7 +317,13 @@ export const useProgress = create<ProgressState>()(
         resetAll: () => set({ ...INITIAL }),
       }
     },
-    { name: 'tw.progress', storage: appStorage, version: 1 },
+    {
+      name: 'tw.progress',
+      storage: appStorage,
+      version: 1,
+      // stored progress is untrusted (old schema, edited backup): keep only well-formed fields
+      merge: (persisted, current) => ({ ...current, ...sanitizeProgress(persisted) }),
+    },
   ),
 )
 

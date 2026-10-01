@@ -96,8 +96,7 @@ export default function TuneDetail() {
 
   const duplicate = async () => {
     const copy: Tune = { ...structuredClone(tune), id: `user-${Date.now().toString(36)}`, origin: 'user', source: 'editor', title: `${tune.title} (${t('tune.copy')})`, createdAt: Date.now() }
-    await save(copy)
-    navigate(`/tunes/${copy.id}/edit`)
+    if (await save(copy)) navigate(`/tunes/${copy.id}/edit`)
   }
 
   const copyText = async () => {
@@ -235,8 +234,7 @@ export default function TuneDetail() {
             variant="danger"
             icon="trash"
             onClick={async () => {
-              await remove(tune.id)
-              navigate('/tunes')
+              if (await remove(tune.id)) navigate('/tunes')
             }}
           >
             {t('tune.delete')}

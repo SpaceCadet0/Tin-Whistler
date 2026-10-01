@@ -3,6 +3,7 @@ import { flattenSecondVoice, flattenTune } from '../music/tune'
 import type { TimedNote, Tune, TuneNote } from '../music/types'
 import { audioEngine } from './AudioEngine'
 import { scheduleClick } from './click'
+import { LOOKAHEAD_MS, onHide, scheduleAhead } from './lookahead'
 import { WhistleVoice } from './WhistleSynth'
 
 export interface PlayerOptions {
@@ -41,7 +42,6 @@ interface PlayEvent {
   accent?: boolean
 }
 
-const LOOKAHEAD_MS = 25
 const SCHEDULE_AHEAD = 0.15
 
 /**
@@ -73,6 +73,7 @@ export class TunePlayer {
   private voice: WhistleVoice | null = null
   private voice2: WhistleVoice | null = null
   private endTime = Infinity
+  private unwatchHide: (() => void) | null = null
 
   load(tune: Tune): void {
     this.stop()
@@ -169,6 +170,7 @@ export class TunePlayer {
     this.passStarted.emit({ pass: 0, startTime: this.passStart })
     this.tick()
     this.timer = window.setInterval(() => this.tick(), LOOKAHEAD_MS)
+    this.unwatchHide = onHide(() => this.tick())
   }
 
   private tick(): void {
@@ -178,7 +180,7 @@ export class TunePlayer {
       this.stop()
       return
     }
-    const horizon = now + SCHEDULE_AHEAD
+    const horizon = now + scheduleAhead(SCHEDULE_AHEAD)
     while (this.passStart + (this.events[this.cursor]?.at ?? Infinity) < horizon) {
       const ev = this.events[this.cursor]
       const time = this.passStart + ev.at
@@ -242,6 +244,8 @@ export class TunePlayer {
   private halt(): void {
     if (this.timer != null) window.clearInterval(this.timer)
     this.timer = null
+    this.unwatchHide?.()
+    this.unwatchHide = null
     this.voice?.stop()
     this.voice2?.stop()
     this.voice = null

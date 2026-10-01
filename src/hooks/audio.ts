@@ -6,6 +6,7 @@ import { TunePlayer, type PlayerPosition, type PlayerState } from '../audio/Tune
 import type { Tune } from '../music/types'
 import { useProgress } from '../state/progress'
 import { useSettings } from '../state/settings'
+import { useShallow } from 'zustand/react/shallow'
 
 export function useMicStatus(): MicStatus {
   const [status, setStatus] = useState<MicStatus>(micInput.current)
@@ -40,7 +41,7 @@ export function usePitch(enabled: boolean, onFrame?: (f: PitchFrame) => void, mo
   const cb = useRef(onFrame)
   cb.current = onFrame
   const latest = useRef<PitchFrame | null>(null)
-  const { a4, offsetCents, sensitivity } = useSettings()
+  const { a4, offsetCents, sensitivity } = useSettings(useShallow((s) => ({ a4: s.a4, offsetCents: s.offsetCents, sensitivity: s.sensitivity })))
 
   useEffect(() => {
     pitchTracker.setCalibration({ a4, offsetCents, sensitivity })

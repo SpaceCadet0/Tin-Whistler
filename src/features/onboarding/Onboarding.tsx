@@ -6,6 +6,7 @@ import type { Illustration as IllKind } from '../../engine/lesson/types'
 import { useT, type MessageKey } from '../../i18n'
 import { useSession } from '../../state/session'
 import { useSettings, type PlayerLevel } from '../../state/settings'
+import { useShallow } from 'zustand/react/shallow'
 import { Icon } from '../../ui/Icon'
 import { EASE_OUT, motion } from '../../ui/motion'
 import { Illustration } from '../../ui/Illustration'
@@ -51,7 +52,7 @@ function Choice({ selected, onClick, icon, title, body }: { selected: boolean; o
 export default function Onboarding() {
   const { t } = useT()
   const navigate = useNavigate()
-  const settings = useSettings()
+  const settings = useSettings(useShallow((s) => ({ language: s.language, level: s.level, dailyGoalMin: s.dailyGoalMin, set: s.set })))
   const setMicWanted = useSession((s) => s.setMicWanted)
   const [step, setStep] = useState(0)
   const [intro, setIntro] = useState(0)

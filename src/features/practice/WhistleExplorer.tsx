@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { whistleSynth } from '../../audio/WhistleSynth'
 import { useT } from '../../i18n'
-import { fingeringOffset } from '../../music/fingerings'
-import type { Fingering, HoleState, Register } from '../../music/types'
+import { fingeringOffset, tapHole } from '../../music/fingerings'
+import type { Fingering, Register } from '../../music/types'
 import { getWhistle, whistleLabel, whistleNotes } from '../../music/whistles'
 import { useSettings } from '../../state/settings'
 import { Card, cn, PageHeader, Segmented } from '../../ui/primitives'
@@ -26,11 +26,7 @@ export default function WhistleExplorer() {
   useEffect(() => () => whistleSynth.stopNote(), [])
 
   const toggle = (i: number) => {
-    const next = [...fg] as HoleState[]
-    next[i] = fg[i] === 1 ? 0.5 : fg[i] === 0.5 ? 0 : 1
-    // half-holing only makes sense on the lowest covered hole: cycle covered → open for others
-    if (fg[i] === 1 && i < 5 && fg.slice(i + 1).some((h) => h > 0)) next[i] = 0
-    const f = next as unknown as Fingering
+    const f = tapHole(fg, i, true)
     setFg(f)
     if (!blowing) whistleSynth.playNote(getWhistle(whistleId).baseMidi + fingeringOffset(f, register), 0.8)
   }

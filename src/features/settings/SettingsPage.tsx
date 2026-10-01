@@ -2,11 +2,14 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useT } from '../../i18n'
 import { toast } from '../../lib/toast'
+import { parseBackup } from '../../lib/validate'
 import { WHISTLE_KEYS } from '../../music/whistles'
 import { useProgress } from '../../state/progress'
 import { useSettings, type Language, type MotionPref, type PlayerLevel, type ThemePref } from '../../state/settings'
 import { Icon } from '../../ui/Icon'
 import { Button, buttonClass, Card, Modal, PageHeader, Segmented, Slider } from '../../ui/primitives'
+
+const MAX_BACKUP_BYTES = 5_000_000
 
 export default function SettingsPage() {
   const { t } = useT()
@@ -24,10 +27,15 @@ export default function SettingsPage() {
     URL.revokeObjectURL(url)
   }
   const importData = async (file: File) => {
+    // validate before touching storage: a wrong file must not replace good progress
+    const backup = file.size <= MAX_BACKUP_BYTES ? parseBackup(await file.text().catch(() => '')) : null
+    if (!backup) {
+      toast({ kind: 'error', title: t('settings.importInvalid') })
+      return
+    }
     try {
-      const data = JSON.parse(await file.text())
-      if (data.progress) localStorage.setItem('tw.progress', data.progress)
-      if (data.settings) localStorage.setItem('tw.settings', data.settings)
+      if (backup.progress) localStorage.setItem('tw.progress', backup.progress)
+      if (backup.settings) localStorage.setItem('tw.settings', backup.settings)
       location.reload()
     } catch {
       toast({ kind: 'error', title: t('settings.importFailed') })

@@ -4,6 +4,7 @@ import { AppShell } from './app/AppShell'
 import { audioEngine } from './audio/AudioEngine'
 import { whistleSynth } from './audio/WhistleSynth'
 import { useSettings } from './state/settings'
+import { useShallow } from 'zustand/react/shallow'
 import { useTuneLibrary } from './state/tunes'
 import { MotionProvider } from './ui/motion'
 
@@ -39,7 +40,7 @@ function RequireOnboarding({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  const { a4, whistleId, volume } = useSettings()
+  const { a4, whistleId, volume } = useSettings(useShallow((s) => ({ a4: s.a4, whistleId: s.whistleId, volume: s.volume })))
   const loadTunes = useTuneLibrary((s) => s.load)
 
   useEffect(() => {

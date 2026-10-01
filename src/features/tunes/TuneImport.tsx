@@ -181,12 +181,12 @@ export default function TuneImport() {
       sections: [{ id: 's1', name: `${t('import.section')} 1`, phrases: [[{ pitch: 74, beats: 1, attack: 'tongue' }]] }],
       createdAt: Date.now(),
     }
-    void save(tn).then(() => navigate(`/tunes/${tn.id}/edit`))
+    void save(tn).then((ok) => ok && navigate(`/tunes/${tn.id}/edit`))
   }
 
   const commit = async (edit: boolean) => {
     if (!tune) return
-    await save(tune)
+    if (!(await save(tune))) return
     recordImport()
     navigate(edit ? `/tunes/${tune.id}/edit` : `/tunes/${tune.id}`)
   }

@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
+import { useShallow } from 'zustand/react/shallow'
 import { computeStreak, levelFromXp } from '../engine/progress/levels'
 import { useT, type MessageKey } from '../i18n'
 import { useProgress } from '../state/progress'
@@ -7,6 +8,7 @@ import { useSettings } from '../state/settings'
 import { Icon } from '../ui/Icon'
 import { motion, PageEnter } from '../ui/motion'
 import { cn } from '../ui/primitives'
+import { ErrorBoundary, ScreenError } from './ErrorBoundary'
 import { Toaster } from './Toaster'
 
 const NAV: { to: string; icon: string; label: MessageKey }[] = [
@@ -21,7 +23,7 @@ const NAV: { to: string; icon: string; label: MessageKey }[] = [
 const IMMERSIVE = [/^\/learn\/.+/, /^\/tunes\/[^/]+\/play/, /^\/practice\/game/, /^\/daily/, /^\/welcome/]
 
 function useApplyPreferences() {
-  const { theme, motion, language } = useSettings()
+  const { theme, motion, language } = useSettings(useShallow((s) => ({ theme: s.theme, motion: s.motion, language: s.language })))
   useEffect(() => {
     const root = document.documentElement
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
@@ -147,7 +149,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         )}
 
         <main id="main" className={cn('mx-auto w-full max-w-6xl flex-1 px-4 pt-6 sm:px-6 lg:px-10 lg:pt-10', immersive ? 'pb-8' : 'pb-28 lg:pb-12')}>
-          <PageEnter id={pathname}>{children}</PageEnter>
+          <ErrorBoundary key={pathname} fallback={(reset) => <ScreenError onRetry={reset} />}>
+            <PageEnter id={pathname}>{children}</PageEnter>
+          </ErrorBoundary>
         </main>
       </div>
 

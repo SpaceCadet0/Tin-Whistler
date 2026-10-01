@@ -8,6 +8,7 @@ import { useT } from '../../i18n'
 import { todayKey } from '../../lib/storage'
 import { useProgress } from '../../state/progress'
 import { useSettings } from '../../state/settings'
+import { useShallow } from 'zustand/react/shallow'
 import { useTune } from '../../state/tunes'
 import { Icon } from '../../ui/Icon'
 import { EASE_OUT, motion } from '../../ui/motion'
@@ -65,7 +66,7 @@ function Challenge({ block, onDone }: { block: DailyBlock; onDone: () => void })
 /** ~10 minutes: warm-up → notes → melody → challenge, then a short summary. */
 export default function DailyPractice() {
   const { t, L } = useT()
-  const { dailyGoalMin, level } = useSettings()
+  const { dailyGoalMin, level } = useSettings(useShallow((s) => ({ dailyGoalMin: s.dailyGoalMin, level: s.level })))
   const p = useProgress()
   const completeDaily = useProgress((s) => s.completeDaily)
   const known = learnedNotes(p.completedLessons, level)

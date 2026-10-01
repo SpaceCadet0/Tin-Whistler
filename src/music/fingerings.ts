@@ -14,10 +14,13 @@ export interface FingeringEntry {
   alternate?: boolean
 }
 
-const f = (s: string): Fingering => {
-  const holes = s.split('').map((c): HoleState => (c === '1' ? 1 : c === 'h' ? 0.5 : 0))
-  return holes as unknown as Fingering
+/** Build a fingering from exactly six hole states (top to bottom). */
+export function toFingering(holes: readonly HoleState[]): Fingering {
+  if (holes.length !== 6) throw new Error(`A fingering needs 6 holes, got ${holes.length}`)
+  return [holes[0], holes[1], holes[2], holes[3], holes[4], holes[5]]
 }
+
+const f = (s: string): Fingering => toFingering(s.split('').map((c): HoleState => (c === '1' ? 1 : c === 'h' ? 0.5 : 0)))
 
 export const parseFingering = (s: string): Fingering | null => (/^[01h]{6}$/.test(s) ? f(s) : null)
 
@@ -93,7 +96,19 @@ export function fingeringForOffset(offset: number): FingeringEntry | undefined {
 
 /** Toggle a hole: covered → open, open/half → covered. Used for ornament grace notes. */
 export function toggleHole(fg: Fingering, hole: number): Fingering {
-  const next = [...fg] as HoleState[]
+  const next: HoleState[] = [...fg]
   next[hole] = fg[hole] === 1 ? 0 : 1
-  return next as unknown as Fingering
+  return toFingering(next)
+}
+
+/**
+ * A tap on an interactive whistle hole, the same everywhere in the app: covered ↔ open.
+ * With `half`, an open hole goes to half-covered first (covered → open → half → covered), but
+ * only where half-holing changes the pitch: on the lowest closed position, every hole below open.
+ */
+export function tapHole(fg: Fingering, hole: number, half = false): Fingering {
+  const next: HoleState[] = [...fg]
+  const canHalf = half && fg.slice(hole + 1).every((h) => h === 0)
+  next[hole] = fg[hole] === 1 ? 0 : fg[hole] === 0 && canHalf ? 0.5 : 1
+  return toFingering(next)
 }

@@ -1,6 +1,7 @@
 import { Emitter } from '../lib/emitter'
 import { audioEngine } from './AudioEngine'
 import { scheduleClick } from './click'
+import { LOOKAHEAD_MS, onHide, scheduleAhead } from './lookahead'
 
 export interface BeatEvent {
   /** Running beat number since start (0-based). */
@@ -11,7 +12,6 @@ export interface BeatEvent {
   time: number
 }
 
-const LOOKAHEAD_MS = 25
 const SCHEDULE_AHEAD = 0.12
 
 /** Stand-alone metronome with a look-ahead scheduler (for practice / rhythm modes). */
@@ -42,16 +42,21 @@ export class Metronome {
     const first = this.nextTime
     this.tick()
     this.timer = window.setInterval(() => this.tick(), LOOKAHEAD_MS)
+    this.unwatchHide = onHide(() => this.tick())
     return first
   }
 
   stop(): void {
     if (this.timer != null) window.clearInterval(this.timer)
     this.timer = null
+    this.unwatchHide?.()
+    this.unwatchHide = null
   }
 
+  private unwatchHide: (() => void) | null = null
+
   private tick(): void {
-    const horizon = audioEngine.now + SCHEDULE_AHEAD
+    const horizon = audioEngine.now + scheduleAhead(SCHEDULE_AHEAD)
     while (this.nextTime < horizon) {
       const inBar = this.index % this.beatsPerBar
       if (!this.silent) scheduleClick(this.nextTime, inBar === 0, this.volume)

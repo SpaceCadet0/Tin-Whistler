@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { whistleSynth } from '../../audio/WhistleSynth'
 import type { ExerciseResult, FingeringExercise } from '../../engine/lesson/types'
 import { useT } from '../../i18n'
-import { fingeringsEqual } from '../../music/fingerings'
-import type { Fingering, HoleState } from '../../music/types'
+import { fingeringsEqual, tapHole } from '../../music/fingerings'
+import type { Fingering } from '../../music/types'
 import { noteById } from '../../music/whistles'
 import { Button } from '../../ui/primitives'
 import { WhistleView } from '../../ui/whistle/WhistleView'
@@ -27,11 +27,7 @@ export function FingeringStep({ exercise, onComplete }: { exercise: FingeringExe
   const toggle = (i: number) => {
     if (done) return
     setTries((n) => n + 1)
-    setFg((prev) => {
-      const next = [...prev] as HoleState[]
-      next[i] = prev[i] === 1 ? 0 : 1
-      return next as unknown as Fingering
-    })
+    setFg((prev) => tapHole(prev, i))
   }
 
   return (
