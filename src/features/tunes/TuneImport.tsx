@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { parseAbc } from '../../import/abc'
 import { readMidi, type MidiImport } from '../../import/midi'
 import { isNotationSvg, mergeScorePages, parseNotationSvg } from '../../import/notationSvg'
-import { recognizeImageFile } from '../../import/recognizeFile'
+import { tuneFromNotationImages, type NotationImageResult } from '../../import/notationImage'
+import { recognizeImageFile, recognizeNotationFile } from '../../import/recognizeFile'
 import { sectionFromRecognition } from '../../import/tabImage'
 import { useT } from '../../i18n'
 import { usedNotes } from '../../music/tune'
@@ -102,10 +103,37 @@ export default function TuneImport() {
     }
   }
 
-  /** Sheet music exported as SVG (one file per page) → one tune. */
+  /** Sheet music as JPG/PNG (one image per page): pitches only, every note one beat. */
+  const onScoreImages = async (files: File[]) => {
+    setBusy(true)
+    try {
+      const pages: NotationImageResult[] = []
+      const previews: string[] = []
+      for (const f of files) {
+        const { result, preview } = await recognizeNotationFile(f)
+        previews.push(preview)
+        if (!result.staves.some((s) => s.notes.length)) throw new Error(t('import.noScoreImage', { name: f.name }))
+        pages.push(result)
+      }
+      setImages(previews)
+      const name = files[0].name.replace(/(_\d+)?\.(png|jpe?g)$/i, '').replace(/[-_]+/g, ' ').trim()
+      const r = tuneFromNotationImages(pages, name, whistleId)
+      setTune(r.tune)
+      setWarnings([t('import.rasterNote'), t('import.rasterStats', { notes: r.stats.notes, staves: r.stats.staves, pages: pages.length }), ...r.warnings])
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  /** Sheet music exported as SVG (one file per page) → one tune; JPG/PNG pages go to onScoreImages. */
   const onScore = async (files: File[]) => {
     reset()
-    const svgs = files.filter((f) => f.type === 'image/svg+xml' || /\.svg$/i.test(f.name)).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+    const byName = (a: File, b: File) => a.name.localeCompare(b.name, undefined, { numeric: true })
+    const svgs = files.filter((f) => f.type === 'image/svg+xml' || /\.svg$/i.test(f.name)).sort(byName)
+    const rasters = files.filter((f) => /^image\/(png|jpe?g)$/.test(f.type) || /\.(png|jpe?g)$/i.test(f.name)).sort(byName)
+    if (!svgs.length && rasters.length) return onScoreImages(rasters)
     if (!svgs.length) {
       setError(t(files.length ? 'import.scoreNotSvg' : 'import.noScore'))
       return
@@ -277,13 +305,29 @@ export default function TuneImport() {
           )}
           {mode === 'notation' && (
             <div className="flex flex-col gap-4">
-              <FileDrop accept=".svg,image/svg+xml" multiple onFiles={onScore} label={t('import.dropScore')} icon="music" />
+              <FileDrop accept=".svg,image/svg+xml,.png,.jpg,.jpeg,image/png,image/jpeg" multiple onFiles={onScore} label={t('import.dropScore')} icon="music" />
+              <p role="note" className="flex gap-2.5 rounded-2xl bg-warn-soft px-4 py-3 text-sm text-warn">
+                <Icon name="info" size={18} className="mt-0.5 shrink-0" />
+                <span>{t('import.rasterWarning')}</span>
+              </p>
               <p className="text-sm text-ink-soft">{t('import.scoreHelp')}</p>
+              {busy && <p className="font-semibold text-moss" role="status">{t('import.reading')}</p>}
+              {images.length > 0 && (
+                <div className="grid grid-cols-2 gap-2">
+                  {images.map((src, i) => (
+                    <img key={i} src={src} alt={`${t('import.section')} ${i + 1}`} className="rounded-xl border border-line" />
+                  ))}
+                </div>
+              )}
             </div>
           )}
           {mode === 'image' && (
             <div className="flex flex-col gap-4">
               <FileDrop accept="image/*" multiple onFiles={onImages} label={t('import.dropImage')} icon="image" />
+              <p role="note" className="flex gap-2.5 rounded-2xl bg-warn-soft px-4 py-3 text-sm text-warn">
+                <Icon name="info" size={18} className="mt-0.5 shrink-0" />
+                <span>{t('import.imageNote')}</span>
+              </p>
               <p className="text-sm text-ink-soft">{t('import.imageHelp')}</p>
               {busy && <p className="font-semibold text-moss" role="status">{t('import.reading')}</p>}
               {images.length > 0 && (
