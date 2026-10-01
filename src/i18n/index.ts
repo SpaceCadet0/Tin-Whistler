@@ -33,6 +33,15 @@ const SECTION_FIXED: Record<string, { en: string; ru: string }> = {
   'whole tune': { en: 'Whole tune', ru: 'Целиком' },
   verse: { en: 'Verse', ru: 'Куплет' },
   chorus: { en: 'Chorus', ru: 'Припев' },
+  refrain: { en: 'Refrain', ru: 'Рефрен' },
+  melody: { en: 'Melody', ru: 'Мелодия' },
+  theme: { en: 'Theme', ru: 'Тема' },
+  variation: { en: 'Variation', ru: 'Вариация' },
+  opening: { en: 'Opening', ru: 'Начало' },
+  answer: { en: 'Answer', ru: 'Ответ' },
+  minuet: { en: 'Minuet', ru: 'Менуэт' },
+  'fa la la': { en: 'Fa la la', ru: 'Фа-ла-ла' },
+  'good tidings': { en: 'Good tidings', ru: 'Добрые вести' },
 }
 
 /** Localise generic section names ("Section 2", "A part", "Closing"); user-written names pass through. */

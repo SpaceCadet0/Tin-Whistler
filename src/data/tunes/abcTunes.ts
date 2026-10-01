@@ -6,7 +6,7 @@ import type { LocalizedText, Tune, TuneType } from '../../music/types'
  * same parser users import with. Traditional / public-domain melodies. Low octave uses the
  * usual whistle convention: ABC "D" = the whistle's bottom D.
  */
-function fromAbc(id: string, abc: string, meta: { description: LocalizedText; difficulty: number; type?: TuneType; sectionNames?: string[]; tags?: string[]; composer?: string }): Tune {
+export function fromAbc(id: string, abc: string, meta: { description: LocalizedText; difficulty: number; type?: TuneType; sectionNames?: string[]; tags?: string[]; composer?: string }): Tune {
   const { tune } = parseAbc(abc, 'D')
   return {
     ...tune,

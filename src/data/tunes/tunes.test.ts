@@ -3,6 +3,7 @@ import { sectionNotes } from '../../music/tune'
 import { whistleLabel } from '../../music/whistles'
 import { BUILTIN_TUNES } from '.'
 import { auldLangSyne, butterfly, cooleysReel, saints, scarboroughFair } from './abcTunes'
+import { drunkenSailor, greensleeves, joyToTheWorld, POPULAR_TUNES, silentNight, twinkle } from './popularTunes'
 import { thePrayer } from './thePrayer'
 
 const labels = (t: typeof saints, n: number) =>
@@ -43,7 +44,30 @@ describe('ABC-defined built-in tunes', () => {
   it('are unique and ordered by difficulty', () => {
     const ids = BUILTIN_TUNES.map((t) => t.id)
     expect(new Set(ids).size).toBe(ids.length)
-    expect(BUILTIN_TUNES).toHaveLength(13)
+    expect(BUILTIN_TUNES).toHaveLength(33)
+    const levels = BUILTIN_TUNES.map((t) => t.difficulty)
+    expect(levels).toEqual([...levels].sort((a, b) => a - b))
+  })
+})
+
+describe('Popular public-domain tunes', () => {
+  it('adds twenty playable tunes inside the D whistle range', () => {
+    expect(POPULAR_TUNES).toHaveLength(20)
+    for (const t of POPULAR_TUNES) {
+      const pitches = t.sections.flatMap(sectionNotes).flatMap((n) => (n.pitch == null ? [] : [n.pitch]))
+      expect(pitches.length, t.id).toBeGreaterThan(20)
+      expect(Math.min(...pitches), t.id).toBeGreaterThanOrEqual(74)
+      expect(Math.max(...pitches), t.id).toBeLessThanOrEqual(95)
+      expect(t.description?.en && t.description.ru, t.id).toBeTruthy()
+    }
+  })
+
+  it('keeps the melodies as written', () => {
+    expect(labels(twinkle, 6)).toEqual(['D', 'D', 'A', 'A', 'B', 'B'])
+    expect(labels(joyToTheWorld, 8)).toEqual(["D'", 'C#', 'B', 'A', 'G', 'F#', 'E', 'D'])
+    expect(labels(silentNight, 4)).toEqual(['A', 'B', 'A', 'F#'])
+    expect(labels(greensleeves, 4)).toEqual(['A', 'C', "D'", "E'"])
+    expect(labels(drunkenSailor, 8)).toEqual(['B', 'B', 'B', 'B', 'B', 'B', 'B', 'E'])
   })
 })
 
