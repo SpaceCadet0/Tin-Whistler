@@ -1,29 +1,100 @@
+<div align="center">
+
+<img src="assets/icon-only.png" width="96" alt="Tin Whistler icon" />
+
 # Tin Whistler
 
-An interactive tin whistle (Irish whistle) trainer: a structured course, microphone pitch feedback, a tuner, trainers and games, real tunes learned section by section, and a progress system. Runs fully in the browser, and progress stays on the device.
+**Learn the tin whistle with real tunes, live microphone feedback and tabs you can edit.**
+
+A course, a tuner, trainers and games, and a tune library you learn section by section.
+Runs in the browser or as an Android app. Your progress stays on your device.
+
+`React 19` · `TypeScript` · `Web Audio` · `Capacitor` · English / Русский
+
+<br />
+
+<img src="docs/screenshots/home.webp" alt="Home screen: today's lesson, streak, level and smart practice" width="100%" />
+
+</div>
+
+## A quick tour
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/player.webp" alt="Tune player with the whistle fingering and the current note" /></td>
+    <td width="50%"><img src="docs/screenshots/tab.webp" alt="Whistle tab with ornaments and articulation" /></td>
+  </tr>
+  <tr>
+    <td><b>Play along.</b> A big "now / next" stage you can read from a music stand, with the fingering for every note. Loop a section, slow it down, add a count-in, or turn the guide melody off and play on your own.</td>
+    <td><b>Real whistle tabs.</b> Cuts, bounces, slides, rolls and trills; tongued, "ru" and slurred notes; sharp stops and half-holes, the way whistle players write them.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/editor.webp" alt="Tab editor with a multi-column selection and the note inspector" /></td>
+    <td><img src="docs/screenshots/import.webp" alt="Importing an ABC tune with a live tab preview" /></td>
+  </tr>
+  <tr>
+    <td><b>Edit anything.</b> Select columns, then copy, cut, paste or drag them (phrase breaks come along). You get undo and redo, ornaments with the ringed hole, any whistle key (the tab stays, the notes move), and a text mode.</td>
+    <td><b>Bring your own tunes.</b> ABC from thesession.org, MIDI, sheet music (SVG or JPG/PNG) and photos of dot tabs, dark-theme screenshots included. Import a whole tune or add a section to one you already have.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/learn.webp" alt="Course with levels and lessons" /></td>
+    <td><img src="docs/screenshots/practice.webp" alt="Practice hub with trainers and games" /></td>
+  </tr>
+  <tr>
+    <td><b>A course that starts from zero.</b> 4 levels and 19 short lessons, from the first B to the second octave and ornaments. Each lesson has one goal.</td>
+    <td><b>Trainers and games.</b> Play the Note, Sequences, Ear Training, Rhythm, a chromatic Tuner, Falling Notes, Free Practice with a recorder, and a Fingering Explorer.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/tunes.webp" alt="Tune library with filters by difficulty and whistle key" /></td>
+    <td><img src="docs/screenshots/progress.webp" alt="Progress: level, streak, practice calendar, note mastery" /></td>
+  </tr>
+  <tr>
+    <td><b>33 built-in tunes.</b> Search them, filter by difficulty or whistle key, and preview any tune right from its card.</td>
+    <td><b>See yourself improve.</b> XP and levels, streaks, a 12-week calendar, mastery for every note, and Smart Practice, which drills the note you miss most.</td>
+  </tr>
+</table>
+
+### On your phone
+
+<p align="center">
+  <img src="docs/screenshots/mobile-home.webp" width="30%" alt="Home on a phone" />
+  &nbsp;
+  <img src="docs/screenshots/mobile-player.webp" width="30%" alt="Tune player on a phone" />
+  &nbsp;
+  <img src="docs/screenshots/mobile-fingering.webp" width="30%" alt="Fingering explorer on a phone" />
+</p>
+
+## Features
+
+- **Pitch detection**: YIN runs in a Web Worker and is fed by an AudioWorklet. An adaptive noise gate filters out cuts and taps, and a pitch jump has to hold across frames (so octave glitches don't count). Calibration covers A4 and your whistle's own tuning.
+- **Scoring**: Notes, Rhythm, Timing and Overall scores, plus the wrong notes, where you lost your place and which phrases to repeat (looping them takes one click).
+- **Synth voice**: a breathy whistle voice with tonguing, "ru", slurs and every ornament. A trill flicks at a fixed fast rate, so a longer note gets more flicks.
+- **Any whistle**: low D, D, C, B♭ and G whistles. Fingerings are stored relative to the tonic.
+- **Onboarding**: how to hold the whistle, breath and fingers, then your level, a daily goal and the microphone.
+- **Progress**: daily goal, a 10-minute Daily Practice, achievements and tune progress.
+- **UI**: EN/RU, light and dark themes, reduced motion, keyboard shortcuts, screen-reader labels, and states that never rely on colour alone.
+
+## Run it
 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # vitest: pitch detection, scoring, notation, tab recognition
+npm test           # vitest: pitch detection, scoring, notation, tab recognition, editing
 npm run build      # typecheck + production bundle
 ```
 
 The microphone needs a secure context: `localhost` or HTTPS.
 
-## Features
+### Android
 
-- **Onboarding**: what the whistle is, how to hold it, fingers and breath, then level, daily goal and microphone. You can skip straight to the tunes.
-- **Course**: 4 levels and 19 lessons (first notes → real tunes → second octave → ornaments). Each lesson has one goal and is made of small steps: explanation, fingering, note, long tone, listening, rhythm, sequence, melody and free play.
-- **Interactive whistle**: tap holes to cover them (covered, half-holed or open), hear the note, see the next fingering and which fingers to move.
-- **Pitch detection**: YIN in a Web Worker fed by an AudioWorklet. It uses an adaptive noise gate, confirms pitch jumps across frames (so octave glitches don't count), and filters out cuts and taps. Calibration covers A4 and the whistle's own tuning offset.
-- **Trainers**: Play the Note (adaptive), Sequences (length grows with success), Ear Training, Rhythm (perfect, early, late or missed per beat), Tuner, Falling Notes game, and Free Practice (metronome, pitch graph, recorder).
-- **Tunes**: 7 built-in tunes, including *Shepard's Flute* with ornaments, articulation, a second whistle part and rubato timing taken from the reference video. Seven learning steps take you from Listen to Play on your own.
-- **Player**: a big "now / next" stage you can read from a music stand; sections, loop, tempo, count-in, metronome, guide melody on/off, second voice. Tap the stage or press **Space** to play again from the marker.
-- **Scoring**: Notes, Rhythm, Timing and Overall scores; lists wrong notes, where you lost your place and which phrases to repeat (with one-click looping).
-- **Import**: ABC notation (thesession.org), MIDI (track choice, top-note reduction, quantisation, transposition to fit the whistle, auto-sections), **sheet music as SVG** (read exactly from the vector file) and **tab images** (dot-style tabs recognised in the browser). The visual editor has a text mode, undo, and Space / a second tap on the selected note to play from the marker.
-- **Progress**: XP and levels, streak, achievements, per-note mastery, tune progress, a practice calendar, a 10-minute Daily Practice, and Smart Practice ("you often miss G → 60 seconds of G").
-- **UI**: EN/RU, light and dark themes, reduced motion, keyboard shortcuts, screen-reader labels, and states that never rely on colour alone.
+The Android app is a [Capacitor](https://capacitorjs.com) shell around the same build (`android/`, app id `io.github.spacecadet0.tinwhistler`). It needs Android 7.0 or newer.
+
+```bash
+npm run build && npx cap sync android
+cd android && ./gradlew assembleRelease   # → app/build/outputs/apk/release/app-release.apk
+```
+
+You need the Android SDK and JDK 21, both of which ship with Android Studio. The release build is signed with the local debug key, so the APK can be installed directly (allow installs from unknown sources). Use your own upload key before publishing to a store.
 
 ## Architecture
 
@@ -71,7 +142,7 @@ t:D*0.5 -:E^C4*0.25 | r:A+! -:C[h00000]
 | `-:` | slur |
 | `+` | second octave |
 | `!` | sharp stop ("i") |
-| `^C4` | cut with a ring on hole 4 (`B` bounce, `S` slide, `R` roll; `~3` sets the slide span) |
+| `^C4` | cut with a ring on hole 4 (`B` bounce, `S` slide, `R` roll, `T` trill; `~3` sets the slide span) |
 | `[h00000]` | explicit fingering (`1` covered, `0` open, `h` half) |
 | `*0.5` | length in beats |
 | `\|` | new phrase |
@@ -81,7 +152,7 @@ Users can also import ABC, MIDI or images, or build a tune in the editor.
 
 ## Notes and limitations
 
-- Sheet music is read from **SVG exports** (MuseScore: File → Export → SVG, one file per page). Photos and PDFs of printed music aren't recognised directly: open them in MuseScore or Audiveris first, then export SVG. Tempo text isn't read, so set the BPM after importing.
+- Sheet music is read exactly from **SVG exports** (MuseScore: File → Export → SVG, one file per page). JPG/PNG scores are recognised for pitch only: every note gets the same length, so fix the rhythm in the editor. Tempo text isn't read, so set the BPM after importing.
 
 - *Shepard's Flute* is Bill Brown's Lineage II theme, transcribed from the tab screenshots in `reference/` (tab by Hound4Sound). It is bundled for personal practice. Remove it before distributing the app.
 - Tab-image recognition targets dot-style whistle tabs. On the reference screenshots it gets pitch classes ≥ 97% right. The "+" octave marks are less reliable on photographic backgrounds, and bracketed second voices are imported as extra phrases. Fix these in the editor.
