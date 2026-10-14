@@ -173,7 +173,8 @@ export class WhistleVoice {
       else amp.setTargetAtTime(level, t + to, 0.04)
     }
 
-    if (duration > 0.65) this.vibrato.gain.setTargetAtTime(VIBRATO_CENTS, t + 0.35, 0.18)
+    // no vibrato over a trill: the finger is busy flicking
+    if (duration > 0.65 && n.ornament?.type !== 'trill') this.vibrato.gain.setTargetAtTime(VIBRATO_CENTS, t + 0.35, 0.18)
     if (n.ornament?.type === 'slide') this.vibrato.gain.setTargetAtTime(0, t + segments[1].at - 0.05, 0.03)
 
     if (n.stop) {

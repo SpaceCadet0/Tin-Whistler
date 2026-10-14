@@ -10,19 +10,19 @@ import { getWhistle } from './whistles'
  *   art     = "t" (tongue) | "r" ("ru") | "-" (slur)
  *   pitch   = "z" (rest) | A-G with optional "#" / "b"
  *   "+"     = second register,  "!" = sharp stop ("i")
- *   orn     = C (cut) | B (bounce) | S (slide) | R (roll)
+ *   orn     = C (cut) | B (bounce) | S (slide) | R (roll) | T (trill)
  *   "|" separates phrases, "/" starts a new display line.
  *
  * Example: `t:D*0.5 -:E^C4*0.25 | t:A+! -:B+*2`
  */
 
 const TOKEN =
-  /^(?:([tr-]):)?(z|[A-G](?:#|b)?)(\+)?(!)?(?:\^([CBSR])(\d)?(?:~(\d+))?)?(?:\[([01h]{6})\])?(?:\*([\d./]+))?(!)?$/
+  /^(?:([tr-]):)?(z|[A-G](?:#|b)?)(\+)?(!)?(?:\^([CBSRT])(\d)?(?:~(\d+))?)?(?:\[([01h]{6})\])?(?:\*([\d./]+))?(!)?$/
 
 const ATTACKS: Record<string, Attack> = { t: 'tongue', r: 'ru', '-': 'slur' }
 const ATTACK_CODES: Record<Attack, string> = { tongue: 't', ru: 'r', slur: '-' }
-const ORNAMENTS: Record<string, OrnamentType> = { C: 'cut', B: 'bounce', S: 'slide', R: 'roll' }
-const ORNAMENT_CODES: Record<OrnamentType, string> = { cut: 'C', bounce: 'B', slide: 'S', roll: 'R' }
+const ORNAMENTS: Record<string, OrnamentType> = { C: 'cut', B: 'bounce', S: 'slide', R: 'roll', T: 'trill' }
+const ORNAMENT_CODES: Record<OrnamentType, string> = { cut: 'C', bounce: 'B', slide: 'S', roll: 'R', trill: 'T' }
 const PITCH_CLASS: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }
 
 function parseBeats(s: string | undefined): number {

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { parseAbc } from '../../import/abc'
 import { readMidi, type MidiImport } from '../../import/midi'
 import { isNotationSvg, mergeScorePages, parseNotationSvg } from '../../import/notationSvg'
@@ -7,11 +7,12 @@ import { tuneFromNotationImages, type NotationImageResult } from '../../import/n
 import { recognizeImageFile, recognizeNotationFile } from '../../import/recognizeFile'
 import { sectionFromRecognition } from '../../import/tabImage'
 import { useT } from '../../i18n'
+import { toast } from '../../lib/toast'
 import { usedNotes } from '../../music/tune'
 import type { Tune } from '../../music/types'
 import { useProgress } from '../../state/progress'
 import { useSettings } from '../../state/settings'
-import { useTuneLibrary } from '../../state/tunes'
+import { useTune, useTuneLibrary } from '../../state/tunes'
 import { Icon } from '../../ui/Icon'
 import { Button, Card, Chip, cn, PageHeader, Segmented } from '../../ui/primitives'
 import { TabView } from '../../ui/whistle/TabView'
@@ -58,7 +59,12 @@ function FileDrop({ accept, multiple, onFiles, label, icon }: { accept: string; 
 export default function TuneImport() {
   const { t } = useT()
   const navigate = useNavigate()
-  const whistleId = useSettings((s) => s.whistleId)
+  // /tunes/:tuneId/add-section: the same importers, appending sections to an existing tune
+  const { tuneId } = useParams()
+  const target = useTune(tuneId)
+  const settingsWhistle = useSettings((s) => s.whistleId)
+  // recognise in the target's key, so tabs read from an image keep their fingerings
+  const whistleId = target?.whistle ?? settingsWhistle
   const save = useTuneLibrary((s) => s.save)
   const recordImport = useProgress((s) => s.recordImport)
   const [mode, setMode] = useState<Mode>('abc')
@@ -212,6 +218,17 @@ export default function TuneImport() {
     void save(tn).then((ok) => ok && navigate(`/tunes/${tn.id}/edit`))
   }
 
+  /** Append the imported sections to the target tune, renumbered after its own. */
+  const append = async () => {
+    if (!tune || !target) return
+    const stamp = Date.now().toString(36)
+    const added = tune.sections.map((s, i) => ({ ...s, id: `s${stamp}${i}`, name: `${t('import.section')} ${target.sections.length + i + 1}` }))
+    if (!(await save({ ...target, sections: [...target.sections, ...added] }))) return
+    recordImport()
+    toast({ kind: 'info', title: t('import.sectionsAdded', { n: added.length }) })
+    navigate(`/tunes/${target.id}/edit?section=${target.sections.length}`)
+  }
+
   const commit = async (edit: boolean) => {
     if (!tune) return
     if (!(await save(tune))) return
@@ -221,7 +238,11 @@ export default function TuneImport() {
 
   return (
     <div>
-      <PageHeader back="/tunes" title={t('import.title')} subtitle={t('import.subtitle')} />
+      <PageHeader
+        back={target ? `/tunes/${target.id}/edit` : '/tunes'}
+        title={target ? t('import.addSectionTitle') : t('import.title')}
+        subtitle={target ? t('import.addSectionSubtitle', { title: target.title }) : t('import.subtitle')}
+      />
       <div className="mb-6">
         <Segmented
           label={t('import.format')}
@@ -237,7 +258,8 @@ export default function TuneImport() {
             { value: 'midi', label: 'MIDI' },
             { value: 'notation', label: t('import.notation') },
             { value: 'image', label: t('import.image') },
-            { value: 'blank', label: t('import.blank') },
+            // an empty section is one click in the editor itself
+            ...(target ? [] : [{ value: 'blank' as const, label: t('import.blank') }]),
           ]}
         />
       </div>
@@ -389,14 +411,20 @@ export default function TuneImport() {
                   </div>
                 ))}
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Button icon="check" onClick={() => commit(false)}>
-                  {t('import.save')}
+              {target ? (
+                <Button icon="plus" onClick={append} className="self-start">
+                  {t('import.appendSections', { n: tune.sections.length })}
                 </Button>
-                <Button variant="secondary" icon="edit" onClick={() => commit(true)}>
-                  {t('import.saveEdit')}
-                </Button>
-              </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  <Button icon="check" onClick={() => commit(false)}>
+                    {t('import.save')}
+                  </Button>
+                  <Button variant="secondary" icon="edit" onClick={() => commit(true)}>
+                    {t('import.saveEdit')}
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </Card>

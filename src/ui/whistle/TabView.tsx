@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import { useT } from '../../i18n'
 import { noteFingering } from '../../music/ornaments'
 import type { Attack, Tune, TuneNote, TuneSection } from '../../music/types'
@@ -7,7 +7,7 @@ import { cn } from '../primitives'
 import { FingeringColumn, type ColumnState } from './FingeringColumn'
 
 const ATTACK_LABEL: Record<Attack, string> = { tongue: 't', ru: 'r', slur: '-' }
-const ORN_LETTER = { cut: 'C', bounce: 'B', slide: 'S', roll: 'R' } as const
+const ORN_LETTER = { cut: 'C', bounce: 'B', slide: 'S', roll: 'R', trill: 'tr' } as const
 
 export function articulationLabel(n: TuneNote): string {
   return (n.attack ? ATTACK_LABEL[n.attack] : '') + (n.stop ? 'i' : '')
@@ -23,7 +23,12 @@ interface TabViewProps {
   /** Per-note verdicts after a run. */
   verdicts?: Record<number, 'right' | 'wrong'>
   loop?: { from: number; to: number } | null
-  onSelect?: (index: number) => void
+  /** `extend` = shift-click: grow the selection to this note. */
+  onSelect?: (index: number, extend: boolean) => void
+  /** Selected columns (editor), highlighted together and dragged together. */
+  range?: [number, number] | null
+  /** Drag and drop of columns: `target` is the gap to drop into (0 … count), `dragged` the grabbed note. */
+  onMove?: (target: number, dragged: number) => void
   showNames?: boolean
   showSecondVoice?: boolean
   dot?: number
@@ -38,12 +43,22 @@ export const TabView = memo(function TabView({
   verdicts,
   loop,
   onSelect,
+  range,
+  onMove,
   showNames = true,
   showSecondVoice,
   dot = 15,
 }: TabViewProps) {
   const { t } = useT()
   const currentRef = useRef<HTMLButtonElement | null>(null)
+  // drag and drop: the grabbed column and the gap under the pointer
+  const [dragged, setDragged] = useState<number | null>(null)
+  const [dropGap, setDropGap] = useState<number | null>(null)
+  const count = section.phrases.reduce((n, p) => n + p.length, 0)
+  const endDrag = () => {
+    setDragged(null)
+    setDropGap(null)
+  }
 
   // follow the playhead, but never jump the page on first render
   const mounted = useRef(false)
@@ -97,7 +112,36 @@ export const TabView = memo(function TabView({
         key={idx}
         ref={isCurrent ? (currentRef as React.Ref<HTMLButtonElement>) : undefined}
         type={onSelect ? 'button' : undefined}
-        onClick={onSelect ? () => onSelect(idx) : undefined}
+        onClick={onSelect ? (e: React.MouseEvent) => onSelect(idx, e.shiftKey) : undefined}
+        draggable={onMove ? true : undefined}
+        onDragStart={
+          onMove
+            ? (e: React.DragEvent) => {
+                e.dataTransfer.effectAllowed = 'move'
+                e.dataTransfer.setData('text/plain', String(idx))
+                setDragged(idx)
+              }
+            : undefined
+        }
+        onDragOver={
+          onMove && dragged != null
+            ? (e: React.DragEvent) => {
+                e.preventDefault()
+                const r = e.currentTarget.getBoundingClientRect()
+                setDropGap(e.clientX < r.left + r.width / 2 ? idx : idx + 1)
+              }
+            : undefined
+        }
+        onDrop={
+          onMove
+            ? (e: React.DragEvent) => {
+                e.preventDefault()
+                if (dragged != null && dropGap != null) onMove(dropGap, dragged)
+                endDrag()
+              }
+            : undefined
+        }
+        onDragEnd={onMove ? endDrag : undefined}
         aria-label={onSelect ? aria : undefined}
         aria-current={isCurrent ? 'step' : undefined}
         className={cn(
@@ -105,6 +149,12 @@ export const TabView = memo(function TabView({
           isCurrent && 'bg-moss-soft',
           !isCurrent && inLoop && 'bg-brass-soft/60',
           selected === idx && 'ring-2 ring-brass',
+          range && range[1] > range[0] && idx >= range[0] && idx <= range[1] && 'bg-brass-soft',
+          dragged != null && range && idx >= range[0] && idx <= range[1] && 'opacity-50',
+          // insertion marker while dragging: a bar on the left of the gap's note (right of the last)
+          dropGap === idx && 'shadow-[inset_3px_0_0_var(--c-brass)]',
+          dropGap === count && idx === count - 1 && 'shadow-[inset_-3px_0_0_var(--c-brass)]',
+          onMove && 'cursor-grab active:cursor-grabbing',
           onSelect && 'hover:bg-surface-2 focus-visible:bg-surface-2',
         )}
       >

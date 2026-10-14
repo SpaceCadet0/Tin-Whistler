@@ -3,12 +3,16 @@ import { Link } from 'react-router-dom'
 import { useT } from '../../i18n'
 import { tuneDurationSec, usedNotes } from '../../music/tune'
 import type { Tune } from '../../music/types'
+import { getWhistle, WHISTLE_KEYS } from '../../music/whistles'
 import { useProgress } from '../../state/progress'
 import { useAllTunes } from '../../state/tunes'
 import { Icon } from '../../ui/Icon'
 import { ButtonLink, Chip, cn, Difficulty, EmptyState, PageHeader, ProgressBar } from '../../ui/primitives'
 import { Stagger } from '../../ui/motion'
 import { stopPreview, togglePreview, usePreview } from './preview'
+
+/** "D whistle" → "D", "Low D whistle" → "Low D". */
+const whistleShort = (id: string) => getWhistle(id).label.replace(/\s*whistle$/i, '')
 
 function TuneCard({ tune }: { tune: Tune }) {
   const { t } = useT()
@@ -35,6 +39,10 @@ function TuneCard({ tune }: { tune: Tune }) {
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-soft">
         <Difficulty value={tune.difficulty} label={t('tune.difficulty')} />
         <span>{t(`tuneType.${tune.type}`)}</span>
+        <span className="inline-flex items-center gap-1" title={t('editor.whistle')}>
+          <Icon name="whistle" size={14} />
+          {whistleShort(tune.whistle)}
+        </span>
         <span className="tabular">{tune.bpm} BPM</span>
         <span>
           {tune.sections.length} {t('tune.sectionsShort')} · ~{mins} {t('common.min')}
@@ -95,9 +103,13 @@ export default function TuneLibrary() {
   const tunes = useAllTunes()
   const [query, setQuery] = useState('')
   const [level, setLevel] = useState<'all' | 'easy' | 'mid' | 'hard'>('all')
+  const [whistle, setWhistle] = useState('all')
   useEffect(() => stopPreview, [])
+  // only offer keys that some tune is written for
+  const whistleCounts = WHISTLE_KEYS.map((w) => ({ ...w, count: tunes.filter((x) => x.whistle === w.id).length })).filter((w) => w.count > 0)
   const filtered = tunes.filter((x) => {
     if (query && !`${x.title} ${x.composer ?? ''} ${x.type}`.toLowerCase().includes(query.toLowerCase())) return false
+    if (whistle !== 'all' && x.whistle !== whistle) return false
     if (level === 'easy') return x.difficulty <= 1
     if (level === 'mid') return x.difficulty >= 2 && x.difficulty <= 3
     if (level === 'hard') return x.difficulty >= 4
@@ -141,6 +153,22 @@ export default function TuneLibrary() {
             </button>
           ))}
         </div>
+        <label className="relative inline-flex items-center">
+          <span className="sr-only">{t('editor.whistle')}</span>
+          <Icon name="whistle" size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-soft" />
+          <select
+            value={whistle}
+            onChange={(e) => setWhistle(e.target.value)}
+            className={cn('h-10 cursor-pointer rounded-2xl border-0 pr-8 pl-9 text-sm font-semibold transition', whistle === 'all' ? 'bg-surface-2 text-ink-soft' : 'bg-ink text-bg')}
+          >
+            <option value="all">{t('tunes.allWhistles')}</option>
+            {whistleCounts.map((w) => (
+              <option key={w.id} value={w.id}>
+                {whistleShort(w.id)} · {w.count}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       <Stagger as="div" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">

@@ -188,9 +188,34 @@ function classifyOrnament(b: Blob, mask: Mask, W: number): OrnamentType {
   return stemRows / h > 0.85 ? 'bounce' : 'slide'
 }
 
-export function recognizeTab(img: RGBAImage, whistleId = 'D'): RecognitionResult {
+/**
+ * Dark-theme images (light dots and text on a dark background) are inverted, so the rest of the
+ * pipeline always sees dark marks on light paper. Detected from the median brightness.
+ */
+export function withLightBackground(img: RGBAImage): { image: RGBAImage; inverted: boolean } {
+  const { width: W, height: H, data } = img
+  const step = Math.max(1, Math.floor((W * H) / 20000))
+  const samples: number[] = []
+  for (let i = 0; i < W * H; i += step) {
+    const p = i * 4
+    samples.push(0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2])
+  }
+  samples.sort((a, b) => a - b)
+  if (samples[samples.length >> 1] >= 100) return { image: img, inverted: false }
+  const out = new Uint8ClampedArray(data.length)
+  for (let p = 0; p < data.length; p += 4) {
+    out[p] = 255 - data[p]
+    out[p + 1] = 255 - data[p + 1]
+    out[p + 2] = 255 - data[p + 2]
+    out[p + 3] = data[p + 3]
+  }
+  return { image: { width: W, height: H, data: out }, inverted: true }
+}
+
+export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionResult {
+  const { image: img, inverted } = withLightBackground(source)
   const { width: W, height: H } = img
-  const warnings: string[] = []
+  const warnings: string[] = inverted ? ['Dark background detected: colours were inverted before reading.'] : []
   const { ink, inkLight, red, redLetters, grey } = makeMasks(img)
 
   // 1) filled dots → size
@@ -221,6 +246,8 @@ export function recognizeTab(img: RGBAImage, whistleId = 'D'): RecognitionResult
 
   const redBlobs = components(redLetters, W, H, 3)
   const greyBlobs = components(grey, W, H, 3)
+  let inkLetters: Blob[] | undefined
+  let inkLetterMask: Mask | undefined
 
   const systems: RecognizedSystem[] = valid.map((holeY) => {
     const top = holeY[0] - D
@@ -235,6 +262,27 @@ export function recognizeTab(img: RGBAImage, whistleId = 'D'): RecognitionResult
       for (let d = -k; d <= k; d++) s += prof[Math.min(W - 1, Math.max(0, x + d))]
       smooth[x] = s / (2 * k + 1)
     }
+    /**
+     * The profile peak of a mostly-open column sits on one edge of the rings, not their middle,
+     * and an off-centre sample makes open holes look half covered. Re-centre on the holes: the
+     * middle of the ink span through each hole's centre row, median over the six rows.
+     */
+    const holeCentre = (x0: number) => {
+      // the x where the six holes look most left-right symmetric (rings and dots alike)
+      const r = D * 0.62
+      const asymmetry = (cx: number) =>
+        holeY.reduce((sum, y) => sum + Math.abs(fraction(inkLight, W, H, cx, y, r, (dx) => dx < 0) - fraction(inkLight, W, H, cx, y, r, (dx) => dx > 0)), 0)
+      let best = x0
+      let bestScore = asymmetry(x0)
+      for (let dx = -D * 0.6; dx <= D * 0.6; dx += 0.5) {
+        const score = asymmetry(x0 + dx)
+        if (score < bestScore - 1e-9) {
+          bestScore = score
+          best = x0 + dx
+        }
+      }
+      return best
+    }
     const minH = D * 1.2
     const peaks: number[] = []
     for (let x = 1; x < W - 1; x++) {
@@ -246,7 +294,7 @@ export function recognizeTab(img: RGBAImage, whistleId = 'D'): RecognitionResult
       }
     }
     // a real column has hole outlines on most of its six rows
-    const columnsX = peaks.filter((x) => holeY.filter((y) => fraction(inkLight, W, H, x, y, D * 0.55) > 0.12).length >= 5)
+    const columnsX = peaks.filter((x) => holeY.filter((y) => fraction(inkLight, W, H, x, y, D * 0.55) > 0.12).length >= 5).map((x) => holeCentre(x))
 
     const columns: RecognizedColumn[] = columnsX.map((x) => {
       let conf = 1
@@ -315,10 +363,44 @@ export function recognizeTab(img: RGBAImage, whistleId = 'D'): RecognitionResult
         if (ci >= 0) columns[ci].ornament = classifyOrnament(b, redLetters, W)
       }
     }
-    const below = redBlobs.filter((b) => b.cy > holeY[5] + D * 1.2 && b.cy < holeY[5] + D * 3.3 && b.y1 - b.y0 < D * 1.8)
+    const inArticulationZone = (b: Blob) => b.cy > holeY[5] + D * 1.2 && b.cy < holeY[5] + D * 3.3 && b.y1 - b.y0 < D * 1.8
+    // articulation is usually red; one-colour tabs (e.g. dark theme) write it in the dot colour
+    let below = redBlobs.filter(inArticulationZone)
+    let letterMask = redLetters
+    if (!below.length) {
+      inkLetterMask ??= dilate(ink, W, H)
+      inkLetters ??= components(inkLetterMask, W, H, 3)
+      below = inkLetters.filter(inArticulationZone)
+      // measure letter tops on the lighter mask: the thin tip of a small "t" falls below the ink threshold
+      letterMask = inkLight
+    }
+    /** "tu" and "ru" written as one shape: the "t" rises above the x-height, the "r" doesn't. */
+    const risesOnLeft = (b: Blob) => {
+      const w = b.x1 - b.x0 + 1
+      const topOf = (xa: number, xb: number) => {
+        for (let y = b.y0; y <= b.y1; y++) for (let x = xa; x <= xb; x++) if (letterMask[y * W + x]) return y
+        return b.y1
+      }
+      return topOf(b.x1 - Math.round(w * 0.35), b.x1) - topOf(b.x0, b.x0 + Math.round(w * 0.35)) > (b.y1 - b.y0 + 1) * 0.12
+    }
     const isDot = (b: Blob) => b.y1 - b.y0 + 1 < D * 0.4 && b.x1 - b.x0 + 1 < D * 0.4
     const dotsBelow = below.filter(isDot)
-    const letters = below.filter((b) => !isDot(b))
+    const singles = below.filter((b) => !isDot(b))
+    // one-colour text: "t" and "u" may come out as separate shapes; join the letters under each
+    // column so "tu" vs "ru" is judged on the whole syllable (dashes stay on their own)
+    const isDash = (b: Blob) => (b.x1 - b.x0 + 1) / (b.y1 - b.y0 + 1) > 1.6 || b.y1 - b.y0 + 1 < D * 0.42
+    const joinUnderColumns = (shapes: Blob[]): Blob[] => {
+      const groups = new Map<number, Blob[]>()
+      for (const b of shapes) groups.set(colAt(b.cx), [...(groups.get(colAt(b.cx)) ?? []), b])
+      return [...groups.values()].map((g) => {
+        const x0 = Math.min(...g.map((b) => b.x0))
+        const x1 = Math.max(...g.map((b) => b.x1))
+        const y0 = Math.min(...g.map((b) => b.y0))
+        const y1 = Math.max(...g.map((b) => b.y1))
+        return { x0, x1, y0, y1, n: g.reduce((a, b) => a + b.n, 0), cx: (x0 + x1) / 2, cy: (y0 + y1) / 2 }
+      })
+    }
+    const letters = letterMask === redLetters ? singles : [...singles.filter(isDash), ...joinUnderColumns(singles.filter((b) => !isDash(b)))]
     const dashCols = new Set<number>()
     for (const b of letters) {
       const w = b.x1 - b.x0 + 1
@@ -335,8 +417,10 @@ export function recognizeTab(img: RGBAImage, whistleId = 'D'): RecognitionResult
       if (hasDot) {
         col.stop = true
         col.attack ??= 'slur'
-      } else if (h > D * 1.05) col.attack = 'tongue'
-      else col.attack = 'ru'
+      } else if (w / h > 0.9) col.attack = risesOnLeft(b) ? 'tongue' : 'ru'
+      else if (h > D * 1.05) col.attack = 'tongue'
+      // "tu" can split into "t" and "u": the short "u" must not turn a tongued note into "ru"
+      else if (col.attack !== 'tongue') col.attack = 'ru'
     }
     // "-i" whose dot got lost reads as "- r": a short letter next to a dash is the "i"
     for (const ci of dashCols) {

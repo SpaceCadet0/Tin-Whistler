@@ -40,7 +40,7 @@ export interface WhistleKey {
 /** How a note starts (tab articulation). */
 export type Attack = 'tongue' | 'ru' | 'slur'
 
-export type OrnamentType = 'cut' | 'bounce' | 'slide' | 'roll'
+export type OrnamentType = 'cut' | 'bounce' | 'slide' | 'roll' | 'trill'
 
 export interface Ornament {
   type: OrnamentType

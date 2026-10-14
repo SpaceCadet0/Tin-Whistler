@@ -29,6 +29,22 @@ describe('tab image recognition', () => {
     expect(ringHits).toBeGreaterThanOrEqual(0.9)
   })
 
+  it('reads dark-theme tabs (light dots on a dark background) like the light originals', () => {
+    const png = PNG.sync.read(readFileSync(new URL('./__fixtures__/shepard-1.png', import.meta.url)))
+    const dark = new Uint8ClampedArray(png.data)
+    for (let p = 0; p < dark.length; p += 4) {
+      dark[p] = 255 - dark[p]
+      dark[p + 1] = 255 - dark[p + 1]
+      dark[p + 2] = 255 - dark[p + 2]
+    }
+    const light = load(1)
+    const inverted = recognizeTab({ width: png.width, height: png.height, data: dark })
+    expect(inverted.warnings[0]).toMatch(/Dark background/)
+    const pitches = (r: typeof light) => r.systems.flatMap((s) => s.columns.map((c) => c.pitch))
+    expect(pitches(inverted)).toEqual(pitches(light))
+    expect(inverted.systems.map((s) => s.phraseBreaks)).toEqual(light.systems.map((s) => s.phraseBreaks))
+  })
+
   it('finds the upper-voice columns in section 4 as extra phrases', () => {
     const r = load(4)
     expect(r.systems).toHaveLength(2)

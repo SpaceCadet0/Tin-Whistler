@@ -2,6 +2,7 @@ import { useId, type KeyboardEvent } from 'react'
 import { useT } from '../../i18n'
 import type { Fingering, HoleState } from '../../music/types'
 import { AnimatePresence, motion } from '../motion'
+import { WHISTLE_H, WHISTLE_W } from './dimensions'
 
 export const FINGER_KEYS = ['L1', 'L2', 'L3', 'R1', 'R2', 'R3'] as const
 
@@ -44,8 +45,8 @@ export function WhistleView({
 }: WhistleViewProps) {
   const { t } = useT()
   const uid = useId().replace(/:/g, '')
-  const W = 140
-  const H = 600
+  const W = WHISTLE_W
+  const H = WHISTLE_H
   const cx = 70
   const r = 19
   const handle = (i: number) => interactive && onToggle?.(i)

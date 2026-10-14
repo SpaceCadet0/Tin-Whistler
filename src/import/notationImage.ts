@@ -1,7 +1,7 @@
 import type { Phrase, Tune, TuneNote, TuneSection } from '../music/types'
 import { estimateDifficulty } from './abc'
 import { bestFit, transposeNotes } from './fit'
-import type { RGBAImage } from './tabImage'
+import { withLightBackground, type RGBAImage } from './tabImage'
 
 /**
  * Standard notation from a raster image (a JPG/PNG scan, screenshot or photo of sheet music).
@@ -198,9 +198,11 @@ export function pitchOf(dia: number, key: number, accidental?: number): number {
   return 12 * (octave + 1) + LETTER_SEMI[letter] + (accidental ?? keyAccidentals(key)[letter])
 }
 
-export function recognizeNotation(img: RGBAImage): NotationImageResult {
+export function recognizeNotation(source: RGBAImage): NotationImageResult {
+  // dark-theme scores (light notes on a dark background) are read inverted
+  const { image: img, inverted } = withLightBackground(source)
   const { width: W, height: H } = img
-  const warnings: string[] = []
+  const warnings: string[] = inverted ? ['Dark background detected: colours were inverted before reading.'] : []
   const ink = inkMask(img)
 
   // --- staves: rows with a lot of ink, grouped in fives with an even spacing -------------------

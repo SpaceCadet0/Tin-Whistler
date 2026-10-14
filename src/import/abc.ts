@@ -118,6 +118,7 @@ export function parseAbc(text: string, whistleId = 'D'): AbcParseResult {
   let barAcc: Record<string, number> = {}
   let pendingGrace = false
   let pendingRoll = false
+  let pendingTrill = false
   let pendingStaccato = false
   let inSlur = 0
   let slurFirst = false
@@ -159,6 +160,7 @@ export function parseAbc(text: string, whistleId = 'D'): AbcParseResult {
           const deco = s.slice(i + 1, end)
           if (deco === 'roll' || deco === 'turn') pendingRoll = true
           if (deco === 'staccato') pendingStaccato = true
+          if (deco === 'trill') pendingTrill = true
           i = end + 1
           continue
         }
@@ -311,9 +313,10 @@ export function parseAbc(text: string, whistleId = 'D'): AbcParseResult {
         note.attack = attack
         if (pendingGrace) note.ornament = { type: 'cut' }
         if (pendingRoll) note.ornament = { type: 'roll' }
+        if (pendingTrill) note.ornament = { type: 'trill' }
         if (pendingStaccato) note.stop = true
       }
-      pendingGrace = pendingRoll = pendingStaccato = false
+      pendingGrace = pendingRoll = pendingTrill = pendingStaccato = false
       target.push(note)
       i = j
     }

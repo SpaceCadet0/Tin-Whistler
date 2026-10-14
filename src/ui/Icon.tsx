@@ -1,4 +1,6 @@
 import {
+  ArrowClockwise,
+  ArrowCounterClockwise,
   ArrowDown,
   ArrowsClockwise,
   ArrowsSplit,
@@ -70,6 +72,8 @@ const ICONS: Record<string, PhosphorIcon> = {
   mic: Microphone,
   micOff: MicrophoneSlash,
   repeat: Repeat,
+  undo: ArrowCounterClockwise,
+  redo: ArrowClockwise,
   back: CaretLeft,
   next: CaretRight,
   check: Check,
@@ -123,9 +127,9 @@ interface IconProps extends Omit<SVGProps<SVGSVGElement>, 'ref'> {
 const SOLID = new Set(['play', 'pause', 'stop', 'record'])
 
 /** The app's own mark: a whistle body with six holes (a simple geometric mark, not an icon). */
-function WhistleMark({ size }: { size: number }) {
+function WhistleMark({ size, className, style }: { size: number; className?: string; style?: React.CSSProperties }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} style={style} aria-hidden="true" focusable="false">
       <rect x="9.5" y="2" width="5" height="20" rx="2.5" fill="currentColor" opacity="0.28" />
       {[7, 9.8, 12.6, 15.4, 18.2].map((y) => (
         <circle key={y} cx="12" cy={y} r="1.15" fill="currentColor" />
@@ -135,7 +139,7 @@ function WhistleMark({ size }: { size: number }) {
 }
 
 export function Icon({ name, size = 22, filled, className, style }: IconProps) {
-  if (name === 'whistle') return <WhistleMark size={size} />
+  if (name === 'whistle') return <WhistleMark size={size} className={className} style={style} />
   const Cmp = ICONS[name] ?? Info
   const weight: IconWeight = filled || SOLID.has(name) ? 'fill' : 'regular'
   return <Cmp size={size} weight={weight} className={className} style={style} aria-hidden="true" focusable="false" />

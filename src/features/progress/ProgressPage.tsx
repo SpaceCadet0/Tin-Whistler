@@ -44,7 +44,7 @@ export default function ProgressPage() {
             <p className="text-sm text-ink-soft">{t('progress.toNext', { n: lvl.next - p.xp })}</p>
           </div>
         </Card>
-        <Card className="grid grid-cols-2 gap-5 lg:col-span-2 xl:grid-cols-4">
+        <Card className="grid grid-cols-2 gap-5 lg:col-span-2 2xl:grid-cols-4">
           <Stat icon="flame" tone="brass" value={streak} label={t('home.streak')} />
           <Stat icon="timer" value={totalMin} label={t('progress.minutes')} />
           <Stat icon="book" value={`${course.done}/${course.total}`} label={t('progress.lessons')} />

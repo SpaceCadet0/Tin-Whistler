@@ -11,6 +11,11 @@ export interface PitchSegment {
 }
 
 export const GRACE_SEC = 0.035
+/**
+ * One open or closed step of a trill: ~9 flicks of the finger per second, a fast, sharp
+ * tremolo. Fixed, so a longer note gets more flicks rather than slower ones.
+ */
+export const TRILL_STEP_SEC = 0.055
 
 /** Fingering + register used to play a pitch (explicit override wins). */
 export function noteFingering(
@@ -31,7 +36,7 @@ export function noteFingering(
  * Falls back to conventional intervals when no hole is given or the flick barely changes pitch.
  */
 export function gracePitch(midi: number, ornament: Ornament, fingering?: Fingering, whistleId = 'D'): number {
-  const fallback = ornament.type === 'bounce' ? midi - 2 : midi + 3
+  const fallback = ornament.type === 'bounce' ? midi - 2 : ornament.type === 'trill' ? midi + 2 : midi + 3
   if (!ornament.hole) return fallback
   const fg = noteFingering(midi, fingering, whistleId)
   if (!fg) return fallback
@@ -93,6 +98,8 @@ export function ornamentSegments(
         { at: start + length, midi: target, glide: true },
       ]
     }
+    case 'trill':
+      return trillSegments(midi, duration, gracePitch(midi, ornament, fingering, whistleId))
     case 'roll': {
       const d1 = duration * 0.28
       const d2 = duration * 0.55
@@ -105,4 +112,19 @@ export function ornamentSegments(
       ]
     }
   }
+}
+
+/**
+ * Trill: the ringed hole is opened and closed over and over at a fixed fast rate
+ * (TRILL_STEP_SEC per step), starting and ending on the main note. Very short notes still
+ * get one flick, squeezed into the note.
+ */
+export function trillSegments(midi: number, duration: number, upper: number): PitchSegment[] {
+  const step = Math.min(TRILL_STEP_SEC, duration / 3)
+  const segments: PitchSegment[] = [{ at: 0, midi }]
+  // flicks at odd steps, back to the main note at even ones; keep a full step on the main note at the end
+  for (let at = step; at + step * 2 <= duration + 1e-9; at += step * 2) {
+    segments.push({ at, midi: upper }, { at: at + step, midi })
+  }
+  return segments
 }

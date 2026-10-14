@@ -5,10 +5,12 @@ import { noteFingering } from '../../../music/ornaments'
 import type { Attack, Fingering, OrnamentType, Register, TuneNote } from '../../../music/types'
 import { fingeringForMidi, midiForFingering, whistleLabel, whistleNotes } from '../../../music/whistles'
 import { Button, cn, Segmented } from '../../../ui/primitives'
+import { whistleWidth } from '../../../ui/whistle/dimensions'
 import { WhistleView } from '../../../ui/whistle/WhistleView'
 
+const WHISTLE_HEIGHT = 250
 const DURATIONS = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4]
-const ORNS: (OrnamentType | 'none')[] = ['none', 'cut', 'bounce', 'slide', 'roll']
+const ORNS: (OrnamentType | 'none')[] = ['none', 'cut', 'bounce', 'slide', 'roll', 'trill']
 
 interface Props {
   note: TuneNote
@@ -16,11 +18,15 @@ interface Props {
   onChange: (n: TuneNote) => void
   onInsert: (after: boolean) => void
   onDelete: () => void
+  /** The note opens a phrase (not the first): the phrase button removes that break. */
+  startsPhrase: boolean
+  /** Its phrase starts a new line: the line button removes that break. */
+  startsLine: boolean
   onBreakPhrase: () => void
   onBreakLine: () => void
 }
 
-export function NoteInspector({ note, whistleId, onChange, onInsert, onDelete, onBreakPhrase, onBreakLine }: Props) {
+export function NoteInspector({ note, whistleId, onChange, onInsert, onDelete, startsPhrase, startsLine, onBreakPhrase, onBreakLine }: Props) {
   const { t } = useT()
   const fg = note.pitch != null ? noteFingering(note.pitch, note.fingering, whistleId) : undefined
   const register: Register = fg?.register ?? 1
@@ -59,9 +65,11 @@ export function NoteInspector({ note, whistleId, onChange, onInsert, onDelete, o
     <div className="flex flex-col gap-5">
       <div className="flex items-start gap-4">
         {fg ? (
-          <WhistleView fingering={fg.fingering} interactive onToggle={toggleHole} ornamentHole={note.ornament?.hole ? note.ornament.hole - 1 : undefined} height={250} showHands={false} label={t('whistle.tapToCover')} />
+          <WhistleView fingering={fg.fingering} interactive onToggle={toggleHole} ornamentHole={note.ornament?.hole ? note.ornament.hole - 1 : undefined} height={WHISTLE_HEIGHT} showHands={false} label={t('whistle.tapToCover')} />
         ) : (
-          <div className="grid h-[250px] w-20 place-items-center rounded-2xl bg-surface-2 text-ink-faint">𝄽</div>
+          <div className="grid shrink-0 place-items-center rounded-2xl bg-surface-2 text-2xl text-ink-faint" style={{ width: whistleWidth(WHISTLE_HEIGHT), height: WHISTLE_HEIGHT }}>
+            𝄽
+          </div>
         )}
         <div className="flex flex-1 flex-col gap-3">
           <p className="font-display text-5xl font-semibold">{note.pitch != null ? whistleLabel(note.pitch, whistleId) : t('tab.rest')}</p>
@@ -170,11 +178,11 @@ export function NoteInspector({ note, whistleId, onChange, onInsert, onDelete, o
         <Button size="sm" variant="secondary" icon="plus" onClick={() => onInsert(true)}>
           {t('editor.insertAfter')}
         </Button>
-        <Button size="sm" variant="secondary" icon="split" onClick={onBreakPhrase}>
-          {t('editor.breakPhrase')}
+        <Button size="sm" variant="secondary" icon={startsPhrase ? 'x' : 'split'} onClick={onBreakPhrase} title={startsPhrase ? t('editor.joinPhraseHint') : t('editor.breakPhraseHint')}>
+          {startsPhrase ? t('editor.joinPhrase') : t('editor.breakPhrase')}
         </Button>
-        <Button size="sm" variant="secondary" icon="menu" onClick={onBreakLine}>
-          {t('editor.breakLine')}
+        <Button size="sm" variant="secondary" icon={startsLine ? 'x' : 'menu'} onClick={onBreakLine}>
+          {startsLine ? t('editor.joinLine') : t('editor.breakLine')}
         </Button>
         <Button size="sm" variant="danger" icon="trash" onClick={onDelete}>
           {t('editor.deleteNote')}

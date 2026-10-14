@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { shepardsFlute } from '../data/tunes/shepardsFlute'
 import { BUILTIN_TUNES } from '../data/tunes'
-import { fingeringOffset, parseFingering } from './fingerings'
-import { gracePitch, ornamentSegments } from './ornaments'
+import { changeWhistle, insertClip, insertNotes, moveRange, removeRange, sliceClip, sliceNotes, transposeKeyName } from './editing'
+import { fingeringOffset, fingeringToString, parseFingering } from './fingerings'
+import { gracePitch, ornamentSegments, TRILL_STEP_SEC } from './ornaments'
 import { nearestNote } from './pitch'
 import { parseTabText, sectionToTabText } from './tabText'
 import { autoSection, flattenTune, sectionNotes, usedNotes } from './tune'
 import { scaleNotes } from './scales'
-import { noteById, whistleLabel } from './whistles'
+import type { TuneSection } from './types'
+import { fingeringForMidi, noteById, whistleLabel } from './whistles'
 
 describe('whistle notes', () => {
   it('maps standard D whistle fingerings', () => {
@@ -115,5 +117,104 @@ describe('auto sectioning', () => {
     const phrases = Array.from({ length: 10 }, () => [{ pitch: 74, beats: 4 }])
     const sections = autoSection(phrases, 8)
     expect(sections).toHaveLength(5)
+  })
+})
+
+describe('changing the whistle key', () => {
+  const fingerings = (tune: typeof shepardsFlute) =>
+    tune.sections.flatMap(sectionNotes).map((n) => (n.pitch == null ? '-' : n.fingering ? fingeringToString(n.fingering) : fingeringForMidi(n.pitch, tune.whistle)?.fingering.join('') ?? '?'))
+
+  it('keeps every fingering and moves the notes by the interval between the whistles', () => {
+    const onC = changeWhistle(shepardsFlute, 'C')
+    expect(onC.whistle).toBe('C')
+    expect(onC.key).toBe('C')
+    expect(fingerings(onC)).toEqual(fingerings(shepardsFlute))
+    const before = shepardsFlute.sections.flatMap(sectionNotes)
+    onC.sections.flatMap(sectionNotes).forEach((n, i) => expect(n.pitch).toBe(before[i].pitch == null ? null : before[i].pitch! - 2))
+    // the second voice moves too, and going back restores the original
+    expect(onC.sections[3].secondVoice!.notes[0].pitch).toBe(shepardsFlute.sections[3].secondVoice!.notes[0].pitch! - 2)
+    expect(changeWhistle(onC, 'D')).toEqual(shepardsFlute)
+  })
+
+  it('renames the key with the same interval', () => {
+    expect(transposeKeyName('D', -2)).toBe('C')
+    expect(transposeKeyName('Em', 5)).toBe('Am')
+    expect(transposeKeyName('Ador', -12)).toBe('Ador')
+    expect(transposeKeyName('G', 3)).toBe('Bb')
+    expect(transposeKeyName('?', 2)).toBe('?')
+  })
+})
+
+describe('copy, paste and drag of tab columns', () => {
+  const sec: TuneSection = { id: 's', name: 'S', phrases: [[74, 76, 78].map((p) => ({ pitch: p, beats: 1 })), [79, 81].map((p) => ({ pitch: p, beats: 1 }))] }
+  const pitches = (s: TuneSection) => s.phrases.flat().map((n) => n.pitch)
+
+  it('copies and pastes a range after the marker', () => {
+    const copied = sliceNotes(sec, 0, 1)
+    expect(copied.map((n) => n.pitch)).toEqual([74, 76])
+    expect(pitches(insertNotes(sec, 4, copied))).toEqual([74, 76, 78, 79, 81, 74, 76])
+    expect(pitches(insertNotes(sec, 0, copied, false))).toEqual([74, 76, 74, 76, 78, 79, 81])
+    expect(pitches(removeRange(sec, 1, 3))).toEqual([74, 81])
+  })
+
+  it('drags a range to another gap, forwards and backwards', () => {
+    const fwd = moveRange(sec, 0, 1, 4)
+    expect(pitches(fwd.section)).toEqual([78, 79, 74, 76, 81])
+    expect([fwd.from, fwd.to]).toEqual([2, 3])
+    const back = moveRange(sec, 3, 4, 0)
+    expect(pitches(back.section)).toEqual([79, 81, 74, 76, 78])
+    expect(pitches(moveRange(sec, 1, 2, 2).section)).toEqual(pitches(sec)) // dropped onto itself
+    expect(pitches(moveRange(sec, 0, 0, 5).section)).toEqual([76, 78, 79, 81, 74])
+  })
+
+  const shape = (s: TuneSection) => s.phrases.map((p) => p.map((n) => n.pitch))
+
+  it('keeps phrase and line breaks inside a copied range', () => {
+    const lined: TuneSection = { ...sec, lineBreaks: [1] }
+    const clip = sliceClip(lined, 1, 3) // 76 78 | 79
+    expect(clip.breaks).toEqual([2])
+    expect(clip.lines).toEqual([2])
+    const pasted = insertClip(lined, 4, clip)
+    expect(shape(pasted)).toEqual([[74, 76, 78], [79, 81, 76, 78], [79]])
+    expect(pasted.lineBreaks).toEqual([1, 2])
+    // a range that starts on a phrase boundary has no break before its first note
+    expect(sliceClip(sec, 3, 4).breaks).toEqual([])
+  })
+
+  it('moves phrase breaks along when dragging', () => {
+    const moved = moveRange(sec, 1, 3, 5) // drag "76 78 | 79" to the end
+    expect(shape(moved.section)).toEqual([[74], [81, 76, 78], [79]])
+  })
+})
+
+describe('trill', () => {
+  const flicks = (duration: number) => ornamentSegments(74, duration, { type: 'trill', hole: 3 }).filter((s) => s.midi !== 74).length
+
+  it('keeps the same fast rate, so longer notes get more flicks', () => {
+    const short = ornamentSegments(74, 0.5, { type: 'trill', hole: 3 })
+    const long = ornamentSegments(74, 2, { type: 'trill', hole: 3 })
+    expect(short[1].at).toBeCloseTo(TRILL_STEP_SEC)
+    expect(long[1].at).toBeCloseTo(TRILL_STEP_SEC)
+    expect(long[2].at - long[1].at).toBeCloseTo(TRILL_STEP_SEC)
+    expect(flicks(2)).toBeGreaterThan(flicks(1))
+    expect(flicks(1)).toBeGreaterThan(flicks(0.5))
+    expect(flicks(2)).toBe(Math.floor((2 / TRILL_STEP_SEC - 1) / 2))
+  })
+
+  it('flicks the ringed hole and ends on the main note', () => {
+    const segs = ornamentSegments(74, 1, { type: 'trill', hole: 3 })
+    // lifting the third finger off a low D sounds higher
+    expect(segs[1].midi).toBe(gracePitch(74, { type: 'trill', hole: 3 }))
+    expect(segs[1].midi).toBeGreaterThan(74)
+    expect(segs[segs.length - 1].midi).toBe(74)
+    expect(segs[segs.length - 1].at).toBeLessThanOrEqual(1 - TRILL_STEP_SEC + 1e-9)
+  })
+
+  it('still trills a very short note and round-trips in the tab text', () => {
+    expect(flicks(0.1)).toBe(1)
+    const text = 't:E^T4*2'
+    const { phrases } = parseTabText(text)
+    expect(phrases[0][0].ornament).toEqual({ type: 'trill', hole: 4 })
+    expect(sectionToTabText({ id: 's', name: 'A', phrases })).toContain('^T4')
   })
 })
