@@ -27,6 +27,8 @@ interface TabViewProps {
   onSelect?: (index: number, extend: boolean) => void
   /** Selected columns (editor), highlighted together and dragged together. */
   range?: [number, number] | null
+  /** Scroll the page to keep the current note in view when it moves (off while the player's stage is watched). */
+  follow?: boolean
   /** Drag and drop of columns: `target` is the gap to drop into (0 … count), `dragged` the grabbed note. */
   onMove?: (target: number, dragged: number) => void
   showNames?: boolean
@@ -45,12 +47,17 @@ export const TabView = memo(function TabView({
   onSelect,
   range,
   onMove,
+  follow = true,
   showNames = true,
   showSecondVoice,
   dot = 15,
 }: TabViewProps) {
   const { t } = useT()
   const currentRef = useRef<HTMLButtonElement | null>(null)
+  const followRef = useRef(follow)
+  useEffect(() => {
+    followRef.current = follow
+  }, [follow])
   // drag and drop: the grabbed column and the gap under the pointer
   const [dragged, setDragged] = useState<number | null>(null)
   const [dropGap, setDropGap] = useState<number | null>(null)
@@ -68,11 +75,12 @@ export const TabView = memo(function TabView({
       return
     }
     const el = currentRef.current
-    if (!el) return
+    if (!el || !followRef.current) return
     const r = el.getBoundingClientRect()
     if (r.top >= 0 && r.bottom <= window.innerHeight) return
     const reduce = document.documentElement.dataset.motion === 'reduce'
     el.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: reduce ? 'auto' : 'smooth' })
+    // only when the note moves: turning follow on must not yank the page back to the playhead
   }, [current])
 
   const lines: number[][] = [[]]

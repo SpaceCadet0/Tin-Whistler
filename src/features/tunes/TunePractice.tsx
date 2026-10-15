@@ -5,6 +5,7 @@ import { scorePerformance, type PerformanceReport } from '../../engine/scoring/p
 import { matchNote } from '../../engine/scoring/noteMatch'
 import { usePitch, usePlayer } from '../../hooks/audio'
 import { useHotkeys } from '../../hooks/useHotkeys'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { sectionName, useT } from '../../i18n'
 import { noteFingering } from '../../music/ornaments'
 import { flattenTune } from '../../music/tune'
@@ -20,6 +21,7 @@ import { Button, Chip, cn, IconButton, Segmented, Toggle } from '../../ui/primit
 import { TabView } from '../../ui/whistle/TabView'
 import { WhistleView } from '../../ui/whistle/WhistleView'
 import { PerformanceReportView } from './PerformanceReportView'
+import { StageStrip } from './StageStrip'
 
 export interface PracticePreset {
   melody: boolean
@@ -53,6 +55,9 @@ const ART_KEY = { tongue: 'art.tongue', ru: 'art.ru', slur: 'art.slur' } as cons
  * metronome, guide audio, second voice, mic scoring. Space or tapping the stage replays from
  * the marker, the core "again from here" loop of learning a tune.
  */
+/** Share of the stage that must be on screen for it to count as "being watched". */
+const STAGE_VISIBLE_SHARE = 0.3
+
 export function TunePractice({ tune, initialSection = 0, preset, compact, onScored }: Props) {
   const { t, lang } = useT()
   const latencyMs = useSettings((s) => s.latencyMs)
@@ -186,6 +191,21 @@ export function TunePractice({ tune, initialSection = 0, preset, compact, onScor
   const live = micOn && curPitch != null ? matchNote(frame, curPitch, 45) : null
   const shownSections = section === 'all' ? tune.sections.map((_, i) => i) : [section]
   const bpm = Math.round(tune.bpm * tempo)
+  // phones while playing: the stage with its tab strip fills the first screen like a music stand and
+  // the options step aside until the tune stops; the full tab stays below to follow along
+  const narrow = useMediaQuery('(max-width: 639px)')
+  const standMode = narrow && playing && !compact
+  // while the stage is on screen the player watches it (and its strip): the tab must not pull the
+  // page away; once scrolled down to the tab, the page follows the playhead line by line
+  const stageRef = useRef<HTMLDivElement>(null)
+  const [stageInView, setStageInView] = useState(true)
+  useEffect(() => {
+    const el = stageRef.current
+    if (!el) return
+    const io = new IntersectionObserver(([e]) => setStageInView(e.intersectionRatio >= STAGE_VISIBLE_SHARE), { threshold: [0, STAGE_VISIBLE_SHARE, 1] })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
 
   return (
     <div className="flex flex-col gap-5">
@@ -226,6 +246,7 @@ export function TunePractice({ tune, initialSection = 0, preset, compact, onScor
 
       {/* stage: tap = again from marker */}
       <div
+        ref={stageRef}
         role="button"
         tabIndex={0}
         aria-label={t('tune.stageAria')}
@@ -233,14 +254,19 @@ export function TunePractice({ tune, initialSection = 0, preset, compact, onScor
         onKeyDown={(e) => e.key === 'Enter' && toggle()}
         className={cn(
           'relative grid cursor-pointer items-center gap-6 overflow-hidden rounded-[2rem] border border-line/70 bg-surface p-5 shadow-soft select-none sm:p-8',
+          standMode && 'min-h-[72dvh] content-center',
           compact ? 'grid-cols-[auto_1fr]' : 'grid-cols-[auto_1fr] lg:grid-cols-[auto_1fr_auto]',
         )}
       >
-        {curFg ? (
-          <WhistleView fingering={curFg.fingering} next={nextFg?.fingering} ornamentHole={cur.note.ornament?.hole ? cur.note.ornament.hole - 1 : undefined} height={compact ? 250 : 340} showHands={!compact} />
-        ) : (
-          <div className="w-24" />
-        )}
+        {/* on a rest the whistle stays (same size, no jump), dimmed, already showing the next fingering */}
+        <WhistleView
+          fingering={(curFg ?? nextFg)?.fingering ?? [0, 0, 0, 0, 0, 0]}
+          next={curFg ? nextFg?.fingering : undefined}
+          ornamentHole={curFg && cur.note.ornament?.hole ? cur.note.ornament.hole - 1 : undefined}
+          height={compact ? 250 : standMode ? 300 : 340}
+          showHands={!compact}
+          className={cn('transition-opacity duration-200', !curFg && 'opacity-40')}
+        />
         <div className="flex flex-col items-center gap-2 text-center">
           {position?.state === 'counting' ? (
             <p className="font-display text-8xl font-semibold text-brass tabular" aria-live="assertive">
@@ -249,7 +275,7 @@ export function TunePractice({ tune, initialSection = 0, preset, compact, onScor
           ) : (
             <>
               <p className="text-xs font-bold tracking-[0.2em] text-ink-soft uppercase">{playing ? t('tune.now') : t('tune.startsHere')}</p>
-              <span className={cn('relative grid overflow-hidden font-display leading-[1.05] font-semibold', compact ? 'h-[4.8rem] text-7xl' : 'h-[6.6rem] text-8xl sm:h-[8.4rem] sm:text-9xl')}>
+              <span className={cn('relative grid overflow-hidden font-display leading-[1.05] font-semibold', compact ? 'h-[4.8rem] text-7xl' : standMode ? 'h-[7.5rem] text-[6.5rem]' : 'h-[6.6rem] text-8xl sm:h-[8.4rem] sm:text-9xl')}>
                 <AnimatePresence initial={false} mode="popLayout">
                   <motion.span
                     key={curIdx}
@@ -268,16 +294,14 @@ export function TunePractice({ tune, initialSection = 0, preset, compact, onScor
                 {cur?.note.attack && <Chip>{t(ART_KEY[cur.note.attack])}</Chip>}
                 {cur?.note.stop && <Chip tone="warn">{t('art.stop')}</Chip>}
               </div>
-              {next?.note.pitch != null && (
-                <p className="text-lg text-ink-soft">
-                  {t('tune.next')} <span className="font-display text-2xl font-semibold text-ink">{whistleLabel(next.note.pitch, tune.whistle)}</span>
-                </p>
-              )}
-              {live && live.status !== 'silent' && (
-                <p className={cn('text-sm font-semibold', live.status === 'correct' ? 'text-good' : 'text-warn')}>
-                  {t('tune.hearing', { note: frame?.note != null ? whistleLabel(frame.note, tune.whistle) : '-' })}
-                </p>
-              )}
+              {/* both lines always keep their height, so the stage never changes size mid-tune */}
+              <p className={cn('h-8 text-lg text-ink-soft', !next && 'invisible')}>
+                {t('tune.next')}{' '}
+                <span className="font-display text-2xl font-semibold text-ink">{next?.note.pitch != null ? whistleLabel(next.note.pitch, tune.whistle) : t('tab.rest')}</span>
+              </p>
+              <p className={cn('h-5 text-sm font-semibold', live?.status === 'correct' ? 'text-good' : 'text-warn')}>
+                {live && live.status !== 'silent' ? t('tune.hearing', { note: frame?.note != null ? whistleLabel(frame.note, tune.whistle) : '-' }) : ''}
+              </p>
             </>
           )}
         </div>
@@ -288,6 +312,7 @@ export function TunePractice({ tune, initialSection = 0, preset, compact, onScor
             <span className="text-sm text-ink-soft">BPM · {Math.round(tempo * 100)}%</span>
           </div>
         )}
+        <StageStrip timeline={timeline} current={curIdx} whistle={tune.whistle} narrow={narrow || !!compact} />
         <span className="pointer-events-none absolute right-4 bottom-3 hidden text-xs text-ink-faint sm:block">{t('tune.tapHint')}</span>
       </div>
 
@@ -304,7 +329,7 @@ export function TunePractice({ tune, initialSection = 0, preset, compact, onScor
       </div>
 
       {/* tempo & options */}
-      <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 rounded-3xl bg-surface-2/60 p-4">
+      <div className={cn('flex flex-wrap items-center justify-center gap-x-6 gap-y-3 rounded-3xl bg-surface-2/60 p-4', standMode && 'hidden')}>
         <div className="flex items-center gap-2" role="group" aria-label={t('tune.tempo')}>
           <IconButton icon="minus" label={t('tune.slower')} onClick={() => changeTempo(-0.05)} size={40} />
           <span className="tabular w-28 text-center text-sm font-semibold">
@@ -358,7 +383,7 @@ export function TunePractice({ tune, initialSection = 0, preset, compact, onScor
         />
       )}
 
-      {/* tab */}
+      {/* full tab, shown whole: it scrolls the page after the playhead only while the stage is off screen */}
       <div className="flex flex-col gap-6 rounded-3xl border border-line/70 bg-surface p-4 sm:p-6">
         {shownSections.map((si) => {
           const s = tune.sections[si]
@@ -383,6 +408,7 @@ export function TunePractice({ tune, initialSection = 0, preset, compact, onScor
                   setMarker(abs)
                   if (playing) play(abs)
                 }}
+                follow={!stageInView}
                 showNames={names}
                 showSecondVoice={secondVoice}
                 dot={compact ? 12 : 14}
