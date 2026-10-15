@@ -3,6 +3,7 @@ import { PNG } from 'pngjs'
 import { describe, expect, it } from 'vitest'
 import { shepardsFlute } from '../data/tunes/shepardsFlute'
 import { sectionNotes } from '../music/tune'
+import { whistleLabel } from '../music/whistles'
 import { recognizeTab, sectionFromRecognition } from './tabImage'
 
 /** Recognise the reference screenshots and compare with the hand transcription. */
@@ -43,6 +44,20 @@ describe('tab image recognition', () => {
     const pitches = (r: typeof light) => r.systems.flatMap((s) => s.columns.map((c) => c.pitch))
     expect(pitches(inverted)).toEqual(pitches(light))
     expect(inverted.systems.map((s) => s.phraseBreaks)).toEqual(light.systems.map((s) => s.phraseBreaks))
+  })
+
+  // plain tabs: salmon paper with near-black maroon dots, dots drawn edge to edge, note names
+  // instead of articulation, "+" marks touching the letter below
+  it.each([
+    [1, 'E E G G B B A | D D D F# F# A A G'],
+    [2, "G G B B D' D' E' E' D' | G G B B D' D' E' E' D'"],
+    [3, 'G G G G F# G | G F# G A B A | G G G G F# G | G D | G G G G F# G | G F# G A B A | G G G G F# G | A D'],
+    [4, "G A B | C B A G A D' | C B G E D | G A B C B A G A D' | B D' E' D' A B A"],
+  ])('reads simple tab %i', (n, want) => {
+    const png = PNG.sync.read(readFileSync(new URL(`./__fixtures__/simple-${n}.png`, import.meta.url)))
+    const section = sectionFromRecognition(recognizeTab({ width: png.width, height: png.height, data: png.data }), 's', 'S')
+    const got = section.phrases.map((p) => p.map((note) => (note.pitch == null ? '?' : whistleLabel(note.pitch, 'D'))).join(' ')).join(' | ')
+    expect(got).toBe(want)
   })
 
   it('finds the upper-voice columns in section 4 as extra phrases', () => {

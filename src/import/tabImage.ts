@@ -29,6 +29,8 @@ export interface RecognizedColumn {
   pitch: number
   /** 0…1 how sure we are about the hole states. */
   confidence: number
+  /** A "+" octave mark was found under the column. */
+  plus?: boolean
 }
 
 export interface RecognizedSystem {
@@ -56,6 +58,10 @@ interface Blob {
 
 type Mask = Uint8Array
 
+/** Luminance and brightest channel below which a pixel is ink regardless of hue. */
+const DARK_INK_LUM = 90
+const DARK_INK_MAX = 160
+
 function makeMasks(img: RGBAImage) {
   const { width: W, height: H, data } = img
   const ink = new Uint8Array(W * H)
@@ -63,11 +69,21 @@ function makeMasks(img: RGBAImage) {
   const red = new Uint8Array(W * H)
   const redLoose = new Uint8Array(W * H)
   const grey = new Uint8Array(W * H)
+  // dark regardless of hue: text with coloured (sub-pixel) fringes still forms whole strokes
+  const dark = new Uint8Array(W * H)
   for (let i = 0, p = 0; i < W * H; i++, p += 4) {
     const r = data[p]
     const g = data[p + 1]
     const b = data[p + 2]
     const lum = 0.299 * r + 0.587 * g + 0.114 * b
+    dark[i] = lum < 115 && !(r > 130 && r - g > 55 && r - b > 35) ? 1 : 0
+    // very dark marks are ink whatever their tint (near-black maroon on salmon paper, its
+    // anti-aliased edge); bright red ornament letters and rings stay out of this
+    if (lum < DARK_INK_LUM && Math.max(r, g, b) < DARK_INK_MAX) {
+      ink[i] = 1
+      inkLight[i] = 1
+      continue
+    }
     const isRed = r > 130 && r - g > 55 && r - b > 35
     red[i] = isRed ? 1 : 0
     redLoose[i] = r > 110 && r - g > 30 && r - b > 20 ? 1 : 0
@@ -77,7 +93,7 @@ function makeMasks(img: RGBAImage) {
     inkLight[i] = (lum < 175 && b >= r - 10) || (b - r > 25 && r < 205) ? 1 : 0
     grey[i] = lum < 232 && lum > 90 && Math.abs(r - g) < 40 && Math.abs(g - b) < 45 ? 1 : 0
   }
-  return { ink, inkLight, red, redLetters: dilate(redLoose, W, H), grey }
+  return { ink, inkLight, red, redLetters: dilate(redLoose, W, H), grey, dark }
 }
 
 /** 3×3 dilation, glues anti-aliased letter fragments back together. */
@@ -212,11 +228,142 @@ export function withLightBackground(img: RGBAImage): { image: RGBAImage; inverte
   return { image: { width: W, height: H, data: out }, inverted: true }
 }
 
+/**
+ * Tinted paper (salmon, beige, grey cards): scale each channel so the background becomes white.
+ * Dark marks then read as neutral ink instead of "red", and a real red still stands out from it.
+ */
+export function onWhitePaper(img: RGBAImage): RGBAImage {
+  const { width: W, height: H, data } = img
+  const { flat, bg } = paper(img)
+  // only flat paper: a photo or gradient background has no single colour to divide by
+  if (!flat || Math.min(...bg) >= PAPER_WHITE || Math.min(...bg) < 60) return img
+  const out = new Uint8ClampedArray(data.length)
+  for (let p = 0; p < data.length; p += 4) {
+    for (let c = 0; c < 3; c++) out[p + c] = Math.min(255, (data[p + c] * 255) / bg[c])
+    out[p + 3] = data[p + 3]
+  }
+  return { width: W, height: H, data: out }
+}
+
+/** Background colour (median) and whether it is flat paper rather than a photo or gradient. */
+function paper(img: RGBAImage): { flat: boolean; bg: number[] } {
+  const { width: W, height: H, data } = img
+  const step = Math.max(1, Math.floor((W * H) / 20000))
+  const ch: number[][] = [[], [], []]
+  for (let i = 0; i < W * H; i += step) for (let c = 0; c < 3; c++) ch[c].push(data[i * 4 + c])
+  const bg = ch.map((v) => median(v))
+  const near = ch[0].filter((_, i) => Math.abs(ch[0][i] - bg[0]) + Math.abs(ch[1][i] - bg[1]) + Math.abs(ch[2][i] - bg[2]) < PAPER_TOLERANCE).length
+  return { flat: near >= ch[0].length * PAPER_SHARE, bg }
+}
+
+/**
+ * A "+" octave mark under the column at x, found as a shape rather than a separate blob (it may
+ * touch the note name below it): a short bar with a thin stem of about equal length above and
+ * below. A "t" has a much longer stem below its bar, so it doesn't count.
+ */
+function crossAt(mask: Mask, W: number, H: number, x: number, yFrom: number, yTo: number, D: number): boolean {
+  const at = (xx: number, yy: number) => xx >= 0 && yy >= 0 && xx < W && yy < H && mask[yy * W + xx] === 1
+  const runAt = (yy: number, xx: number): [number, number] | null => {
+    if (!at(xx, yy)) return null
+    let a = xx
+    let b = xx
+    while (at(a - 1, yy)) a--
+    while (at(b + 1, yy)) b++
+    return [a, b]
+  }
+  const reach = Math.round(D * 0.25)
+  for (let y = Math.max(0, Math.round(yFrom)); y <= Math.min(H - 1, Math.round(yTo)); y++) {
+    let run: [number, number] | null = null
+    for (let dx = 0; dx <= reach && !run; dx++) run = runAt(y, Math.round(x) + dx) ?? runAt(y, Math.round(x) - dx)
+    if (!run) continue
+    const len = run[1] - run[0] + 1
+    if (len < D * 0.3 || len > D * 0.9) continue
+    const xc = Math.round((run[0] + run[1]) / 2)
+    // bar rows: as wide as this one
+    let top = y
+    let bottom = y
+    const wide = (yy: number) => {
+      const r = runAt(yy, xc)
+      return r != null && r[1] - r[0] + 1 > len * 0.6
+    }
+    while (bottom + 1 < H && wide(bottom + 1)) bottom++
+    if (bottom - top + 1 > D * 0.3) continue
+    // thin stem: ink at the centre, narrow, until the shape ends or widens into a letter
+    const stem = (from: number, dir: number) => {
+      let n = 0
+      for (let yy = from + dir; yy >= 0 && yy < H; yy += dir) {
+        const r = runAt(yy, xc) ?? runAt(yy, xc - 1) ?? runAt(yy, xc + 1)
+        if (!r || r[1] - r[0] + 1 > len * 0.5) break
+        n++
+      }
+      return n
+    }
+    const up = stem(top, -1)
+    const down = stem(bottom, 1)
+    if (up >= D * 0.12 && down >= D * 0.12 && up <= D * 0.6 && down <= up * 1.6 + 2) return true
+    y = bottom
+  }
+  return false
+}
+
+/** Background channels at or above this are already "white". */
+const PAPER_WHITE = 235
+/** Flat paper: this share of pixels lies within this RGB distance of the background colour. */
+const PAPER_SHARE = 0.5
+const PAPER_TOLERANCE = 30
+
+/**
+ * Hole centres from every dot and ring of about the dot size. Touching marks (dots drawn edge to
+ * edge, or a vertical run of covered holes) merge into one shape: split it into its grid of cells.
+ */
+function holeCells(mask: Mask, W: number, H: number, D: number): { cx: number; cy: number }[] {
+  const cells: { cx: number; cy: number }[] = []
+  for (const b of components(mask, W, H, 6)) {
+    const w = b.x1 - b.x0 + 1
+    const h = b.y1 - b.y0 + 1
+    if (w < D * 0.7 || h < D * 0.7) continue
+    const kx = Math.max(1, Math.round(w / D))
+    const ky = Math.max(1, Math.round(h / D))
+    if (ky > 6 || Math.abs(w - kx * D) > D * 0.45 * Math.sqrt(kx) || Math.abs(h - ky * D) > D * 0.45) continue
+    for (let i = 0; i < kx; i++) for (let j = 0; j < ky; j++) cells.push({ cx: b.x0 + (w * (i + 0.5)) / kx, cy: b.y0 + (h * (j + 0.5)) / ky })
+  }
+  return cells
+}
+
+/** A text line (note names, "+" marks) can join the six hole rows: keep the busiest six in a row. */
+function busiestSix(rows: [number, number][]): number[] | null {
+  if (rows.length < 6) return null
+  let best = 0
+  let bestN = -1
+  for (let i = 0; i + 6 <= rows.length; i++) {
+    const n = rows.slice(i, i + 6).reduce((a, [, c]) => a + c, 0)
+    if (n > bestN) {
+      bestN = n
+      best = i
+    }
+  }
+  return rows.slice(best, best + 6).map(([y]) => y)
+}
+
+/** Cluster with weights: [centre, count] per group. */
+function clusterCounts(values: number[], tol: number): [number, number][] {
+  const v = [...values].sort((a, b) => a - b)
+  const groups: number[][] = []
+  for (const x of v) {
+    const g = groups[groups.length - 1]
+    if (g && x - g[g.length - 1] <= tol) g.push(x)
+    else groups.push([x])
+  }
+  return groups.map((g) => [g.reduce((a, b) => a + b, 0) / g.length, g.length])
+}
+
 export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionResult {
-  const { image: img, inverted } = withLightBackground(source)
+  const { image: light, inverted } = withLightBackground(source)
+  const img = onWhitePaper(light)
+  const flatPaper = paper(light).flat
   const { width: W, height: H } = img
   const warnings: string[] = inverted ? ['Dark background detected: colours were inverted before reading.'] : []
-  const { ink, inkLight, red, redLetters, grey } = makeMasks(img)
+  const { ink, inkLight, red, redLetters, grey, dark } = makeMasks(img)
 
   // 1) filled dots → size
   const blobs = components(ink, W, H, 6)
@@ -229,23 +376,41 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
   const D = median(round.map((b) => b.x1 - b.x0 + 1))
   const dots = round.filter((b) => Math.abs(b.x1 - b.x0 + 1 - D) < D * 0.35)
 
-  // 2) rows → systems of 6
-  const rows = cluster(dots.map((d) => d.cy), D * 0.45)
-  const systemsRows: number[][] = []
-  let cur: number[] = []
-  for (const y of rows) {
-    if (cur.length && y - cur[cur.length - 1] > D * 2.6) {
-      systemsRows.push(cur)
-      cur = []
+  // 2) rows → systems of 6. Filled dots first (robust on busy photo backgrounds); where that
+  // fails, also use every ring and dot cell, splitting touching marks
+  const splitSystems = (rows: [number, number][]) => {
+    const out: [number, number][][] = []
+    let cur: [number, number][] = []
+    for (const r of rows) {
+      if (cur.length && r[0] - cur[cur.length - 1][0] > D * 2.6) {
+        out.push(cur)
+        cur = []
+      }
+      cur.push(r)
     }
-    cur.push(y)
+    if (cur.length) out.push(cur)
+    return out
   }
-  if (cur.length) systemsRows.push(cur)
-  const valid = systemsRows.filter((r) => r.length === 6)
-  if (valid.length < systemsRows.filter((r) => r.length >= 3).length) warnings.push('Some rows did not have exactly six holes and were skipped.')
+  const dotSystems = splitSystems(cluster(dots.map((d) => d.cy), D * 0.45).map((y): [number, number] => [y, 1]))
+  const fromDots = dotSystems.filter((r) => r.length === 6).map((r) => r.map(([y]) => y))
+  const cells = holeCells(inkLight, W, H, D)
+  let fromCells: number[][] = []
+  if (fromDots.length < dotSystems.filter((r) => r.length >= 3).length) {
+    const rowCounts = clusterCounts([...dots.map((d) => d.cy), ...cells.map((c) => c.cy)], D * 0.45)
+    const busiest = Math.max(...rowCounts.map(([, n]) => n))
+    fromCells = splitSystems(rowCounts.filter(([, n]) => n >= Math.max(2, busiest * 0.15)))
+      .map(busiestSix)
+      .filter((r): r is number[] => r != null)
+      // only where the dots found nothing
+      .filter((r) => !fromDots.some((d) => d[0] < r[5] + D && r[0] < d[5] + D))
+  }
+  const valid = [...fromDots, ...fromCells].sort((a, b) => a[0] - b[0])
+  if (valid.length < dotSystems.filter((r) => r.length >= 3).length) warnings.push('Some rows did not have exactly six holes and were skipped.')
 
   const redBlobs = components(redLetters, W, H, 3)
   const greyBlobs = components(grey, W, H, 3)
+  // a solid black "+" is ink, not grey
+  const inkBlobs = components(ink, W, H, 3).filter((b) => b.x1 - b.x0 < D * 0.9 && b.y1 - b.y0 < D * 0.9)
   let inkLetters: Blob[] | undefined
   let inkLetterMask: Mask | undefined
 
@@ -294,7 +459,17 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
       }
     }
     // a real column has hole outlines on most of its six rows
-    const columnsX = peaks.filter((x) => holeY.filter((y) => fraction(inkLight, W, H, x, y, D * 0.55) > 0.12).length >= 5).map((x) => holeCentre(x))
+    const profileX = peaks.filter((x) => holeY.filter((y) => fraction(inkLight, W, H, x, y, D * 0.55) > 0.12).length >= 5)
+    // the same from the hole cells: works when columns touch (the profile then has no dips)
+    let columnsX = profileX
+    if (fromCells.includes(holeY)) {
+      const inRows = [...dots, ...cells].filter((c) => holeY.some((y) => Math.abs(c.cy - y) < D * 0.45))
+      const cellX = clusterCounts(inRows.map((c) => c.cx), D * 0.45)
+        .filter(([, n]) => n >= 4)
+        .map(([x]) => x)
+      if (cellX.length > profileX.length) columnsX = cellX
+    }
+    columnsX = columnsX.map((x) => holeCentre(x))
 
     const columns: RecognizedColumn[] = columnsX.map((x) => {
       let conf = 1
@@ -327,19 +502,21 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
         }
       })
       // "+" below the bottom hole
-      const plus = greyBlobs.some((g) => {
+      const isPlus = (mask: Mask) => (g: Blob) => {
         const w = g.x1 - g.x0 + 1
         const h = g.y1 - g.y0 + 1
         const squareish = Math.abs(w - h) <= Math.max(w, h) * 0.4
         const crossFill = g.n / (w * h)
         // on textured backgrounds (clouds, photos) everything is "grey": require a clean surround
         const surround =
-          fraction(grey, W, H, g.cx, g.cy, Math.max(w, h) * 1.4, (dx, dy) => Math.abs(dx) > w * 0.7 && Math.abs(dy) < h * 0.5)
+          fraction(mask, W, H, g.cx, g.cy, Math.max(w, h) * 1.4, (dx, dy) => Math.abs(dx) > w * 0.7 && Math.abs(dy) < h * 0.5)
         return Math.abs(g.cx - x) < D * 0.5 && g.cy > holeY[5] + D * 0.5 && g.cy < holeY[5] + D * 1.6 && w < D * 0.9 && h < D * 0.9 && w > 3 && h > 3 && squareish && crossFill > 0.2 && crossFill < 0.75 && surround < 0.12
-      })
+      }
+      const plus =
+        greyBlobs.some(isPlus(grey)) || inkBlobs.some(isPlus(ink)) || (flatPaper && crossAt(dark, W, H, x, holeY[5] + D * 0.5, holeY[5] + D * 1.6, D))
       const register: Register = plus || fingeringsEqual(fingering, [0, 1, 1, 1, 1, 1]) ? 2 : 1
       const pitch = midiForFingering(fingering, register, whistleId)
-      return { x, fingering, register, ringHole, pitch, confidence: Math.max(0, conf) }
+      return { x, fingering, register, ringHole, pitch, confidence: Math.max(0, conf), plus }
     })
 
     // 4) ornament letters above, articulation below
@@ -373,6 +550,11 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
       below = inkLetters.filter(inArticulationZone)
       // measure letter tops on the lighter mask: the thin tip of a small "t" falls below the ink threshold
       letterMask = inkLight
+      // note names (g, a, b, f#…) instead of articulation: "g" hangs below the line, "t r - i" never do
+      if (isNoteNameLine(below, D)) {
+        below = []
+        warnings.push('Note names under the tab were ignored (only articulation marks t, r, - and i are read).')
+      }
     }
     /** "tu" and "ru" written as one shape: the "t" rises above the x-height, the "r" doesn't. */
     const risesOnLeft = (b: Blob) => {
@@ -434,8 +616,9 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
     const gaps = columns.slice(1).map((c, i) => c.x - columns[i].x)
     const unit = median(gaps)
     const phraseBreaks = gaps.map((g, i) => (g > unit * 1.5 ? i + 1 : -1)).filter((i) => i > 0)
-    // octave marks are written per phrase: take a majority vote so one missed "+" doesn't flip a note
-    const bounds = [0, ...phraseBreaks, columns.length]
+    // on busy photo backgrounds "+" marks are easy to miss: take a majority vote per phrase so one
+    // missed mark doesn't flip a note. On flat paper the marks are read reliably, note by note.
+    const bounds = flatPaper ? [] : [0, ...phraseBreaks, columns.length]
     for (let p = 0; p + 1 < bounds.length; p++) {
       const group = columns.slice(bounds[p], bounds[p + 1])
       const high = group.filter((c) => c.register === 2).length
@@ -454,6 +637,15 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
   const lowConf = systems.flatMap((s) => s.columns).filter((c) => c.confidence < 0.7).length
   if (lowConf) warnings.push(`${lowConf} column(s) were unclear, please check them in the editor.`)
   return { systems, dotSize: D, warnings }
+}
+
+/** A text line with descenders (a "g" below the baseline) is note names, not t / r / - / i. */
+function isNoteNameLine(shapes: Blob[], D: number): boolean {
+  const tall = shapes.filter((b) => b.y1 - b.y0 + 1 > D * 0.42)
+  if (tall.length < 3) return false
+  const baseline = median(tall.map((b) => b.y1))
+  const xHeight = median(tall.map((b) => b.y1 - b.y0 + 1))
+  return tall.some((b) => b.y1 - baseline > xHeight * 0.3)
 }
 
 /** Convert a recognition result into an editable section (1 beat per column by default). */
