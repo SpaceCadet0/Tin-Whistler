@@ -137,8 +137,9 @@ function WhistleMark({ size, className, style }: { size: number; className?: str
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" className={className} style={style} aria-hidden="true" focusable="false">
       <rect x="9.5" y="2" width="5" height="20" rx="2.5" fill="currentColor" opacity="0.28" />
-      {[7, 9.8, 12.6, 15.4, 18.2].map((y) => (
-        <circle key={y} cx="12" cy={y} r="1.15" fill="currentColor" />
+      {/* six holes, three for each hand */}
+      {[6.2, 8.6, 11, 13.8, 16.2, 18.6].map((y) => (
+        <circle key={y} cx="12" cy={y} r="1.05" fill="currentColor" />
       ))}
     </svg>
   )

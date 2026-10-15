@@ -6,6 +6,7 @@ import { useT, type MessageKey } from '../i18n'
 import { useProgress } from '../state/progress'
 import { useSettings } from '../state/settings'
 import { Icon } from '../ui/Icon'
+import { AppLogo } from '../ui/AppLogo'
 import { motion, PageEnter } from '../ui/motion'
 import { cn } from '../ui/primitives'
 import { ErrorBoundary, ScreenError } from './ErrorBoundary'
@@ -85,9 +86,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* desktop sidebar */}
       <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-line/70 px-4 py-6 lg:flex" aria-label={t('nav.label')}>
         <NavLink to="/" className="mb-8 flex items-center gap-3 px-3">
-          <span className="grid h-10 w-10 place-items-center rounded-2xl bg-moss text-on-moss">
-            <Icon name="whistle" size={22} />
-          </span>
+          <AppLogo size={40} className="shrink-0" />
           <span className="font-display text-xl font-semibold">Tin Whistler</span>
         </NavLink>
         <nav className="flex flex-col gap-1">
@@ -134,9 +133,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {!immersive && (
           <header className="sticky top-0 z-20 flex items-center justify-between border-b border-line/60 bg-bg/85 px-4 py-2.5 backdrop-blur lg:hidden">
             <NavLink to="/" className="flex items-center gap-2">
-              <span className="grid h-8 w-8 place-items-center rounded-xl bg-moss text-on-moss">
-                <Icon name="whistle" size={18} />
-              </span>
+              <AppLogo size={32} className="shrink-0" />
               <span className="font-display text-lg font-semibold">Tin Whistler</span>
             </NavLink>
             <div className="flex items-center gap-1">
