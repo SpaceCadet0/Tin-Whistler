@@ -1,25 +1,38 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useBlocker, useNavigate, useParams, useSearchParams, type BlockerFunction } from 'react-router-dom'
+import { whistleSynth } from '../../audio/WhistleSynth'
 import { useT } from '../../i18n'
+import { hasKeyboard, isNativeApp, MOD_KEY as MOD } from '../../lib/platform'
 import { toast } from '../../lib/toast'
 import { changeWhistle, insertClip, insertNote, locate, moveRange, removeRange, sliceClip, togglePhraseBreak, toggleLineBreak, updateNote } from '../../music/editing'
 import { parseTabText, sectionToTabText } from '../../music/tabText'
 import { autoSection, sectionNotes } from '../../music/tune'
-import type { Tune, TuneSection, TuneType } from '../../music/types'
-import { getWhistle, noteById, WHISTLE_KEYS } from '../../music/whistles'
+import type { Tune, TuneNote, TuneSection, TuneType } from '../../music/types'
+import { getWhistle, WHISTLE_KEYS } from '../../music/whistles'
 import { usePlayer } from '../../hooks/audio'
 import { useHotkeys } from '../../hooks/useHotkeys'
 import { useTune, useTuneLibrary } from '../../state/tunes'
 import { Button, ButtonLink, Card, cn, IconButton, Modal, PageHeader, Segmented } from '../../ui/primitives'
-import { Shortcuts } from '../../ui/Shortcuts'
 import { TabView } from '../../ui/whistle/TabView'
 import { tabClipboard } from './editor/clipboard'
+import { doubleBeats, editorKey, halveBeats, pitchForLetter, setRing, toggleAccidental, toggleDot, toggleOrnament, type EditorKey } from './editor/keyboard'
+import { KeyboardGuide } from './editor/KeyboardGuide'
 import { NoteInspector } from './editor/NoteInspector'
 
 const TYPES: TuneType[] = ['air', 'reel', 'jig', 'polka', 'march', 'waltz', 'hornpipe', 'slide', 'song', 'exercise']
 const HISTORY_LIMIT = 100
-const MOD = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘' : 'Ctrl'
-const KEY_NOTES: Record<string, string> = { d: 'D', e: 'E', f: 'F#', g: 'G', a: 'A', b: 'B', c: 'C#' }
+/** The keyboard guide opens by itself once per browser. */
+const GUIDE_SEEN_KEY = 'tw.editorGuideSeen'
+/** Length of the preview sound when a note is typed, seconds. */
+const TYPED_NOTE_SEC = 0.35
+
+const guideSeen = (): boolean => {
+  try {
+    return localStorage.getItem(GUIDE_SEEN_KEY) === '1'
+  } catch {
+    return true
+  }
+}
 
 export default function TuneEditor() {
   const { tuneId } = useParams()
@@ -34,6 +47,20 @@ export default function TuneEditor() {
   const [sel, setSel] = useState(0)
   // other end of a shift-selection (null = only the marker is selected)
   const [anchor, setAnchor] = useState<number | null>(null)
+  // keyboard entry: the note just typed (lengths and ornaments go to it) and whether the next
+  // typed note is appended after the last one
+  const [typing, setTyping] = useState<{ index: number; append: boolean } | null>(null)
+  // keyboard guide: web only (the Android app has no keyboard), opens by itself the first time
+  const showGuide = !isNativeApp()
+  const [guideOpen, setGuideOpen] = useState(() => showGuide && hasKeyboard() && !guideSeen())
+  const closeGuide = () => {
+    setGuideOpen(false)
+    try {
+      localStorage.setItem(GUIDE_SEEN_KEY, '1')
+    } catch {
+      // private mode: the guide just opens again next time
+    }
+  }
   const [clipSize, setClipSize] = useState(tabClipboard.size)
   const [mode, setMode] = useState<'visual' | 'text'>('visual')
   const [text, setText] = useState('')
@@ -103,11 +130,13 @@ export default function TuneEditor() {
   const select = (from: number, to: number) => {
     setAnchor(from === to ? null : from)
     setSel(to)
+    setTyping(null)
   }
   /** Shift+click / Shift+arrow: grow the selection from where it started. */
   const extendTo = (i: number) => {
     if (anchor == null) setAnchor(selIdx)
     setSel(i)
+    setTyping(null)
   }
   const copySelection = () => {
     if (!section) return
@@ -140,6 +169,81 @@ export default function TuneEditor() {
     select(moved.from, moved.to)
   }
 
+  // --- keyboard entry (scheme in editor/keyboard.ts) ---
+  /** A typed note fills the marker and the marker moves on; past the last note, notes are appended. */
+  const enterPitch = (pitch: number | null) => {
+    if (!section || !note) return
+    if (pitch != null && playState === 'stopped') whistleSynth.playNote(pitch, TYPED_NOTE_SEC)
+    setAnchor(null)
+    if (typing?.append) {
+      setSection(insertNote(section, selIdx, { pitch, beats: note.beats, attack: 'tongue' }, true))
+      setSel(selIdx + 1)
+      setTyping({ index: selIdx + 1, append: true })
+      return
+    }
+    setSection(updateNote(section, selIdx, { ...note, pitch, fingering: undefined }))
+    const last = selIdx >= count - 1
+    if (!last) setSel(selIdx + 1)
+    setTyping({ index: selIdx, append: last })
+  }
+  /** Lengths, articulation and ornaments go to the note just typed, otherwise to the marker. */
+  const editTarget = (change: (n: TuneNote) => TuneNote) => {
+    if (!section) return
+    const i = typing && typing.index < count ? typing.index : selIdx
+    const n = sectionNotes(section)[i]
+    if (n) setSection(updateNote(section, i, change(n)))
+  }
+  const onEditorKey = (k: EditorKey) => {
+    if (!tune) return
+    switch (k.kind) {
+      case 'note': {
+        const pitch = pitchForLetter(k.letter, k.upper, tune.whistle)
+        if (pitch != null) enterPitch(pitch)
+        return
+      }
+      case 'rest':
+        return enterPitch(null)
+      case 'natural':
+        return editTarget((n) => (n.pitch == null ? n : { ...n, pitch: toggleAccidental(n.pitch, tune.whistle), fingering: undefined }))
+      case 'beats':
+        return editTarget((n) => ({ ...n, beats: k.beats }))
+      case 'halve':
+        return editTarget((n) => ({ ...n, beats: halveBeats(n.beats) }))
+      case 'double':
+        return editTarget((n) => ({ ...n, beats: doubleBeats(n.beats) }))
+      case 'dot':
+        return editTarget((n) => ({ ...n, beats: toggleDot(n.beats) }))
+      case 'attack':
+        return editTarget((n) => ({ ...n, attack: k.attack }))
+      case 'stop':
+        return editTarget((n) => ({ ...n, stop: n.stop ? undefined : true }))
+      case 'ornament':
+        return editTarget((n) => toggleOrnament(n, k.ornament))
+      case 'ring':
+        return editTarget((n) => setRing(n, k.hole))
+    }
+  }
+  const editorKeyRef = useRef(onEditorKey)
+  useEffect(() => {
+    editorKeyRef.current = onEditorKey
+  })
+  const typingActive = mode === 'visual' && tune?.origin === 'user'
+  useEffect(() => {
+    if (!typingActive) return
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null
+      if (el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))) return
+      // a dialog (unsaved changes, the guide) is open: keys belong to it
+      if (document.querySelector('dialog[open]')) return
+      const k = editorKey(e)
+      if (!k) return
+      e.preventDefault()
+      editorKeyRef.current(k)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [typingActive])
+
   // Ctrl/Cmd shortcuts (useHotkeys skips modified keys); text fields keep their own undo/copy/paste
   const modKeys = useRef<Record<string, () => void>>({})
   useEffect(() => {
@@ -153,7 +257,8 @@ export default function TuneEditor() {
       if (!(e.ctrlKey || e.metaKey) || e.altKey) return
       const el = e.target as HTMLElement | null
       if (el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))) return
-      const key = (e.shiftKey ? 'shift+' : '') + e.key.toLowerCase()
+      // by physical key, so the shortcuts also work with a Russian layout
+      const key = (e.shiftKey ? 'shift+' : '') + (e.code.startsWith('Key') ? e.code.slice(3).toLowerCase() : e.key.toLowerCase())
       if (key === 'c' && window.getSelection()?.toString()) return
       const run = modKeys.current[key]
       if (!run) return
@@ -183,21 +288,10 @@ export default function TuneEditor() {
           Backspace: deleteSelection,
           Enter: () => {
             setSection(insertNote(section, selIdx, { ...note }, true))
-            setSel(selIdx + 1)
+            select(selIdx + 1, selIdx + 1)
           },
-          z: (e) => (e.shiftKey ? undefined : undo()),
           ' ': playFromMarker,
           Escape: () => player.stop(),
-          ...Object.fromEntries(
-            Object.entries(KEY_NOTES).map(([k, id]) => [
-              k,
-              () => {
-                const n = noteById(id, tune.whistle)
-                if (n) setSection(updateNote(section, selIdx, { ...note, pitch: n.midi, fingering: undefined }))
-              },
-            ]),
-          ),
-          ...Object.fromEntries(['1', '2', '3', '4'].map((k) => [k, () => setSection(updateNote(section, selIdx, { ...note, beats: Number(k) }))])),
         }
       : {},
     mode === 'visual' && tune?.origin === 'user',
@@ -363,12 +457,14 @@ export default function TuneEditor() {
                   { value: 'text', label: t('editor.text') },
                 ]}
               />
+              {showGuide && <IconButton icon="keyboard" label={t('guide.open')} onClick={() => setGuideOpen(true)} size={36} />}
               {tune.sections.length > 1 && <IconButton icon="trash" label={t('editor.deleteSection')} onClick={removeSection} size={36} />}
             </div>
           </div>
           {mode === 'visual' ? (
             <>
-              <div className="overflow-x-auto">
+              {/* padding keeps the selection ring inside the scroll box, which clips it otherwise */}
+              <div className="-m-1 overflow-x-auto p-1">
                 <TabView
                   tune={tune}
                   section={section}
@@ -387,41 +483,23 @@ export default function TuneEditor() {
                   }}
                 />
               </div>
-              <p className="text-xs text-ink-faint">{t('editor.dragHint')}</p>
               <div className="flex flex-wrap items-center gap-2">
                 <IconButton icon="undo" label={`${t('editor.undo')} (${MOD}+Z)`} onClick={undo} disabled={!past.length} size={36} />
                 <IconButton icon="redo" label={`${t('editor.redo')} (${MOD}+Shift+Z)`} onClick={redo} disabled={!future.length} size={36} />
                 <span className="mr-1 text-sm text-ink-soft tabular-nums">{t('editor.selected', { n: selCount })}</span>
-                <Button size="sm" variant="secondary" icon="file" onClick={copySelection}>
+                <Button size="sm" variant="secondary" icon="copy" onClick={copySelection}>
                   {t('editor.copy')}
                 </Button>
-                <Button size="sm" variant="secondary" icon="split" onClick={cutSelection}>
+                <Button size="sm" variant="secondary" icon="cut" onClick={cutSelection}>
                   {t('editor.cut')}
                 </Button>
-                <Button size="sm" variant="secondary" icon="download" onClick={paste} disabled={!clipSize} title={clipSize ? t('editor.pasteHint', { n: clipSize }) : undefined}>
+                <Button size="sm" variant="secondary" icon="paste" onClick={paste} disabled={!clipSize} title={clipSize ? t('editor.pasteHint', { n: clipSize }) : undefined}>
                   {clipSize ? `${t('editor.paste')} · ${clipSize}` : t('editor.paste')}
                 </Button>
                 <Button size="sm" variant="ghost" icon="trash" onClick={deleteSelection}>
                   {t('editor.deleteNotes')}
                 </Button>
               </div>
-              <Shortcuts
-                items={[
-                  [['Space'], 'sc.editorPlay'],
-                  [['Esc'], 'sc.stop'],
-                  [['←', '→'], 'sc.select'],
-                  [['Shift', '←', '→'], 'sc.extendSelection'],
-                  [[MOD, 'C'], 'sc.copy'],
-                  [[MOD, 'X'], 'sc.cut'],
-                  [[MOD, 'V'], 'sc.paste'],
-                  [['D', 'E', 'F', 'G', 'A', 'B', 'C'], 'sc.setNote'],
-                  [['1', '4'], 'sc.beats'],
-                  [['Enter'], 'sc.insert'],
-                  [['Del'], 'sc.remove'],
-                  [[MOD, 'Z'], 'sc.undo'],
-                  [[MOD, 'Shift', 'Z'], 'sc.redo'],
-                ]}
-              />
             </>
           ) : (
             <div className="flex flex-col gap-3">
@@ -471,6 +549,7 @@ export default function TuneEditor() {
           {t('editor.saveClose')}
         </Button>
       </div>
+      {showGuide && <KeyboardGuide open={guideOpen} onClose={closeGuide} />}
       <Modal open={blocker.state === 'blocked'} onClose={() => blocker.reset?.()} title={t('editor.unsavedTitle')}>
         <p className="mb-6 text-ink-soft">{t('editor.unsavedBody')}</p>
         <div className="flex flex-wrap justify-end gap-3">

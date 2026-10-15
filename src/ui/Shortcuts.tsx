@@ -2,6 +2,15 @@ import { useT, type MessageKey } from '../i18n'
 import type { Fingering } from '../music/types'
 import { FingeringColumn } from './whistle/FingeringColumn'
 
+/** One key as a keycap chip. */
+export function Kbd({ children }: { children: string }) {
+  return (
+    <kbd className="min-w-7 rounded-lg border border-line bg-surface px-1.5 py-0.5 text-center font-sans text-xs font-semibold whitespace-nowrap text-ink shadow-[inset_0_-1px_0_var(--c-line)]">
+      {children}
+    </kbd>
+  )
+}
+
 /** Keyboard hints as real <kbd> chips instead of a dotted run-on line. Hidden on touch-only phones. */
 export function Shortcuts({ items }: { items: [keys: string[], label: MessageKey][] }) {
   const { t } = useT()
@@ -15,9 +24,7 @@ export function Shortcuts({ items }: { items: [keys: string[], label: MessageKey
           <div key={label} className="flex items-center gap-3">
             <dt className="flex shrink-0 gap-1">
               {keys.map((k) => (
-                <kbd key={k} className="min-w-7 rounded-lg border border-line bg-surface px-1.5 py-0.5 text-center font-sans text-xs font-semibold text-ink shadow-[inset_0_-1px_0_var(--c-line)]">
-                  {k}
-                </kbd>
+                <Kbd key={k}>{k}</Kbd>
               ))}
             </dt>
             <dd>{t(label)}</dd>

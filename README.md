@@ -33,7 +33,7 @@ Runs in the browser or as an Android app. Your progress stays on your device.
     <td><img src="docs/screenshots/import.webp" alt="Importing an ABC tune with a live tab preview" /></td>
   </tr>
   <tr>
-    <td><b>Edit anything.</b> Select columns, then copy, cut, paste or drag them (phrase breaks come along). You get undo and redo, ornaments with the ringed hole, any whistle key (the tab stays, the notes move), and a text mode.</td>
+    <td><b>Edit anything, from the keyboard too.</b> Type a tune like text: <code>D</code>–<code>C</code> for notes, <code>Shift</code> for the upper octave, digits for length, <code>T R - I</code> for articulation, <code>Alt</code> + letter for ornaments (a built-in guide lists them all). Select columns to copy, cut, paste or drag them (phrase breaks come along). Undo and redo, any whistle key, and a text mode are there too.</td>
     <td><b>Bring your own tunes.</b> ABC from thesession.org, MIDI, sheet music (SVG or JPG/PNG) and photos of dot tabs, dark-theme screenshots included. Import a whole tune or add a section to one you already have.</td>
   </tr>
   <tr>
@@ -155,5 +155,5 @@ Users can also import ABC, MIDI or images, or build a tune in the editor.
 - Sheet music is read exactly from **SVG exports** (MuseScore: File → Export → SVG, one file per page). JPG/PNG scores are recognised for pitch only: every note gets the same length, so fix the rhythm in the editor. Tempo text isn't read, so set the BPM after importing.
 
 - *Shepard's Flute* is Bill Brown's Lineage II theme, transcribed from the tab screenshots in `reference/` (tab by Hound4Sound). It is bundled for personal practice. Remove it before distributing the app.
-- Tab-image recognition targets dot-style whistle tabs. On the reference screenshots it gets pitch classes ≥ 97% right. The "+" octave marks are less reliable on photographic backgrounds, and bracketed second voices are imported as extra phrases. Fix these in the editor.
+- Tab-image recognition targets dot-style whistle tabs on white or tinted paper, photo backgrounds and dark themes, including dots drawn edge to edge. Note names written under the columns are ignored (only `t`, `r`, `-` and `i` are read as articulation), and the octave comes from the `+` marks. On the reference screenshots it gets pitch classes ≥ 97% right. The "+" octave marks are less reliable on photographic backgrounds, and bracketed second voices are imported as extra phrases. Fix these in the editor.
 - Ornaments are displayed, synthesised and taught, but not graded. Cuts and taps are too short to judge reliably from a phone microphone, so scoring ignores them on purpose.
