@@ -76,8 +76,15 @@ export default function Onboarding() {
   useEffect(() => {
     const root = document.documentElement
     const prev = root.style.overflow
-    root.style.overflow = 'hidden'
+    // not while the phone is on its side: there the page has to scroll
+    const sideways = window.matchMedia('(orientation: landscape) and (max-height: 520px)')
+    const lock = () => {
+      root.style.overflow = sideways.matches ? prev : 'hidden'
+    }
+    lock()
+    sideways.addEventListener('change', lock)
     return () => {
+      sideways.removeEventListener('change', lock)
       root.style.overflow = prev
     }
   }, [])
@@ -88,7 +95,7 @@ export default function Onboarding() {
   const body: Record<number, React.ReactNode> = {
     0: (
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 text-center">
-        <div className="flex min-h-0 w-full flex-1 items-center justify-center">
+        <div className="flex min-h-0 w-full flex-1 items-center justify-center short:min-h-52">
           <WhistleView fingering={[1, 1, 1, 0, 0, 0]} height={300} showHands={false} className="h-full max-h-[300px]" />
         </div>
         <h1 className="font-display text-4xl leading-tight font-semibold text-balance sm:text-5xl">{t('onb.welcome.title')}</h1>
@@ -99,7 +106,7 @@ export default function Onboarding() {
       <div className="flex min-h-0 flex-1 flex-col items-center gap-4 text-center">
         <p className="text-xs font-bold tracking-[0.2em] text-brass uppercase">{t('onb.meet', { n: intro + 1, of: INTRO.length })}</p>
         {/* the picture takes whatever height is left, so every card has the same layout */}
-        <div className="flex min-h-0 w-full flex-1 items-center justify-center">
+        <div className="flex min-h-0 w-full flex-1 items-center justify-center short:min-h-48">
           {INTRO[intro].ill === 'whistle' ? (
             <button type="button" onClick={() => whistleSynth.playNote(81, 1)} aria-label={t('onb.tapToHear')} className="h-full max-h-60">
               <WhistleView fingering={[1, 1, 0, 0, 0, 0]} height={240} showHands={false} className="h-full" />
@@ -211,7 +218,7 @@ export default function Onboarding() {
 
   return (
     // exactly one screen (--page-h: the viewport minus the page's padding and the system bars)
-    <div className="mx-auto flex h-[var(--page-h)] max-w-xl flex-col overscroll-none">
+    <div className="mx-auto flex h-[var(--page-h)] max-w-xl flex-col overscroll-none short:h-auto short:min-h-[var(--page-h)]">
       <div className="mb-4 flex shrink-0 items-center gap-3">
         {step > 0 && (
           <button type="button" onClick={() => setStep((s) => s - 1)} aria-label={t('common.back')} className="grid h-10 w-10 place-items-center rounded-2xl text-ink-soft hover:bg-surface-2">
@@ -238,14 +245,14 @@ export default function Onboarding() {
       {/* only the middle fades in; it scrolls by itself only on a very short screen */}
       <motion.div
         key={`${step}:${step === 1 ? intro : 0}`}
-        className="flex min-h-0 flex-1 flex-col overflow-y-auto"
+        className="flex min-h-0 flex-1 flex-col overflow-y-auto short:overflow-visible"
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, ease: EASE_OUT }}
       >
         {body[step]}
       </motion.div>
-      <div className="shrink-0 pt-4">{footer[step]}</div>
+      <div className="shrink-0 pt-4 short:sticky short:bottom-0 short:z-10 short:bg-bg short:pb-[var(--safe-bottom)]">{footer[step]}</div>
     </div>
   )
 }

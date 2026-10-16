@@ -38,7 +38,7 @@ export default function TunePlayerPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <div className="mb-4 flex items-center gap-3">
+      <div className="mb-2 flex items-center gap-3 sm:mb-4">
         <Link to={`/tunes/${tune.id}`} aria-label={t('common.back')} className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl text-ink-soft hover:bg-surface-2">
           <Icon name="back" />
         </Link>

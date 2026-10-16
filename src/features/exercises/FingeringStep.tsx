@@ -57,10 +57,10 @@ export function FingeringStep({ exercise, onComplete }: { exercise: FingeringExe
           </Button>
         ) : (
           <>
-            <ListenButton note={note.id} />
             <Button size="lg" variant="ghost" icon="eye" onClick={() => setHint((h) => !h)} aria-pressed={hint}>
               {hint ? t('ex.hideHint') : t('ex.showMe')}
             </Button>
+            <ListenButton note={note.id} />
           </>
         )}
       </StepActions>

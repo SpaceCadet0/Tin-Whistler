@@ -22,10 +22,12 @@ interface Props {
   pattern: (number | null)[]
   bars: number
   onFinish: (r: RhythmReport) => void
+  /** Look of the Start / Try again button (the caller makes it quieter when something else is the main action). */
+  startVariant?: 'primary' | 'secondary'
 }
 
 /** Play on the beat: count-in, metronome, beat dots, then per-note timing feedback. */
-export function RhythmRun({ note, bpm, pattern, bars, onFinish }: Props) {
+export function RhythmRun({ note, bpm, pattern, bars, onFinish, startVariant = 'primary' }: Props) {
   const { t } = useT()
   const { micWanted, setMicWanted } = useSession()
   const latencyMs = useSettings((s) => s.latencyMs)
@@ -135,7 +137,7 @@ export function RhythmRun({ note, bpm, pattern, bars, onFinish }: Props) {
       <MicControl enabled={micWanted} onChange={setMicWanted} status={status} level={frame?.level ?? 0} />
       {(phase === 'idle' || phase === 'done') && (
         <StepActions>
-          <Button size="lg" icon="play" onClick={start} disabled={!micWanted || status !== 'on'}>
+          <Button size="lg" variant={startVariant} icon="play" onClick={start} disabled={!micWanted || status !== 'on'}>
             {phase === 'done' ? t('rhythm.again') : t('rhythm.start')}
           </Button>
         </StepActions>

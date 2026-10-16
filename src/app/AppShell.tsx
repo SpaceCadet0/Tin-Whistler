@@ -131,7 +131,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         {/* mobile top bar */}
         {!immersive && (
-          <header className="sticky top-0 z-20 flex items-center justify-between border-b border-line/60 bg-bg/85 px-4 pt-[calc(0.625rem+var(--safe-top))] pb-2.5 backdrop-blur lg:hidden">
+          <header className="sticky top-0 z-20 flex items-center justify-between border-b border-line/60 bg-bg/85 pt-[calc(0.625rem+var(--safe-top))] pr-[max(1rem,var(--safe-right))] pb-2.5 pl-[max(1rem,var(--safe-left))] backdrop-blur lg:hidden">
             <NavLink to="/" className="flex items-center gap-2">
               <AppLogo size={32} className="shrink-0" />
               <span className="font-display text-lg font-semibold">Tin Whistler</span>
@@ -146,8 +146,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         )}
 
         <main id="main" className={cn(
-            'mx-auto w-full max-w-6xl flex-1 px-4 sm:px-6 lg:px-10 lg:pt-10',
-            immersive ? 'pt-[calc(1.5rem+var(--safe-top))] pb-[calc(2rem+var(--safe-bottom))]' : 'pt-6 pb-28 lg:pb-12',
+            'mx-auto w-full max-w-6xl flex-1 pr-[max(1rem,var(--safe-right))] pl-[max(1rem,var(--safe-left))] sm:pr-[max(1.5rem,var(--safe-right))] sm:pl-[max(1.5rem,var(--safe-left))] lg:px-10 lg:pt-10',
+            immersive ? 'pt-[calc(0.5rem+var(--safe-top))] pb-[calc(0.75rem+var(--safe-bottom))] lg:pb-8' : 'pt-6 pb-28 lg:pb-12',
           )}>
           <ErrorBoundary key={pathname} fallback={(reset) => <ScreenError onRetry={reset} />}>
             <PageEnter id={pathname}>{children}</PageEnter>
@@ -158,7 +158,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* mobile bottom navigation */}
       {!immersive && (
         <nav
-          className="fixed inset-x-0 bottom-0 z-30 border-t border-line/70 bg-surface/95 pb-[var(--safe-bottom)] backdrop-blur lg:hidden"
+          className="fixed inset-x-0 bottom-0 z-30 border-t border-line/70 bg-surface/95 pr-[var(--safe-right)] pb-[var(--safe-bottom)] pl-[var(--safe-left)] backdrop-blur lg:hidden"
           aria-label={t('nav.label')}
         >
           <ul className="grid grid-cols-5">

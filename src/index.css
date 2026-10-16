@@ -3,6 +3,8 @@
 @import '@fontsource-variable/geist';
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+/* a phone turned sideways: little height, so full-screen layouts scroll and keep their buttons docked */
+@custom-variant short (@media (orientation: landscape) and (max-height: 520px));
 
 /*
  * Design tokens — warm linen, bottle green and brass. Colours are CSS variables so light/dark
@@ -50,8 +52,11 @@
   /* env() on current WebViews; Capacitor's own --safe-area-inset-* as a fallback (both are 0 in a browser) */
   --safe-top: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
   --safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
-  /* one full screen inside an immersive page (main's top and bottom padding is 1.5rem + 2rem) */
-  --page-h: calc(100dvh - 3.5rem - var(--safe-top) - var(--safe-bottom));
+  --safe-left: max(env(safe-area-inset-left, 0px), var(--safe-area-inset-left, 0px));
+  --safe-right: max(env(safe-area-inset-right, 0px), var(--safe-area-inset-right, 0px));
+  /* one full screen inside an immersive page: the viewport minus main's own padding (0.5rem on top,
+     0.75rem below on phones; 2.5rem and 2rem on wide screens) and the system bars */
+  --page-h: calc(100dvh - 1.25rem - var(--safe-top) - var(--safe-bottom));
   --c-bg: #f1f1ea;
   --c-surface: #fbfbf7;
   --c-surface-2: #e8e8df;
@@ -100,6 +105,12 @@
   --c-hole: #0b0f0d;
   --c-metal: #b9a574;
   --c-metal-2: #8c7a4c;
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --page-h: calc(100dvh - 4.5rem - var(--safe-top) - var(--safe-bottom));
+  }
 }
 
 html {

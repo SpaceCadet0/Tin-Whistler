@@ -92,7 +92,7 @@ export function Illustration({ kind, className }: { kind: Kind; className?: stri
       {kind === 'overblow' && (
         <>
           <path d="M40 150 q40 -10 60 -40 t60 -70" stroke={MOSS} strokeWidth="4" fill="none" strokeLinecap="round" />
-          <text x="150" y="60" fontSize="28" fontWeight="700" fill={BRASS} fontFamily="var(--font-display)">D'</text>
+          <text x="172" y="66" fontSize="28" fontWeight="700" fill={BRASS} fontFamily="var(--font-display)">D'</text>
           <text x="40" y="175" fontSize="28" fontWeight="700" fill={INK} fontFamily="var(--font-display)">D</text>
         </>
       )}

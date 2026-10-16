@@ -48,7 +48,7 @@ export function RepDots({ done, total }: { done: number; total: number }) {
 
 export function Celebrate({ title, children }: { title: string; children?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-3 text-center" role="status">
+    <div className="my-auto flex flex-col items-center gap-3 text-center" role="status">
       <SuccessMark />
       <motion.p className="font-display text-3xl font-semibold" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.4, ease: EASE_OUT }}>
         {title}
@@ -72,7 +72,7 @@ export function FitWhistle({
   if (!pinned) return <WhistleView {...props} height={max} />
   return (
     <div className={cn('flex w-full flex-1 items-center justify-center lg:flex-none', wrapperClassName)} style={{ minHeight, maxHeight: max, '--wh': `${max}px` } as CSSProperties}>
-      <WhistleView {...props} height={max} className="h-full w-full lg:h-[var(--wh)] lg:w-auto" />
+      <WhistleView {...props} height={max} className="h-full w-full lg:h-[min(var(--wh),42dvh)] lg:w-auto" />
     </div>
   )
 }

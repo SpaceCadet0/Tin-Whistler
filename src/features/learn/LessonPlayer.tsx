@@ -52,7 +52,7 @@ export default function LessonPlayer() {
   // wide screens keep the plain flowing page
   return (
     <StepFooterContext.Provider value={footer}>
-    <div className="mx-auto flex h-[var(--page-h)] max-w-4xl flex-col lg:h-auto">
+    <div className="mx-auto flex h-[var(--page-h)] max-w-4xl flex-col short:h-auto lg:h-auto">
       <div className="mb-3 flex shrink-0 items-center gap-3 lg:mb-6">
         <Link to="/learn" aria-label={t('common.close')} className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl text-ink-soft hover:bg-surface-2">
           <Icon name="x" />
@@ -69,8 +69,8 @@ export default function LessonPlayer() {
 
       {!finished ? (
         <motion.div key={step} className="flex min-h-0 flex-1 flex-col" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: EASE_OUT }}>
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:overflow-visible">
-            {step === 0 && (
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto short:overflow-visible lg:overflow-visible">
+            {step === 0 && lesson.exercises[0].type !== 'melody' && (
               <p className="mb-2 shrink-0 text-center text-sm font-semibold text-ink-soft">
                 {L(lesson.title)} · {lesson.objectives.map((o) => L(o)).join(' · ')}
               </p>
@@ -81,8 +81,8 @@ export default function LessonPlayer() {
           </div>
         </motion.div>
       ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto lg:overflow-visible">
-          <Card className="mx-auto flex w-full max-w-xl animate-pop flex-col items-center gap-4 p-5 text-center sm:gap-5 sm:p-8">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto short:overflow-visible lg:overflow-visible">
+          <Card className="mx-auto my-auto flex w-full max-w-xl animate-pop flex-col items-center gap-4 p-5 text-center sm:gap-5 sm:p-8">
           <span className="grid h-20 w-20 place-items-center rounded-full bg-good-soft text-good">
             <Icon name="trophy" size={40} />
           </span>
@@ -104,31 +104,33 @@ export default function LessonPlayer() {
             <p className="rounded-2xl bg-warn-soft px-4 py-3 text-warn">{t('lesson.practiceMissed', { notes: missed.join(', ') })}</p>
           )}
         </Card>
+        {/* the main action is the right-most (under the right thumb), the quieter ones stand to its left */}
         <StepActions>
-          {nextL ? (
-            <Button size="lg" iconRight="next" onClick={() => navigate(`/learn/${nextL.id}`)} className="w-full sm:w-auto">
-              {t('lesson.next')}
-            </Button>
-          ) : (
-            <ButtonLink to="/tunes" size="lg" iconRight="next" className="w-full sm:w-auto">
-              {t('home.allTunes')}
-            </ButtonLink>
-          )}
+          {/* each one gets a full-width row when they don't fit side by side; the main action is the last (lowest) one */}
+          <Button size="lg" variant="ghost" icon="repeat" onClick={() => { setStep(0); setResults([]) }}>
+            {t('lesson.again')}
+          </Button>
           {lesson.melody && (
-            <ButtonLink to={`/tunes/${lesson.melody}`} size="lg" variant="secondary" icon="music" className="w-full sm:w-auto">
+            <ButtonLink to={`/tunes/${lesson.melody}`} size="lg" variant="secondary" icon="music" className="whitespace-nowrap">
               {t('lesson.openTune')}
             </ButtonLink>
           )}
-          <Button size="lg" variant="ghost" icon="repeat" onClick={() => { setStep(0); setResults([]) }} className="w-full sm:w-auto">
-            {t('lesson.again')}
-          </Button>
+          {nextL ? (
+            <Button size="lg" iconRight="next" onClick={() => navigate(`/learn/${nextL.id}`)}>
+              {t('lesson.next')}
+            </Button>
+          ) : (
+            <ButtonLink to="/tunes" size="lg" iconRight="next">
+              {t('home.allTunes')}
+            </ButtonLink>
+          )}
         </StepActions>
         </div>
       )}
 
       {/* pinned: the step's buttons (portalled in by StepActions) and the skip link, always the same height */}
-      <div className="shrink-0 pt-2 lg:pt-8">
-        <div ref={setFooter} className="flex min-h-14 flex-wrap items-center justify-center gap-3 max-lg:[&>button]:min-w-0 max-lg:[&>button]:flex-1 max-lg:[&>button]:basis-0 max-lg:[&>button]:px-3" />
+      <div className="shrink-0 pt-2 short:sticky short:bottom-0 short:z-10 short:bg-bg short:pb-[var(--safe-bottom)] lg:pt-8">
+        <div ref={setFooter} className="mx-auto flex min-h-14 w-full max-w-xl flex-wrap items-center justify-center gap-3 max-sm:[&>*]:min-w-0 max-sm:[&>*]:flex-[1_0_auto] max-sm:[&>*:last-child]:flex-[2_0_auto] max-sm:[&>button]:px-4 [&_button]:whitespace-nowrap" />
         {!finished && (
           <div className="flex h-8 items-center justify-center lg:mt-1 lg:h-9">
             <button type="button" className="text-sm text-ink-faint underline-offset-4 hover:underline" onClick={() => onComplete({ score: 0.5 })}>

@@ -46,6 +46,10 @@ interface Props {
   preset?: Partial<PracticePreset>
   /** Smaller layout for lessons. */
   compact?: boolean
+  /** Compact transport in a lesson: extra buttons around Play (the main action stays right-most). */
+  leadAction?: ReactNode
+  afterAction?: ReactNode
+  playPrimary?: boolean
   onScored?: (run: ScoredRun) => void
 }
 
@@ -57,16 +61,10 @@ const ART_KEY = { tongue: 'art.tongue', ru: 'art.ru', slur: 'art.slur' } as cons
  * metronome, guide audio, second voice, mic scoring. Space or tapping the stage replays from
  * the marker, the core "again from here" loop of learning a tune.
  */
-/** The transport row goes to the lesson's pinned footer when the player is compact (a lesson step), else stays inline. */
-function TransportSlot({ compact, children }: { compact: boolean; children: ReactNode }) {
-  const pinned = useStepFooter() != null
-  return compact && pinned ? <StepActions>{children}</StepActions> : <>{children}</>
-}
-
 /** Share of the stage that must be on screen for it to count as "being watched". */
 const STAGE_VISIBLE_SHARE = 0.3
 
-export function TunePractice({ tune, initialSection = 0, preset, compact, onScored }: Props) {
+export function TunePractice({ tune, initialSection = 0, preset, compact, leadAction, afterAction, playPrimary = true, onScored }: Props) {
   const { t, lang } = useT()
   const latencyMs = useSettings((s) => s.latencyMs)
   const { micWanted, setMicWanted } = useSession()
@@ -203,6 +201,7 @@ export function TunePractice({ tune, initialSection = 0, preset, compact, onScor
   // the options step aside until the tune stops; the full tab stays below to follow along
   const narrow = useMediaQuery('(max-width: 639px)')
   const standMode = narrow && playing && !compact
+  const pinnedLesson = useStepFooter() != null
   // while the stage is on screen the player watches it (and its strip): the tab must not pull the
   // page away; once scrolled down to the tab, the page follows the playhead line by line
   const stageRef = useRef<HTMLDivElement>(null)
@@ -216,7 +215,7 @@ export function TunePractice({ tune, initialSection = 0, preset, compact, onScor
   }, [])
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className={cn('flex flex-col gap-3 sm:gap-5', !compact && 'max-sm:pb-[calc(5.5rem+var(--safe-bottom))] short:pb-[calc(5.5rem+var(--safe-bottom))]')}>
       {/* section picker */}
       {tune.sections.length > 1 && (
         <div className="scrollbar-none -mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="tablist" aria-label={t('tune.sections')}>
@@ -261,8 +260,7 @@ export function TunePractice({ tune, initialSection = 0, preset, compact, onScor
         onClick={again}
         onKeyDown={(e) => e.key === 'Enter' && toggle()}
         className={cn(
-          'relative grid cursor-pointer items-center gap-6 overflow-hidden rounded-[2rem] border border-line/70 bg-surface p-5 shadow-soft select-none sm:p-8',
-          standMode && 'min-h-[72dvh] content-center',
+          'relative grid cursor-pointer items-center gap-4 overflow-hidden rounded-[2rem] border border-line/70 bg-surface p-4 shadow-soft select-none sm:gap-6 sm:p-8',
           compact ? 'grid-cols-[auto_1fr]' : 'grid-cols-[auto_1fr] lg:grid-cols-[auto_1fr_auto]',
         )}
       >
@@ -271,7 +269,7 @@ export function TunePractice({ tune, initialSection = 0, preset, compact, onScor
           fingering={(curFg ?? nextFg)?.fingering ?? [0, 0, 0, 0, 0, 0]}
           next={curFg ? nextFg?.fingering : undefined}
           ornamentHole={curFg && cur.note.ornament?.hole ? cur.note.ornament.hole - 1 : undefined}
-          height={compact ? 250 : standMode ? 300 : 340}
+          height={compact ? (narrow ? 170 : 250) : narrow ? (standMode ? 280 : 250) : 340}
           showHands={!compact}
           className={cn('transition-opacity duration-200', !curFg && 'opacity-40')}
         />
@@ -283,7 +281,7 @@ export function TunePractice({ tune, initialSection = 0, preset, compact, onScor
           ) : (
             <>
               <p className="text-xs font-bold tracking-[0.2em] text-ink-soft uppercase">{playing ? t('tune.now') : t('tune.startsHere')}</p>
-              <span className={cn('relative grid overflow-hidden font-display leading-[1.05] font-semibold', compact ? 'h-[4.8rem] text-7xl' : standMode ? 'h-[7.5rem] text-[6.5rem]' : 'h-[6.6rem] text-8xl sm:h-[8.4rem] sm:text-9xl')}>
+              <span className={cn('relative grid overflow-hidden font-display leading-[1.05] font-semibold', compact ? 'h-[3.9rem] text-6xl sm:h-[4.8rem] sm:text-7xl' : standMode ? 'h-[6.5rem] text-[5.75rem]' : 'h-[5.5rem] text-7xl sm:h-[8.4rem] sm:text-9xl')}>
                 <AnimatePresence initial={false} mode="popLayout">
                   <motion.span
                     key={curIdx}
@@ -325,18 +323,37 @@ export function TunePractice({ tune, initialSection = 0, preset, compact, onScor
       </div>
 
       {/* transport: inside a lesson step it is pinned to the bottom of the screen, so Play is always in reach */}
-      <TransportSlot compact={!!compact}>
-      <div className="flex w-full items-center justify-center gap-2 sm:gap-3">
-        <IconButton icon="back" label={t('tune.prevSection')} onClick={() => goSection(-1)} disabled={tune.sections.length < 2} />
-        <Button size="xl" icon={playing ? 'stop' : 'play'} onClick={toggle} className="min-w-0 flex-1 px-4 sm:max-w-xs sm:flex-none sm:px-8">
-          {playing ? t('tune.stop') : t('tune.play')}
-        </Button>
-        <Button size="xl" variant="secondary" icon="repeat" onClick={again} title={t('tune.againHint')} aria-label={t('tune.again')} className="px-4 sm:px-6">
-          <span className="hidden sm:inline">{t('tune.again')}</span>
-        </Button>
-        <IconButton icon="next" label={t('tune.nextSection')} onClick={() => goSection(1)} disabled={tune.sections.length < 2} />
-      </div>
-      </TransportSlot>
+      {pinnedLesson && compact ? (
+        <StepActions>
+          {/* lesson: one short row, the main action right-most */}
+          <div className="flex w-full items-center gap-2">
+            <Button size="lg" variant="secondary" icon="repeat" onClick={again} title={t('tune.againHint')} aria-label={t('tune.again')} className="flex-none px-4" />
+            {leadAction}
+            <Button size="lg" variant={playPrimary ? 'primary' : 'secondary'} icon={playing ? 'stop' : 'play'} onClick={toggle} className="min-w-0 flex-1 px-3">
+              {playing ? t('tune.stop') : t('tune.play')}
+            </Button>
+            {afterAction}
+          </div>
+        </StepActions>
+      ) : (
+        /* phone: a dock fixed to the bottom of the screen while the page scrolls; Play is right-most */
+        <div
+          className={cn(
+            'flex w-full items-center justify-center gap-2 sm:gap-3',
+            !compact &&
+              'max-sm:fixed short:fixed max-sm:right-[max(0.75rem,var(--safe-right))] short:right-[max(0.75rem,var(--safe-right))] max-sm:bottom-[calc(0.5rem+var(--safe-bottom))] short:bottom-[calc(0.5rem+var(--safe-bottom))] max-sm:left-[max(0.75rem,var(--safe-left))] short:left-[max(0.75rem,var(--safe-left))] max-sm:z-20 short:z-20 max-sm:w-auto short:w-auto max-sm:rounded-3xl short:rounded-3xl max-sm:border short:border max-sm:border-line/70 short:border-line/70 max-sm:bg-surface/95 short:bg-surface/95 max-sm:p-2 short:p-2 max-sm:shadow-lift short:shadow-lift max-sm:backdrop-blur short:backdrop-blur sm:sticky sm:bottom-4 sm:z-20 sm:rounded-3xl sm:bg-bg/85 sm:py-2 sm:backdrop-blur',
+          )}
+        >
+          <IconButton icon="back" label={t('tune.prevSection')} onClick={() => goSection(-1)} disabled={tune.sections.length < 2} className="max-sm:order-1" />
+          <IconButton icon="next" label={t('tune.nextSection')} onClick={() => goSection(1)} disabled={tune.sections.length < 2} className="max-sm:order-2 sm:order-4" />
+          <Button size="xl" variant="secondary" icon="repeat" onClick={again} title={t('tune.againHint')} aria-label={t('tune.again')} className="px-4 max-sm:order-3 sm:order-3 sm:px-6 max-sm:h-14">
+            <span className="hidden sm:inline">{t('tune.again')}</span>
+          </Button>
+          <Button size="xl" icon={playing ? 'stop' : 'play'} onClick={toggle} className="min-w-0 flex-1 px-4 max-sm:order-4 max-sm:h-14 sm:order-2 sm:max-w-xs sm:flex-none sm:px-8">
+            {playing ? t('tune.stop') : t('tune.play')}
+          </Button>
+        </div>
+      )}
 
       {/* tempo & options */}
       <div className={cn('flex flex-wrap items-center justify-center gap-x-6 gap-y-3 rounded-3xl bg-surface-2/60 p-4', standMode && 'hidden')}>

@@ -154,7 +154,8 @@ export const TabView = memo(function TabView({
         aria-current={isCurrent ? 'step' : undefined}
         className={cn(
           'relative flex flex-col items-center rounded-xl px-[3px] pt-1 pb-1.5 transition-colors',
-          isCurrent && 'bg-moss-soft',
+          // when the page follows the playhead, leave room for the pinned transport at the bottom
+          isCurrent && 'scroll-mb-32 bg-moss-soft',
           !isCurrent && inLoop && 'bg-brass-soft/60',
           selected === idx && 'ring-2 ring-brass',
           range && range[1] > range[0] && idx >= range[0] && idx <= range[1] && 'bg-brass-soft',

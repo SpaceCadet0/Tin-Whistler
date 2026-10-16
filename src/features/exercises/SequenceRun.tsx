@@ -91,10 +91,11 @@ export function SequenceRun({ notes, onFinish }: { notes: string[]; onFinish: (o
       {!finished && (
         <div className={cn('flex w-full items-center justify-center', pinned ? 'min-h-0 flex-1 flex-row gap-5 lg:flex-none lg:gap-10' : 'flex-col gap-4 sm:flex-row sm:gap-10')}>
           <FitWhistle fingering={current.fingering} from={prev?.fingering} max={300} minHeight={120} wrapperClassName="w-16 flex-none lg:w-auto" label={t('whistle.fingeringFor', { note: current.id })} />
-          <div className="flex flex-col items-center gap-3">
+          {/* fixed width: the whistle beside it must not shift when "Hearing X" changes length */}
+          <div className="flex w-44 shrink-0 flex-col items-center gap-3 text-center">
             <p className="text-sm font-bold tracking-[0.2em] text-ink-soft uppercase">{t('seq.playNow')}</p>
             <p className="font-display text-7xl font-semibold">{current.id}</p>
-            <p className={cn('flex items-center gap-2 font-semibold', hold.match.status === 'correct' ? 'text-good' : 'text-ink-soft')} role="status">
+            <p className={cn('flex h-6 w-full items-center justify-center gap-2 truncate font-semibold', hold.match.status === 'correct' ? 'text-good' : 'text-ink-soft')} role="status">
               {hold.match.status === 'correct' ? <Icon name="check" size={18} /> : null}
               {hold.frame?.voiced && hold.frame.note != null ? t('seq.hearing', { note: whistleLabel(hold.frame.note) }) : t('fb.silent')}
             </p>
@@ -103,14 +104,14 @@ export function SequenceRun({ notes, onFinish }: { notes: string[]; onFinish: (o
       )}
       <MicControl enabled={micWanted} onChange={setMicWanted} status={hold.status} level={hold.frame?.level ?? 0} />
       <StepActions>
-        <Button size="lg" variant="secondary" icon="volume" onClick={demo}>
-          {t('ex.listen')}
-        </Button>
         {!finished && (
           <Button size="lg" variant="ghost" onClick={() => setIndex((i) => i + 1)}>
             {t('seq.skipNote')}
           </Button>
         )}
+        <Button size="lg" variant="secondary" icon="volume" onClick={demo}>
+          {t('ex.listen')}
+        </Button>
       </StepActions>
     </div>
   )

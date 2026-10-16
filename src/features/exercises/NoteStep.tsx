@@ -89,10 +89,10 @@ export function NoteStep({ exercise, onComplete }: { exercise: NoteExercise | Pi
           </Button>
         ) : (
           <>
-            <ListenButton note={note.id} duration={exercise.holdMs / 1000 + 0.4} />
             <Button size="lg" variant="ghost" onClick={() => setDone((d) => d + 1)} title={t('ex.selfReportHint')}>
               {t('ex.selfReport')}
             </Button>
+            <ListenButton note={note.id} duration={exercise.holdMs / 1000 + 0.4} />
           </>
         )}
       </StepActions>
