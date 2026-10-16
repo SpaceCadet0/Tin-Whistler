@@ -4,6 +4,9 @@
  * or a corrupted record must degrade to defaults, never crash a render.
  */
 
+import { normalizeTune } from '../music/validateTune'
+import type { Tune } from '../music/types'
+
 export const isRecord = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x)
 
 export const isFiniteNumber = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x)
@@ -44,7 +47,13 @@ export const oneOf =
  * zustand persist store keeps in localStorage (`{"state":{…},"version":n}`).
  * Returns the strings that are safe to restore, or null if the file is not a backup at all.
  */
-export function parseBackup(text: string): { settings?: string; progress?: string } | null {
+export interface Backup {
+  settings?: string
+  progress?: string
+  tunes?: Tune[]
+}
+
+export function parseBackup(text: string): Backup | null {
   let data: unknown
   try {
     data = JSON.parse(text)
@@ -52,7 +61,7 @@ export function parseBackup(text: string): { settings?: string; progress?: strin
     return null
   }
   if (!isRecord(data)) return null
-  const out: { settings?: string; progress?: string } = {}
+  const out: Backup = {}
   for (const key of ['settings', 'progress'] as const) {
     const raw = data[key]
     if (typeof raw !== 'string') continue
@@ -63,5 +72,9 @@ export function parseBackup(text: string): { settings?: string; progress?: strin
       /* skip the unreadable half, keep the other */
     }
   }
-  return out.settings || out.progress ? out : null
+  if (Array.isArray(data.tunes)) {
+    const tunes = data.tunes.map(normalizeTune).filter((t): t is Tune => t !== null)
+    if (tunes.length) out.tunes = tunes
+  }
+  return out.settings || out.progress || out.tunes ? out : null
 }

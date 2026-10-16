@@ -5,6 +5,7 @@ import { toast } from '../../lib/toast'
 import { parseBackup } from '../../lib/validate'
 import { WHISTLE_KEYS } from '../../music/whistles'
 import { useProgress } from '../../state/progress'
+import { localTuneRepository } from '../../state/tunes'
 import { useSettings, type Language, type MotionPref, type PlayerLevel, type ThemePref } from '../../state/settings'
 import { Icon } from '../../ui/Icon'
 import { Button, buttonClass, Card, Modal, PageHeader, Segmented, Slider } from '../../ui/primitives'
@@ -17,8 +18,9 @@ export default function SettingsPage() {
   const resetProgress = useProgress((x) => x.resetAll)
   const [confirm, setConfirm] = useState(false)
 
-  const exportData = () => {
-    const data = { settings: localStorage.getItem('tw.settings'), progress: localStorage.getItem('tw.progress'), exportedAt: new Date().toISOString() }
+  const exportData = async () => {
+    const tunes = await localTuneRepository.list().catch(() => [])
+    const data = { settings: localStorage.getItem('tw.settings'), progress: localStorage.getItem('tw.progress'), tunes, exportedAt: new Date().toISOString() }
     const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }))
     const a = document.createElement('a')
     a.href = url
@@ -34,6 +36,8 @@ export default function SettingsPage() {
       return
     }
     try {
+      // tunes are merged by id: an imported tune replaces its older copy, the rest stay
+      for (const tune of backup.tunes ?? []) await localTuneRepository.save(tune)
       if (backup.progress) localStorage.setItem('tw.progress', backup.progress)
       if (backup.settings) localStorage.setItem('tw.settings', backup.settings)
       location.reload()

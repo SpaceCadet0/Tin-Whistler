@@ -41,6 +41,14 @@ describe('stored data guards', () => {
     expect(parseBackup('<html>')).toBeNull()
   })
 
+  it('restores user tunes from a backup and drops unplayable ones', () => {
+    const good = { id: 'u1', title: 'Jig', sections: [{ phrases: [[{ pitch: 74, beats: 1 }]] }] }
+    const backup = parseBackup(JSON.stringify({ tunes: [good, { id: 'bad', sections: [] }, 'x'] }))
+    expect(backup?.tunes).toHaveLength(1)
+    expect(backup?.tunes?.[0].id).toBe('u1')
+    expect(parseBackup(JSON.stringify({ tunes: [] }))).toBeNull()
+  })
+
   it('compares shapes against defaults', () => {
     expect(sanitizeAgainst({ a: 1, b: [] as number[], c: {} }, { a: '1', b: [2], c: [] })).toEqual({ b: [2] })
   })
