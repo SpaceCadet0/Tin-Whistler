@@ -1,5 +1,6 @@
 import type { Illustration as Kind } from '../engine/lesson/types'
 import { useT } from '../i18n'
+import { cn } from './primitives'
 
 const INK = 'var(--c-ink)'
 const MOSS = 'var(--c-moss)'
@@ -18,19 +19,50 @@ function Whistle({ x = 120, y = 30, h = 150, tilt = 0 }: { x?: number; y?: numbe
   )
 }
 
+/** "How to hold it": the whistle's tilt, and the pivot it turns around (the middle of the default whistle). */
+const HOLD_TILT = -35
+const HOLD_PIVOT = { x: 120, y: 105 }
+/** Each hand is an ellipse along the whistle, over the three holes it covers (hole rows from Whistle). */
+const HAND_L_Y = 96
+const HAND_R_Y = 147
+const HAND_RX = 14
+const HAND_RY = 24
+const HAND_LABEL_OFFSET = 34
+
+/** A point turned by `degrees` (SVG's clockwise-positive) around `pivot`. */
+function rotateAround(x: number, y: number, degrees: number, pivot: { x: number; y: number }) {
+  const a = (degrees * Math.PI) / 180
+  const dx = x - pivot.x
+  const dy = y - pivot.y
+  return { x: pivot.x + dx * Math.cos(a) - dy * Math.sin(a), y: pivot.y + dx * Math.sin(a) + dy * Math.cos(a) }
+}
+
 /** Small, calm line illustrations for explanation cards. Decorative: aria-hidden. */
-export function Illustration({ kind }: { kind: Kind }) {
+export function Illustration({ kind, className }: { kind: Kind; className?: string }) {
   const { t } = useT()
   return (
-    <svg viewBox="0 0 240 200" className="h-44 w-full max-w-xs" aria-hidden="true">
+    <svg viewBox="0 0 240 200" className={cn('h-44 w-full max-w-xs', className)} aria-hidden="true">
       <rect x="10" y="10" width="220" height="180" rx="28" fill={SOFT} />
       {kind === 'hold' && (
         <>
-          <Whistle tilt={-35} />
-          <ellipse cx="88" cy="80" rx="22" ry="12" fill={MOSS} opacity=".35" transform="rotate(-35 88 80)" />
-          <ellipse cx="150" cy="130" rx="22" ry="12" fill={BRASS} opacity=".35" transform="rotate(-35 150 130)" />
-          <text x="40" y="60" fontSize="13" fontWeight="700" fill={MOSS}>L</text>
-          <text x="190" y="165" fontSize="13" fontWeight="700" fill={BRASS}>R</text>
+          {/* the hands are drawn in the whistle's own frame, so they lie along it and cover its holes */}
+          <g transform={`rotate(${HOLD_TILT} ${HOLD_PIVOT.x} ${HOLD_PIVOT.y})`}>
+            <Whistle />
+            <ellipse cx={120} cy={HAND_L_Y} rx={HAND_RX} ry={HAND_RY} fill={MOSS} opacity=".4" />
+            <ellipse cx={120} cy={HAND_R_Y} rx={HAND_RX} ry={HAND_RY} fill={BRASS} opacity=".4" />
+          </g>
+          {/* labels stay upright, placed beside each hand: left hand on the left, right hand on the right */}
+          {[
+            { letter: 'L', side: -1, y: HAND_L_Y, fill: MOSS },
+            { letter: 'R', side: 1, y: HAND_R_Y, fill: BRASS },
+          ].map(({ letter, side, y, fill }) => {
+            const p = rotateAround(120 + side * HAND_LABEL_OFFSET, y, HOLD_TILT, HOLD_PIVOT)
+            return (
+              <text key={letter} x={p.x} y={p.y} fontSize="15" fontWeight="700" fill={fill} textAnchor="middle" dominantBaseline="central">
+                {letter}
+              </text>
+            )
+          })}
         </>
       )}
       {kind === 'cover' && (
