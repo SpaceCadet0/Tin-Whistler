@@ -74,7 +74,7 @@ export function AccuracyBar({ value, label }: { value: number; label?: string })
 }
 
 /** flat ←-- CENTER --→ sharp. Turns green when steady and in tune. */
-export function TunerGauge({ cents, active, locked, big }: { cents: number; active: boolean; locked: boolean; big?: boolean }) {
+export function TunerGauge({ cents, active, locked, big, compact }: { cents: number; active: boolean; locked: boolean; big?: boolean; compact?: boolean }) {
   const { t } = useT()
   const clamped = Math.max(-50, Math.min(50, cents))
   const angle = (clamped / 50) * 60
@@ -83,7 +83,7 @@ export function TunerGauge({ cents, active, locked, big }: { cents: number; acti
   const w = big ? 360 : 260
   return (
     <div className="flex flex-col items-center">
-      <svg viewBox="0 0 300 170" width={w} role="img" aria-label={active ? t('tuner.aria', { cents: Math.round(cents) }) : t('tuner.idle')}>
+      <svg viewBox="0 0 300 170" width={w} style={{ height: 'auto' }} className={cn('max-w-full', compact && 'max-lg:max-w-[200px]')} role="img" aria-label={active ? t('tuner.aria', { cents: Math.round(cents) }) : t('tuner.idle')}>
         {Array.from({ length: 21 }, (_, i) => {
           const a = ((i - 10) / 10) * 60
           const rad = ((a - 90) * Math.PI) / 180

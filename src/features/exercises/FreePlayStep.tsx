@@ -7,8 +7,10 @@ import { noteById } from '../../music/whistles'
 import { useSession } from '../../state/session'
 import { MicControl } from '../../ui/feedback/MicControl'
 import { PitchTrace } from '../../ui/feedback/PitchTrace'
-import { Button } from '../../ui/primitives'
+import { Button, cn } from '../../ui/primitives'
 import { ExerciseHeader } from './shared'
+import { StepActions } from './StepActions'
+import { useStepFooter } from './stepFooter'
 import { audioEngine } from '../../audio/AudioEngine'
 
 /** Play a short demo with (and without) an ornament so the learner can hear the difference. */
@@ -33,6 +35,7 @@ export function FreePlayStep({ exercise, onComplete }: { exercise: FreePlayExerc
   const { micWanted, setMicWanted } = useSession()
   const { frame, status } = usePitch(micWanted)
   const [left, setLeft] = useState(exercise.seconds)
+  const pinned = useStepFooter() != null
 
   useEffect(() => {
     if (!micWanted || left <= 0) return
@@ -41,26 +44,28 @@ export function FreePlayStep({ exercise, onComplete }: { exercise: FreePlayExerc
   }, [micWanted, left])
 
   return (
-    <div className="flex flex-col items-center gap-5">
+    <div className="flex min-h-0 flex-1 flex-col items-center gap-3 sm:gap-5">
       <ExerciseHeader title={exercise.title} />
-      <p className="max-w-lg text-center text-xl text-balance">{L(exercise.prompt)}</p>
+      <p className="max-w-lg text-center text-lg text-balance sm:text-xl">{L(exercise.prompt)}</p>
       {exercise.demo && (
-        <div className="flex flex-wrap justify-center gap-2">
-          <Button variant="secondary" icon="volume" onClick={() => playDemo(exercise.demo!.notes)}>
+        <div className={cn('flex justify-center gap-2', pinned ? 'w-full' : 'flex-wrap')}>
+          <Button variant="secondary" icon="volume" className={pinned ? 'min-w-0 flex-1 px-3' : undefined} onClick={() => playDemo(exercise.demo!.notes)}>
             {t('free.plain')}
           </Button>
-          <Button variant="brass" icon="sparkles" onClick={() => playDemo(exercise.demo!.notes, exercise.demo!.ornament)}>
+          <Button variant="brass" icon="sparkles" className={pinned ? 'min-w-0 flex-1 px-3' : undefined} onClick={() => playDemo(exercise.demo!.notes, exercise.demo!.ornament)}>
             {t('free.withOrnament')}
           </Button>
         </div>
       )}
       <div className="w-full max-w-2xl">
-        <PitchTrace active={micWanted} target={frame?.note ?? null} />
+        <PitchTrace active={micWanted} target={frame?.note ?? null} height={pinned ? 120 : 220} />
       </div>
       <MicControl enabled={micWanted} onChange={setMicWanted} status={status} level={frame?.level ?? 0} />
-      <Button size="lg" iconRight="next" onClick={() => onComplete({ score: 1 })} variant={left <= 0 ? 'primary' : 'secondary'}>
-        {left > 0 && micWanted ? t('free.doneIn', { s: left }) : t('ex.continue')}
-      </Button>
+      <StepActions>
+        <Button size="lg" iconRight="next" onClick={() => onComplete({ score: 1 })} variant={left <= 0 ? 'primary' : 'secondary'}>
+          {left > 0 && micWanted ? t('free.doneIn', { s: left }) : t('ex.continue')}
+        </Button>
+      </StepActions>
     </div>
   )
 }

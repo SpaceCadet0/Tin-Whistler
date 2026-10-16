@@ -1,30 +1,32 @@
-import type { ReactNode } from 'react'
+import type { ComponentProps, CSSProperties, ReactNode } from 'react'
 import { whistleSynth } from '../../audio/WhistleSynth'
 import { useT } from '../../i18n'
 import type { LocalizedText } from '../../music/types'
 import { noteById } from '../../music/whistles'
 import { useSettings } from '../../state/settings'
 import { EASE_OUT, motion, SuccessMark } from '../../ui/motion'
-import { Button } from '../../ui/primitives'
+import { Button, cn } from '../../ui/primitives'
+import { WhistleView } from '../../ui/whistle/WhistleView'
+import { useStepFooter } from './stepFooter'
 
 export function ExerciseHeader({ title, instruction, step }: { title: LocalizedText; instruction?: LocalizedText; step?: string }) {
   const { L } = useT()
   return (
-    <div className="mb-6 text-center">
-      {step && <p className="mb-2 text-xs font-bold tracking-[0.18em] text-brass uppercase">{step}</p>}
-      <h2 className="font-display text-3xl font-semibold text-balance sm:text-4xl">{L(title)}</h2>
-      {instruction && <p className="mx-auto mt-2 max-w-md text-lg text-ink-soft">{L(instruction)}</p>}
+    <div className="mb-3 shrink-0 text-center sm:mb-6">
+      {step && <p className="mb-1 text-xs font-bold tracking-[0.18em] text-brass uppercase sm:mb-2">{step}</p>}
+      <h2 className="font-display text-2xl font-semibold text-balance sm:text-4xl">{L(title)}</h2>
+      {instruction && <p className="mx-auto mt-2 max-w-md text-base text-ink-soft sm:text-lg">{L(instruction)}</p>}
     </div>
   )
 }
 
-export function ListenButton({ note, duration = 1, label }: { note: string; duration?: number; label?: string }) {
+export function ListenButton({ note, duration = 1, label, size = 'lg' }: { note: string; duration?: number; label?: string; size?: 'sm' | 'md' | 'lg' | 'xl' }) {
   const { t } = useT()
   const whistleId = useSettings((s) => s.whistleId)
   const n = noteById(note, whistleId)
   if (!n) return null
   return (
-    <Button variant="secondary" icon="volume" onClick={() => whistleSynth.playNote(n.midi, duration)}>
+    <Button variant="secondary" size={size} icon="volume" onClick={() => whistleSynth.playNote(n.midi, duration)}>
       {label ?? t('ex.listen')}
     </Button>
   )
@@ -52,6 +54,25 @@ export function Celebrate({ title, children }: { title: string; children?: React
         {title}
       </motion.p>
       {children}
+    </div>
+  )
+}
+
+/**
+ * The whistle picture of a lesson step. In the pinned lesson layout (phones) it takes whatever height
+ * is left and scales to it; elsewhere, and on wide screens, it keeps its fixed size.
+ */
+export function FitWhistle({
+  max,
+  minHeight = 160,
+  wrapperClassName,
+  ...props
+}: Omit<ComponentProps<typeof WhistleView>, 'height' | 'className'> & { max: number; minHeight?: number; wrapperClassName?: string }) {
+  const pinned = useStepFooter() != null
+  if (!pinned) return <WhistleView {...props} height={max} />
+  return (
+    <div className={cn('flex w-full flex-1 items-center justify-center lg:flex-none', wrapperClassName)} style={{ minHeight, maxHeight: max, '--wh': `${max}px` } as CSSProperties}>
+      <WhistleView {...props} height={max} className="h-full w-full lg:h-[var(--wh)] lg:w-auto" />
     </div>
   )
 }

@@ -210,8 +210,8 @@ export default function Onboarding() {
   }
 
   return (
-    // exactly one screen: the page's own top and bottom padding (3.5rem) is taken off the viewport height
-    <div className="mx-auto flex h-[calc(100dvh-3.5rem)] max-w-xl flex-col overscroll-none pb-[env(safe-area-inset-bottom)]">
+    // exactly one screen (--page-h: the viewport minus the page's padding and the system bars)
+    <div className="mx-auto flex h-[var(--page-h)] max-w-xl flex-col overscroll-none">
       <div className="mb-4 flex shrink-0 items-center gap-3">
         {step > 0 && (
           <button type="button" onClick={() => setStep((s) => s - 1)} aria-label={t('common.back')} className="grid h-10 w-10 place-items-center rounded-2xl text-ink-soft hover:bg-surface-2">

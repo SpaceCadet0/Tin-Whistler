@@ -12,6 +12,7 @@ import { BeatIndicator } from '../../ui/feedback/Feedback'
 import { MicControl } from '../../ui/feedback/MicControl'
 import { Button, Chip, cn } from '../../ui/primitives'
 import { FingeringColumn } from '../../ui/whistle/FingeringColumn'
+import { StepActions } from './StepActions'
 
 const VERDICT: Record<string, MessageKey> = { perfect: 'rhythm.perfect', early: 'rhythm.early', late: 'rhythm.late', missed: 'rhythm.missed' }
 
@@ -89,7 +90,7 @@ export function RhythmRun({ note, bpm, pattern, bars, onFinish }: Props) {
   const countLeft = phase === 'count' && plan.current ? Math.ceil((plan.current.start - audioEngine.now) / spb) : null
 
   return (
-    <div className="flex flex-col items-center gap-6">
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-4 sm:gap-6">
       <div className="flex items-center gap-4">
         <FingeringColumn fingering={n.fingering} register={n.register} dot={14} />
         <div>
@@ -131,14 +132,14 @@ export function RhythmRun({ note, bpm, pattern, bars, onFinish }: Props) {
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-center gap-3">
-        <MicControl enabled={micWanted} onChange={setMicWanted} status={status} level={frame?.level ?? 0} />
-        {(phase === 'idle' || phase === 'done') && (
+      <MicControl enabled={micWanted} onChange={setMicWanted} status={status} level={frame?.level ?? 0} />
+      {(phase === 'idle' || phase === 'done') && (
+        <StepActions>
           <Button size="lg" icon="play" onClick={start} disabled={!micWanted || status !== 'on'}>
             {phase === 'done' ? t('rhythm.again') : t('rhythm.start')}
           </Button>
-        )}
-      </div>
+        </StepActions>
+      )}
     </div>
   )
 }

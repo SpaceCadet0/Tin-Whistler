@@ -46,6 +46,12 @@
 
 :root {
   color-scheme: light;
+  /* system bars: the Android app draws edge-to-edge (viewport-fit=cover), so content must keep clear of them */
+  /* env() on current WebViews; Capacitor's own --safe-area-inset-* as a fallback (both are 0 in a browser) */
+  --safe-top: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+  --safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+  /* one full screen inside an immersive page (main's top and bottom padding is 1.5rem + 2rem) */
+  --page-h: calc(100dvh - 3.5rem - var(--safe-top) - var(--safe-bottom));
   --c-bg: #f1f1ea;
   --c-surface: #fbfbf7;
   --c-surface-2: #e8e8df;

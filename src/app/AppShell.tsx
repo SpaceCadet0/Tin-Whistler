@@ -131,7 +131,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         {/* mobile top bar */}
         {!immersive && (
-          <header className="sticky top-0 z-20 flex items-center justify-between border-b border-line/60 bg-bg/85 px-4 py-2.5 backdrop-blur lg:hidden">
+          <header className="sticky top-0 z-20 flex items-center justify-between border-b border-line/60 bg-bg/85 px-4 pt-[calc(0.625rem+var(--safe-top))] pb-2.5 backdrop-blur lg:hidden">
             <NavLink to="/" className="flex items-center gap-2">
               <AppLogo size={32} className="shrink-0" />
               <span className="font-display text-lg font-semibold">Tin Whistler</span>
@@ -145,7 +145,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           </header>
         )}
 
-        <main id="main" className={cn('mx-auto w-full max-w-6xl flex-1 px-4 pt-6 sm:px-6 lg:px-10 lg:pt-10', immersive ? 'pb-8' : 'pb-28 lg:pb-12')}>
+        <main id="main" className={cn(
+            'mx-auto w-full max-w-6xl flex-1 px-4 sm:px-6 lg:px-10 lg:pt-10',
+            immersive ? 'pt-[calc(1.5rem+var(--safe-top))] pb-[calc(2rem+var(--safe-bottom))]' : 'pt-6 pb-28 lg:pb-12',
+          )}>
           <ErrorBoundary key={pathname} fallback={(reset) => <ScreenError onRetry={reset} />}>
             <PageEnter id={pathname}>{children}</PageEnter>
           </ErrorBoundary>
@@ -155,7 +158,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* mobile bottom navigation */}
       {!immersive && (
         <nav
-          className="fixed inset-x-0 bottom-0 z-30 border-t border-line/70 bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
+          className="fixed inset-x-0 bottom-0 z-30 border-t border-line/70 bg-surface/95 pb-[var(--safe-bottom)] backdrop-blur lg:hidden"
           aria-label={t('nav.label')}
         >
           <ul className="grid grid-cols-5">

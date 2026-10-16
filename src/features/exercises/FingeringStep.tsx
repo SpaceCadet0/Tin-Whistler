@@ -6,8 +6,9 @@ import { fingeringsEqual, tapHole } from '../../music/fingerings'
 import type { Fingering } from '../../music/types'
 import { noteById } from '../../music/whistles'
 import { Button } from '../../ui/primitives'
-import { WhistleView } from '../../ui/whistle/WhistleView'
-import { Celebrate, ExerciseHeader, ListenButton } from './shared'
+import { ExerciseHeader, FitWhistle, ListenButton } from './shared'
+import { StepActions } from './StepActions'
+import { motion } from '../../ui/motion'
 
 const OPEN: Fingering = [0, 0, 0, 0, 0, 0]
 
@@ -31,34 +32,38 @@ export function FingeringStep({ exercise, onComplete }: { exercise: FingeringExe
   }
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex min-h-0 flex-1 flex-col items-center">
       <ExerciseHeader title={exercise.title} instruction={{ en: 'Tap the holes your fingers should cover.', ru: 'Нажмите на отверстия, которые нужно закрыть.' }} />
-      <p className="mb-2 text-sm font-bold tracking-[0.2em] text-ink-soft uppercase">{t('ex.note')}</p>
-      <p className="mb-4 font-display text-6xl font-semibold">{note.id}</p>
-      <WhistleView
-        fingering={fg}
-        target={hint ? note.fingering : undefined}
-        interactive={!done}
-        onToggle={toggle}
-        height={420}
-        label={t('whistle.tapToCover')}
-      />
-      <div className="mt-6 min-h-24">
+      {/* phone: the whistle stands tall on the left, the note and the result beside it; wide screens stack them */}
+      <div className="flex min-h-0 w-full flex-1 flex-row items-stretch justify-center gap-6 lg:flex-none lg:flex-col lg:items-center lg:gap-0">
+        <FitWhistle fingering={fg} target={hint ? note.fingering : undefined} interactive={!done} onToggle={toggle} max={420} minHeight={180} wrapperClassName="w-28 flex-none lg:w-full" label={t('whistle.tapToCover')} />
+        <div className="flex shrink-0 flex-col items-center justify-center gap-2 max-lg:w-32 lg:order-first lg:mb-2 lg:gap-0">
+          <p className="text-sm font-bold tracking-[0.2em] text-ink-soft uppercase">{t('ex.note')}</p>
+          <p className="font-display text-6xl font-semibold">{note.id}</p>
+          {/* always there, so nothing changes size when the step is solved */}
+          <div className="flex h-10 items-center justify-center lg:mt-2" role="status">
+            {done && (
+              <motion.p className="text-center font-display text-xl font-semibold text-good sm:text-2xl" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+                ✓ {t('ex.perfect')}
+              </motion.p>
+            )}
+          </div>
+        </div>
+      </div>
+      <StepActions>
         {done ? (
-          <Celebrate title={t('ex.perfect')}>
-            <Button size="lg" iconRight="next" onClick={() => onComplete({ score: tries <= 8 ? 1 : 0.8 })} autoFocus>
-              {t('ex.continue')}
-            </Button>
-          </Celebrate>
+          <Button size="lg" iconRight="next" onClick={() => onComplete({ score: tries <= 8 ? 1 : 0.8 })} autoFocus>
+            {t('ex.continue')}
+          </Button>
         ) : (
-          <div className="flex flex-wrap justify-center gap-3">
+          <>
             <ListenButton note={note.id} />
-            <Button variant="ghost" icon="eye" onClick={() => setHint((h) => !h)} aria-pressed={hint}>
+            <Button size="lg" variant="ghost" icon="eye" onClick={() => setHint((h) => !h)} aria-pressed={hint}>
               {hint ? t('ex.hideHint') : t('ex.showMe')}
             </Button>
-          </div>
+          </>
         )}
-      </div>
+      </StepActions>
     </div>
   )
 }

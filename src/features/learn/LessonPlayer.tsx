@@ -10,6 +10,8 @@ import { Icon } from '../../ui/Icon'
 import { AnimatedNumber, EASE_OUT, motion } from '../../ui/motion'
 import { Button, ButtonLink, Card, cn } from '../../ui/primitives'
 import { ExerciseRunner } from '../exercises/ExerciseRunner'
+import { StepActions } from '../exercises/StepActions'
+import { StepFooterContext } from '../exercises/stepFooter'
 
 /** Lesson = a short list of small steps: Learn → Play → Feedback → Repeat. */
 export default function LessonPlayer() {
@@ -21,6 +23,8 @@ export default function LessonPlayer() {
   const addXp = useProgress((s) => s.addXp)
   const [step, setStep] = useState(0)
   const [results, setResults] = useState<ExerciseResult[]>([])
+  // the pinned button area: steps put their buttons here (see StepActions)
+  const [footer, setFooter] = useState<HTMLDivElement | null>(null)
   usePracticeTimer(true)
 
   useEffect(() => {
@@ -44,9 +48,12 @@ export default function LessonPlayer() {
     setStep((s) => s + 1)
   }
 
+  // phones: one screen. The top bar and the buttons are pinned, the middle scrolls only if it must;
+  // wide screens keep the plain flowing page
   return (
-    <div className="mx-auto flex max-w-4xl flex-col">
-      <div className="mb-6 flex items-center gap-3">
+    <StepFooterContext.Provider value={footer}>
+    <div className="mx-auto flex h-[var(--page-h)] max-w-4xl flex-col lg:h-auto">
+      <div className="mb-3 flex shrink-0 items-center gap-3 lg:mb-6">
         <Link to="/learn" aria-label={t('common.close')} className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl text-ink-soft hover:bg-surface-2">
           <Icon name="x" />
         </Link>
@@ -61,21 +68,21 @@ export default function LessonPlayer() {
       </div>
 
       {!finished ? (
-        <motion.div key={step} initial={{ opacity: 0, x: 32 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.38, ease: EASE_OUT }}>
-          {step === 0 && (
-            <p className="mb-2 text-center text-sm font-semibold text-ink-soft">
-              {L(lesson.title)} · {lesson.objectives.map((o) => L(o)).join(' · ')}
-            </p>
-          )}
-          <ExerciseRunner exercise={lesson.exercises[step]} onComplete={onComplete} />
-          <div className="mt-8 flex justify-center">
-            <button type="button" className="text-sm text-ink-faint underline-offset-4 hover:underline" onClick={() => onComplete({ score: 0.5 })}>
-              {t('lesson.skipStep')}
-            </button>
+        <motion.div key={step} className="flex min-h-0 flex-1 flex-col" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: EASE_OUT }}>
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:overflow-visible">
+            {step === 0 && (
+              <p className="mb-2 shrink-0 text-center text-sm font-semibold text-ink-soft">
+                {L(lesson.title)} · {lesson.objectives.map((o) => L(o)).join(' · ')}
+              </p>
+            )}
+            <div className="flex min-h-0 flex-1 flex-col">
+              <ExerciseRunner exercise={lesson.exercises[step]} onComplete={onComplete} />
+            </div>
           </div>
         </motion.div>
       ) : (
-        <Card className="mx-auto flex w-full max-w-xl animate-pop flex-col items-center gap-5 p-8 text-center">
+        <div className="min-h-0 flex-1 overflow-y-auto lg:overflow-visible">
+          <Card className="mx-auto flex w-full max-w-xl animate-pop flex-col items-center gap-4 p-5 text-center sm:gap-5 sm:p-8">
           <span className="grid h-20 w-20 place-items-center rounded-full bg-good-soft text-good">
             <Icon name="trophy" size={40} />
           </span>
@@ -96,27 +103,41 @@ export default function LessonPlayer() {
           {missed.length > 0 && (
             <p className="rounded-2xl bg-warn-soft px-4 py-3 text-warn">{t('lesson.practiceMissed', { notes: missed.join(', ') })}</p>
           )}
-          <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-center">
-            {nextL ? (
-              <Button size="lg" iconRight="next" onClick={() => navigate(`/learn/${nextL.id}`)}>
-                {t('lesson.next')}
-              </Button>
-            ) : (
-              <ButtonLink to="/tunes" size="lg" iconRight="next">
-                {t('home.allTunes')}
-              </ButtonLink>
-            )}
-            {lesson.melody && (
-              <ButtonLink to={`/tunes/${lesson.melody}`} size="lg" variant="secondary" icon="music">
-                {t('lesson.openTune')}
-              </ButtonLink>
-            )}
-            <Button size="lg" variant="ghost" icon="repeat" onClick={() => { setStep(0); setResults([]) }}>
-              {t('lesson.again')}
-            </Button>
-          </div>
         </Card>
+        <StepActions>
+          {nextL ? (
+            <Button size="lg" iconRight="next" onClick={() => navigate(`/learn/${nextL.id}`)} className="w-full sm:w-auto">
+              {t('lesson.next')}
+            </Button>
+          ) : (
+            <ButtonLink to="/tunes" size="lg" iconRight="next" className="w-full sm:w-auto">
+              {t('home.allTunes')}
+            </ButtonLink>
+          )}
+          {lesson.melody && (
+            <ButtonLink to={`/tunes/${lesson.melody}`} size="lg" variant="secondary" icon="music" className="w-full sm:w-auto">
+              {t('lesson.openTune')}
+            </ButtonLink>
+          )}
+          <Button size="lg" variant="ghost" icon="repeat" onClick={() => { setStep(0); setResults([]) }} className="w-full sm:w-auto">
+            {t('lesson.again')}
+          </Button>
+        </StepActions>
+        </div>
       )}
+
+      {/* pinned: the step's buttons (portalled in by StepActions) and the skip link, always the same height */}
+      <div className="shrink-0 pt-2 lg:pt-8">
+        <div ref={setFooter} className="flex min-h-14 flex-wrap items-center justify-center gap-3 max-lg:[&>button]:min-w-0 max-lg:[&>button]:flex-1 max-lg:[&>button]:basis-0 max-lg:[&>button]:px-3" />
+        {!finished && (
+          <div className="flex h-8 items-center justify-center lg:mt-1 lg:h-9">
+            <button type="button" className="text-sm text-ink-faint underline-offset-4 hover:underline" onClick={() => onComplete({ score: 0.5 })}>
+              {t('lesson.skipStep')}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
+    </StepFooterContext.Provider>
   )
 }

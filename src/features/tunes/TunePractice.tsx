@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { audioEngine } from '../../audio/AudioEngine'
 import { pitchTracker } from '../../audio/PitchTracker'
 import { scorePerformance, type PerformanceReport } from '../../engine/scoring/performance'
@@ -22,6 +22,8 @@ import { TabView } from '../../ui/whistle/TabView'
 import { WhistleView } from '../../ui/whistle/WhistleView'
 import { PerformanceReportView } from './PerformanceReportView'
 import { StageStrip } from './StageStrip'
+import { StepActions } from '../exercises/StepActions'
+import { useStepFooter } from '../exercises/stepFooter'
 
 export interface PracticePreset {
   melody: boolean
@@ -55,6 +57,12 @@ const ART_KEY = { tongue: 'art.tongue', ru: 'art.ru', slur: 'art.slur' } as cons
  * metronome, guide audio, second voice, mic scoring. Space or tapping the stage replays from
  * the marker, the core "again from here" loop of learning a tune.
  */
+/** The transport row goes to the lesson's pinned footer when the player is compact (a lesson step), else stays inline. */
+function TransportSlot({ compact, children }: { compact: boolean; children: ReactNode }) {
+  const pinned = useStepFooter() != null
+  return compact && pinned ? <StepActions>{children}</StepActions> : <>{children}</>
+}
+
 /** Share of the stage that must be on screen for it to count as "being watched". */
 const STAGE_VISIBLE_SHARE = 0.3
 
@@ -316,8 +324,9 @@ export function TunePractice({ tune, initialSection = 0, preset, compact, onScor
         <span className="pointer-events-none absolute right-4 bottom-3 hidden text-xs text-ink-faint sm:block">{t('tune.tapHint')}</span>
       </div>
 
-      {/* transport */}
-      <div className="flex items-center justify-center gap-2 sm:gap-3">
+      {/* transport: inside a lesson step it is pinned to the bottom of the screen, so Play is always in reach */}
+      <TransportSlot compact={!!compact}>
+      <div className="flex w-full items-center justify-center gap-2 sm:gap-3">
         <IconButton icon="back" label={t('tune.prevSection')} onClick={() => goSection(-1)} disabled={tune.sections.length < 2} />
         <Button size="xl" icon={playing ? 'stop' : 'play'} onClick={toggle} className="min-w-0 flex-1 px-4 sm:max-w-xs sm:flex-none sm:px-8">
           {playing ? t('tune.stop') : t('tune.play')}
@@ -327,6 +336,7 @@ export function TunePractice({ tune, initialSection = 0, preset, compact, onScor
         </Button>
         <IconButton icon="next" label={t('tune.nextSection')} onClick={() => goSection(1)} disabled={tune.sections.length < 2} />
       </div>
+      </TransportSlot>
 
       {/* tempo & options */}
       <div className={cn('flex flex-wrap items-center justify-center gap-x-6 gap-y-3 rounded-3xl bg-surface-2/60 p-4', standMode && 'hidden')}>

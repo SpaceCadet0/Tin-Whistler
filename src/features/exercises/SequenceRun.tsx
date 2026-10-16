@@ -10,7 +10,9 @@ import { MicControl } from '../../ui/feedback/MicControl'
 import { Icon } from '../../ui/Icon'
 import { Button, cn } from '../../ui/primitives'
 import { FingeringColumn } from '../../ui/whistle/FingeringColumn'
-import { WhistleView } from '../../ui/whistle/WhistleView'
+import { FitWhistle } from './shared'
+import { StepActions } from './StepActions'
+import { useStepFooter } from './stepFooter'
 
 export interface SequenceOutcome {
   correct: number
@@ -52,11 +54,13 @@ export function SequenceRun({ notes, onFinish }: { notes: string[]; onFinish: (o
     }
   }, [finished, missed, notes, onFinish])
 
+  const pinned = useStepFooter() != null
   const demo = () => whistleSynth.playSequence(notes.map((n) => ({ midi: noteById(n)!.midi, duration: 0.55 })))
 
   return (
-    <div className="flex flex-col items-center gap-6">
-      <ol className="flex flex-wrap items-end justify-center gap-2 sm:gap-3" aria-label={t('seq.notes')}>
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-3 sm:gap-6">
+      {/* on a phone the notes stay in one row and share the width; wider screens wrap them */}
+      <ol className={cn('flex shrink-0 items-end justify-center', pinned ? 'gap-1 sm:flex-wrap sm:gap-3' : 'flex-wrap gap-2 sm:gap-3')} aria-label={t('seq.notes')}>
         {notes.map((n, i) => {
           const state = i < index ? (missed.has(i) ? 'wrong' : 'right') : i === index ? 'current' : 'idle'
           return (
@@ -64,14 +68,18 @@ export function SequenceRun({ notes, onFinish }: { notes: string[]; onFinish: (o
               key={i}
               aria-current={i === index ? 'step' : undefined}
               className={cn(
-                'flex min-w-14 flex-col items-center gap-2 rounded-2xl px-2 py-3 transition',
+                'flex flex-col items-center gap-2 rounded-2xl px-2 py-3 transition',
+                pinned ? 'min-w-0 flex-1 gap-1 px-1 py-2 sm:min-w-14 sm:flex-none sm:gap-2 sm:px-2 sm:py-3' : 'min-w-14',
                 i === index && 'bg-moss-soft ring-2 ring-moss',
               )}
             >
-              <span className={cn('font-display text-3xl font-semibold', state === 'right' && 'text-good', state === 'wrong' && 'text-bad', state === 'idle' && 'text-ink-faint')}>
+              <span className={cn('font-display text-2xl font-semibold sm:text-3xl', state === 'right' && 'text-good', state === 'wrong' && 'text-bad', state === 'idle' && 'text-ink-faint')}>
                 {n}
               </span>
-              <FingeringColumn fingering={noteById(n)!.fingering} register={noteById(n)!.register} dot={11} state={state === 'current' ? 'current' : state === 'idle' ? 'dim' : state} />
+              {/* on a phone in a lesson the whistle beside shows the fingering; the list keeps just the letters */}
+              <span className={pinned ? 'max-lg:hidden' : undefined}>
+                <FingeringColumn fingering={noteById(n)!.fingering} register={noteById(n)!.register} dot={11} state={state === 'current' ? 'current' : state === 'idle' ? 'dim' : state} />
+              </span>
               <span className="h-4 text-sm font-bold" aria-hidden="true">
                 {state === 'right' ? '✓' : state === 'wrong' ? '✗' : ''}
               </span>
@@ -81,8 +89,8 @@ export function SequenceRun({ notes, onFinish }: { notes: string[]; onFinish: (o
       </ol>
 
       {!finished && (
-        <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-10">
-          <WhistleView fingering={current.fingering} from={prev?.fingering} height={300} label={t('whistle.fingeringFor', { note: current.id })} />
+        <div className={cn('flex w-full items-center justify-center', pinned ? 'min-h-0 flex-1 flex-row gap-5 lg:flex-none lg:gap-10' : 'flex-col gap-4 sm:flex-row sm:gap-10')}>
+          <FitWhistle fingering={current.fingering} from={prev?.fingering} max={300} minHeight={120} wrapperClassName="w-16 flex-none lg:w-auto" label={t('whistle.fingeringFor', { note: current.id })} />
           <div className="flex flex-col items-center gap-3">
             <p className="text-sm font-bold tracking-[0.2em] text-ink-soft uppercase">{t('seq.playNow')}</p>
             <p className="font-display text-7xl font-semibold">{current.id}</p>
@@ -93,17 +101,17 @@ export function SequenceRun({ notes, onFinish }: { notes: string[]; onFinish: (o
           </div>
         </div>
       )}
-      <div className="flex flex-wrap items-center justify-center gap-3">
-        <MicControl enabled={micWanted} onChange={setMicWanted} status={hold.status} level={hold.frame?.level ?? 0} />
-        <Button variant="secondary" icon="volume" onClick={demo}>
+      <MicControl enabled={micWanted} onChange={setMicWanted} status={hold.status} level={hold.frame?.level ?? 0} />
+      <StepActions>
+        <Button size="lg" variant="secondary" icon="volume" onClick={demo}>
           {t('ex.listen')}
         </Button>
         {!finished && (
-          <Button variant="ghost" onClick={() => setIndex((i) => i + 1)}>
+          <Button size="lg" variant="ghost" onClick={() => setIndex((i) => i + 1)}>
             {t('seq.skipNote')}
           </Button>
         )}
-      </div>
+      </StepActions>
     </div>
   )
 }
