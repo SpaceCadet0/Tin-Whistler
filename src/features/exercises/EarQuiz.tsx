@@ -114,7 +114,7 @@ export function EarQuiz({ choices, rounds, playBack, onComplete }: { choices: st
       <Button variant="secondary" size="lg" icon="volume" onClick={() => play()}>
         {t('ear.playAgain')}
       </Button>
-      <div className="grid w-full max-w-lg grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3" role="group" aria-label={t('ear.choices')}>
+      <div className={cn('grid w-full max-w-lg gap-2 sm:grid-cols-4 sm:gap-3', sorted.length <= 4 ? 'grid-cols-4' : 'grid-cols-3')} role="group" aria-label={t('ear.choices')}>
         {sorted.map((c) => {
           const isTarget = phase !== 'ask' && c === target
           const isWrong = phase !== 'ask' && c === answer && c !== target
@@ -137,7 +137,7 @@ export function EarQuiz({ choices, rounds, playBack, onComplete }: { choices: st
         })}
       </div>
       {/* reserved from the start so the choices don't move when the answer is explained */}
-      <div className="flex min-h-20 w-full max-w-lg flex-col items-center justify-center sm:min-h-24">
+      <div className="flex min-h-20 w-full max-w-lg shrink-0 flex-col items-center justify-start sm:min-h-24">
         {phase !== 'ask' && (
           <div className="flex w-full animate-fade-up flex-col items-center gap-3 text-center" role="status">
             <div className="flex items-center gap-4">

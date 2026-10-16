@@ -30,6 +30,9 @@ function playDemo(notes: string[], ornament?: 'cut' | 'bounce' | 'slide') {
   voice.stop(t + 0.1)
 }
 
+/** Pitch graph height inside a lesson: tall enough that the note names on its axis don't run together. */
+const PINNED_TRACE_HEIGHT = 240
+
 export function FreePlayStep({ exercise, onComplete }: { exercise: FreePlayExercise; onComplete: (r: ExerciseResult) => void }) {
   const { t, L } = useT()
   const { micWanted, setMicWanted } = useSession()
@@ -49,16 +52,16 @@ export function FreePlayStep({ exercise, onComplete }: { exercise: FreePlayExerc
       <p className="max-w-lg text-center text-lg text-balance sm:text-xl">{L(exercise.prompt)}</p>
       {exercise.demo && (
         <div className={cn('flex justify-center gap-2', pinned ? 'w-full' : 'flex-wrap')}>
-          <Button variant="secondary" icon="volume" className={pinned ? 'min-w-0 flex-1 px-3' : undefined} onClick={() => playDemo(exercise.demo!.notes)}>
+          <Button variant="secondary" icon="volume" className={pinned ? 'min-w-0 flex-1 px-2 text-sm whitespace-nowrap' : undefined} onClick={() => playDemo(exercise.demo!.notes)}>
             {t('free.plain')}
           </Button>
-          <Button variant="brass" icon="sparkles" className={pinned ? 'min-w-0 flex-1 px-3' : undefined} onClick={() => playDemo(exercise.demo!.notes, exercise.demo!.ornament)}>
+          <Button variant="brass" icon="sparkles" className={pinned ? 'min-w-0 flex-1 px-2 text-sm whitespace-nowrap' : undefined} onClick={() => playDemo(exercise.demo!.notes, exercise.demo!.ornament)}>
             {t('free.withOrnament')}
           </Button>
         </div>
       )}
       <div className="w-full max-w-2xl">
-        <PitchTrace active={micWanted} target={frame?.note ?? null} height={pinned ? 120 : 220} />
+        <PitchTrace active={micWanted} target={frame?.note ?? null} height={pinned ? PINNED_TRACE_HEIGHT : 220} />
       </div>
       <MicControl enabled={micWanted} onChange={setMicWanted} status={status} level={frame?.level ?? 0} />
       <StepActions>
