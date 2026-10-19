@@ -3,7 +3,7 @@
 ## Supported versions
 
 Only the latest release receives security fixes. Please update to the newest
-[release](https://github.com/SpaceCadet0/tin-whistler/releases) before reporting.
+[release](https://github.com/SpaceCadet0/Tin-Whistler/releases) before reporting.
 
 | Version | Supported |
 | ------- | --------- |
@@ -15,7 +15,7 @@ Only the latest release receives security fixes. Please update to the newest
 Please **do not open a public issue** for security problems.
 
 Report privately through GitHub:
-[Report a vulnerability](https://github.com/SpaceCadet0/tin-whistler/security/advisories/new).
+[Report a vulnerability](https://github.com/SpaceCadet0/Tin-Whistler/security/advisories/new).
 
 Include what you found, the steps to reproduce it, the app version (web or
 Android) and the impact you expect. You can write in English or Russian.
