@@ -157,3 +157,7 @@ Users can also import ABC, MIDI or images, or build a tune in the editor.
 - *Shepard's Flute* is Bill Brown's Lineage II theme, transcribed from the tab screenshots in `reference/` (tab by Hound4Sound). It is bundled for personal practice. Remove it before distributing the app.
 - Tab-image recognition targets dot-style whistle tabs on white or tinted paper, photo backgrounds and dark themes, including dots drawn edge to edge. Note names written under the columns are ignored (only `t`, `r`, `-` and `i` are read as articulation), and the octave comes from the `+` marks. On the reference screenshots it gets pitch classes ≥ 97% right. The "+" octave marks are less reliable on photographic backgrounds, and bracketed second voices are imported as extra phrases. Fix these in the editor.
 - Ornaments are displayed, synthesised and taught, but not graded. Cuts and taps are too short to judge reliably from a phone microphone, so scoring ignores them on purpose.
+
+## License
+
+[MIT](LICENSE) © Igor Rusakov (SpaceCadet)
