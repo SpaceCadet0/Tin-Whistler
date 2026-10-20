@@ -9,7 +9,15 @@
 A course, a tuner, trainers and games, and a tune library you learn section by section.
 Runs in the browser or as an Android app. Your progress stays on your device.
 
-`React 19` · `TypeScript` · `Web Audio` · `Capacitor` · English / Русский
+<p>
+  <img src="https://img.shields.io/badge/React-19-1D5A40?logo=react&logoColor=white" alt="React 19">
+  <img src="https://img.shields.io/badge/TypeScript-strict-1D5A40?logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Web%20Audio-live%20pitch-1D5A40" alt="Web Audio">
+  <img src="https://img.shields.io/badge/Android-7.0%2B-1D5A40?logo=android&logoColor=white" alt="Android 7.0+">
+  <img src="https://img.shields.io/badge/works-offline-1D5A40" alt="Works offline">
+  <img src="https://img.shields.io/badge/languages-EN%20%C2%B7%20RU-1D5A40" alt="Languages: English, Russian">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-1D5A40" alt="MIT License"></a>
+</p>
 
 <br />
 
