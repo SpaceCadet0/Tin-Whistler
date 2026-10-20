@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useBlocker, useNavigate, useParams, useSearchParams, type BlockerFunction } from 'react-router-dom'
 import { whistleSynth } from '../../audio/WhistleSynth'
-import { useT } from '../../i18n'
+import { sectionName, useT } from '../../i18n'
 import { hasKeyboard, isNativeApp, MOD_KEY as MOD } from '../../lib/platform'
 import { toast } from '../../lib/toast'
 import { changeWhistle, insertClip, insertNote, locate, moveRange, removeRange, sliceClip, togglePhraseBreak, toggleLineBreak, updateNote } from '../../music/editing'
@@ -39,7 +39,7 @@ export default function TuneEditor() {
   const stored = useTune(tuneId)
   const save = useTuneLibrary((s) => s.save)
   const navigate = useNavigate()
-  const { t } = useT()
+  const { t, lang } = useT()
   const [tune, setTune] = useState<Tune | null>(null)
   // ?section=N opens that section (e.g. after appending sections from an import)
   const [searchParams] = useSearchParams()
@@ -373,8 +373,9 @@ export default function TuneEditor() {
         }
       />
 
-      <Card className="mb-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
-        <label className="flex flex-col gap-1 text-sm font-semibold text-ink-soft lg:col-span-2">
+      {/* BPM and difficulty are short numbers: their columns are narrow so long type names ("Медленная мелодия") fit */}
+      <Card className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_minmax(0,1.6fr)_minmax(0,0.7fr)_minmax(0,0.7fr)_minmax(0,1.2fr)]">
+        <label className="flex flex-col gap-1 text-sm font-semibold text-ink-soft">
           {t('import.name')}
           <input value={tune.title} onChange={(e) => commit({ ...tune, title: e.target.value })} className="h-11 rounded-xl border border-line bg-surface px-3 text-ink" />
         </label>
@@ -420,7 +421,7 @@ export default function TuneEditor() {
             }}
             className={cn('h-10 rounded-2xl px-4 text-sm font-semibold', i === sectionIdx ? 'bg-ink text-bg' : 'bg-surface-2 text-ink-soft')}
           >
-            {s.name}
+            {sectionName(s.name, lang)}
           </button>
         ))}
         <Button size="sm" variant="ghost" icon="plus" onClick={addSection}>
@@ -438,7 +439,7 @@ export default function TuneEditor() {
         <Card className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <input
-              value={section.name}
+              value={sectionName(section.name, lang)}
               onChange={(e) => setSection({ ...section, name: e.target.value })}
               aria-label={t('editor.sectionName')}
               className="h-10 rounded-xl border border-transparent bg-transparent px-2 font-display text-xl font-semibold hover:border-line focus:border-moss"

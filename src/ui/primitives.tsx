@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { Link, type LinkProps } from 'react-router-dom'
 import { extendTailwindMerge } from 'tailwind-merge'
+import { useT } from '../i18n'
 import { Icon } from './Icon'
 import { Triquetra } from './ornaments'
 
@@ -295,10 +296,11 @@ export function Stat({ icon, value, label, tone = 'moss' }: { icon: string; valu
 }
 
 export function PageHeader({ title, subtitle, back, actions }: { title: ReactNode; subtitle?: ReactNode; back?: string; actions?: ReactNode }) {
+  const { t } = useT()
   return (
     <header className="mb-6 flex flex-wrap items-start gap-x-3 gap-y-4">
       {back && (
-        <Link to={back} aria-label="Back" className="-ml-1.5 grid h-11 w-11 shrink-0 place-items-center rounded-2xl text-ink-soft hover:bg-surface-2">
+        <Link to={back} aria-label={t('common.back')} className="-ml-1.5 grid h-11 w-11 shrink-0 place-items-center rounded-2xl text-ink-soft hover:bg-surface-2">
           <Icon name="back" />
         </Link>
       )}
