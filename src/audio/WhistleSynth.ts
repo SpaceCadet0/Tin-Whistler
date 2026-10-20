@@ -1,7 +1,9 @@
 import { ornamentSegments } from '../music/ornaments'
 import { midiToFrequency } from '../music/pitch'
 import type { Attack, Fingering, Ornament } from '../music/types'
+import { getWhistle } from '../music/whistles'
 import { audioEngine } from './AudioEngine'
+import { HARMONIC_COUNT, whistleTimbre } from './whistleTimbre'
 
 /** A note to be rendered by a voice at an absolute AudioContext time. */
 export interface VoiceNote {
@@ -18,16 +20,20 @@ export interface VoiceNote {
   slideTo?: number | null
 }
 
-const HARMONICS = [
-  { k: 1, gain: 1 },
-  { k: 2, gain: 0.09 },
-  { k: 3, gain: 0.035 },
-]
 const BASE_LEVEL = 0.3
-const VIBRATO_CENTS = 11
+/** Measured on recordings: about 10 cents at 4.8 Hz (the ramp-in makes the average lower). */
+const VIBRATO_CENTS = 15
+const VIBRATO_HZ = 4.8
+/** Slow wandering of pitch (cents) and loudness (fraction) that keeps a held note alive. */
+const DRIFT_CENTS = 4.5
+const FLUTTER = 0.17
+/** Breath noise: a band around the note plus a broad hiss, as in a real fipple. */
+const BREATH_BAND = 0.065
+const BREATH_BROAD = 0.013
+const REVERB_WET = 0.16
 
 let noiseBuffer: AudioBuffer | null = null
-function getNoise(ctx: AudioContext): AudioBuffer {
+function getNoise(ctx: BaseAudioContext): AudioBuffer {
   if (!noiseBuffer) {
     noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate)
     const d = noiseBuffer.getChannelData(0)
@@ -36,16 +42,70 @@ function getNoise(ctx: AudioContext): AudioBuffer {
   return noiseBuffer
 }
 
+/** A smooth random curve (RMS 1) changing a few times a second, looped as a modulation source. */
+function wanderBuffer(ctx: BaseAudioContext, seconds: number, pointsPerSecond: number): AudioBuffer {
+  const buf = ctx.createBuffer(1, Math.round(ctx.sampleRate * seconds), ctx.sampleRate)
+  const d = buf.getChannelData(0)
+  const n = Math.round(seconds * pointsPerSecond)
+  const pts = Array.from({ length: n }, () => Math.random() * 2 - 1)
+  let sum = 0
+  for (let i = 0; i < d.length; i++) {
+    const x = (i / d.length) * n
+    const k = Math.floor(x)
+    const f = (1 - Math.cos((x - k) * Math.PI)) / 2
+    d[i] = pts[k] * (1 - f) + pts[(k + 1) % n] * f
+    sum += d[i] * d[i]
+  }
+  const rms = Math.sqrt(sum / d.length) || 1
+  for (let i = 0; i < d.length; i++) d[i] /= rms
+  return buf
+}
+
+/** One small room per output, shared by all voices playing into it. */
+const reverbs = new WeakMap<AudioNode, AudioNode>()
+function reverbSend(destination: AudioNode): AudioNode {
+  let send = reverbs.get(destination)
+  if (!send) {
+    const ctx = destination.context
+    const len = Math.round(ctx.sampleRate * 1.2)
+    const ir = ctx.createBuffer(2, len, ctx.sampleRate)
+    for (let c = 0; c < 2; c++) {
+      const d = ir.getChannelData(c)
+      let lp = 0
+      for (let i = 0; i < len; i++) {
+        const t = i / ctx.sampleRate
+        // darker as it decays, like the air absorbing the highs
+        const a = Math.min(0.9, 0.25 + t * 1.2)
+        lp = lp * a + (Math.random() * 2 - 1) * (1 - a)
+        d[i] = lp * Math.exp(-t / 0.28) * (t < 0.012 ? t / 0.012 : 1)
+      }
+    }
+    const conv = ctx.createConvolver()
+    conv.buffer = ir
+    const wet = ctx.createGain()
+    wet.gain.value = REVERB_WET
+    conv.connect(wet).connect(destination)
+    send = conv
+    reverbs.set(destination, send)
+  }
+  return send
+}
+
 /**
- * A monophonic whistle voice: a few sine harmonics, band-passed breath noise that follows
- * the pitch, a "chiff" transient on tongued attacks and delayed vibrato. Notes must be
+ * A monophonic whistle voice: six harmonics whose balance follows the register (measured from
+ * recordings), breath noise in a band around the note plus a broad hiss, a "chiff" transient on
+ * tongued attacks, slow pitch/loudness wander, delayed vibrato and a touch of room. Notes must be
  * scheduled in chronological order (the TunePlayer's look-ahead scheduler guarantees that).
  */
 export class WhistleVoice {
-  private ctx = audioEngine.context
+  /** The destination's context: the live one, or an OfflineAudioContext when rendering to a buffer. */
+  private ctx: BaseAudioContext
   private oscs: OscillatorNode[] = []
+  private harmGains: GainNode[] = []
   private amp: GainNode
   private breathFilter: BiquadFilterNode
+  private broadFilter: BiquadFilterNode
+  private breathLevel: GainNode
   private chiff: GainNode
   private vibrato: GainNode
   private sources: AudioScheduledSourceNode[] = []
@@ -56,43 +116,79 @@ export class WhistleVoice {
 
   private a4: number
   private whistleId: string
+  private baseMidi: number
 
   constructor(destination: AudioNode = audioEngine.output, a4 = 440, whistleId = 'D') {
     this.a4 = a4
     this.whistleId = whistleId
-    const ctx = this.ctx
+    this.baseMidi = getWhistle(whistleId).baseMidi
+    const ctx = (this.ctx = destination.context)
     const t = ctx.currentTime
     this.amp = ctx.createGain()
     this.amp.gain.setValueAtTime(0, t)
-    this.amp.connect(destination)
+    // loudness wander rides on a unity gain after the envelope
+    const flutter = ctx.createGain()
+    flutter.gain.value = 1
+    this.amp.connect(flutter)
+    flutter.connect(destination)
+    flutter.connect(reverbSend(destination))
 
     const lfo = ctx.createOscillator()
-    lfo.frequency.value = 5.4
+    lfo.frequency.value = VIBRATO_HZ
     this.vibrato = ctx.createGain()
     this.vibrato.gain.setValueAtTime(0, t)
     lfo.connect(this.vibrato)
 
-    for (const h of HARMONICS) {
+    const drift = ctx.createBufferSource()
+    drift.buffer = wanderBuffer(ctx, 7, 2.5)
+    drift.loop = true
+    const driftGain = ctx.createGain()
+    driftGain.gain.value = DRIFT_CENTS
+    drift.connect(driftGain)
+    const wobble = ctx.createBufferSource()
+    wobble.buffer = wanderBuffer(ctx, 5, 6)
+    wobble.loop = true
+    const wobbleGain = ctx.createGain()
+    wobbleGain.gain.value = FLUTTER
+    wobble.connect(wobbleGain).connect(flutter.gain)
+
+    const initial = whistleTimbre(0)
+    for (let k = 1; k <= HARMONIC_COUNT; k++) {
       const osc = ctx.createOscillator()
       osc.type = 'sine'
-      osc.frequency.setValueAtTime(587 * h.k, t)
+      osc.frequency.setValueAtTime(587 * k, t)
       const g = ctx.createGain()
-      g.gain.value = h.gain
+      g.gain.value = initial.harmonics[k - 1]
       osc.connect(g).connect(this.amp)
       this.vibrato.connect(osc.detune)
+      driftGain.connect(osc.detune)
       this.oscs.push(osc)
+      this.harmGains.push(g)
     }
 
     const noise = ctx.createBufferSource()
     noise.buffer = getNoise(ctx)
     noise.loop = true
+    this.breathLevel = ctx.createGain()
+    this.breathLevel.gain.value = initial.breath
+    this.breathLevel.connect(this.amp)
     this.breathFilter = ctx.createBiquadFilter()
     this.breathFilter.type = 'bandpass'
-    this.breathFilter.Q.value = 9
+    this.breathFilter.Q.value = 6
     this.breathFilter.frequency.setValueAtTime(587, t)
-    const breathGain = ctx.createGain()
-    breathGain.gain.value = 0.55
-    noise.connect(this.breathFilter).connect(breathGain).connect(this.amp)
+    const bandGain = ctx.createGain()
+    bandGain.gain.value = BREATH_BAND
+    noise.connect(this.breathFilter).connect(bandGain).connect(this.breathLevel)
+    // the broad hiss starts a little below the note and fades above ~9 kHz
+    this.broadFilter = ctx.createBiquadFilter()
+    this.broadFilter.type = 'highpass'
+    this.broadFilter.frequency.setValueAtTime(420, t)
+    const broadTop = ctx.createBiquadFilter()
+    broadTop.type = 'lowpass'
+    broadTop.frequency.value = 9000
+    const broadGain = ctx.createGain()
+    broadGain.gain.value = BREATH_BROAD
+    noise.connect(this.broadFilter).connect(broadTop).connect(broadGain).connect(this.breathLevel)
 
     const chiffFilter = ctx.createBiquadFilter()
     chiffFilter.type = 'highpass'
@@ -101,20 +197,30 @@ export class WhistleVoice {
     this.chiff.gain.setValueAtTime(0, t)
     noise.connect(chiffFilter).connect(this.chiff).connect(destination)
 
-    this.sources = [lfo, noise, ...this.oscs]
+    this.sources = [lfo, noise, drift, wobble, ...this.oscs]
     for (const s of this.sources) s.start(t)
   }
 
   /** mode: smooth = fast exponential approach, jump = instant, ramp = linear glide ending at `at`. */
   private setPitch(midi: number, at: number, mode: 'smooth' | 'jump' | 'ramp' = 'smooth'): void {
     const f = midiToFrequency(midi, this.a4)
-    const params = [...this.oscs.map((o) => o.frequency), this.breathFilter.frequency]
-    params.forEach((p, i) => {
-      const target = f * (HARMONICS[i]?.k ?? 1)
+    const targets: [AudioParam, number][] = [
+      ...this.oscs.map((o, i): [AudioParam, number] => [o.frequency, f * (i + 1)]),
+      [this.breathFilter.frequency, f],
+      [this.broadFilter.frequency, f * 0.85],
+    ]
+    for (const [p, target] of targets) {
       if (mode === 'jump') p.setValueAtTime(target, at)
       else if (mode === 'ramp') p.linearRampToValueAtTime(target, at)
       else p.setTargetAtTime(target, at, 0.003)
-    })
+    }
+  }
+
+  /** The harmonic balance and breathiness of the note's register. */
+  private setTimbre(midi: number, at: number): void {
+    const timbre = whistleTimbre(midi - this.baseMidi)
+    this.harmGains.forEach((g, i) => g.gain.setTargetAtTime(timbre.harmonics[i], at, 0.01))
+    this.breathLevel.gain.setTargetAtTime(timbre.breath, at, 0.01)
   }
 
   private burst(at: number, amount: number): void {
@@ -139,22 +245,27 @@ export class WhistleVoice {
     const attack = glidingIn ? 'slur' : (n.attack ?? (this.sounding ? 'slur' : 'tongue'))
 
     this.vibrato.gain.setTargetAtTime(0, t, 0.02)
+    this.setTimbre(n.midi, t)
+    // recordings: tongued notes are separated by a near-silent gap (~12% level) and swell in
+    // over ~30 ms; a slur keeps the air going
     if (!this.sounding) {
-      amp.setTargetAtTime(level, t, attack === 'slur' ? 0.02 : 0.006)
+      amp.setTargetAtTime(level, t, attack === 'slur' ? 0.025 : 0.013)
       if (attack !== 'slur') this.burst(t, 0.06)
     } else if (attack === 'tongue') {
-      amp.setTargetAtTime(level * 0.1, Math.max(0, t - 0.02), 0.004)
-      amp.setTargetAtTime(level, t, 0.006)
+      amp.setTargetAtTime(level * 0.06, Math.max(0, t - 0.045), 0.007)
+      amp.setTargetAtTime(level, t, 0.012)
       this.burst(t, 0.05)
     } else if (attack === 'ru') {
-      amp.setTargetAtTime(level * 0.45, Math.max(0, t - 0.018), 0.005)
-      amp.setTargetAtTime(level, t, 0.008)
+      amp.setTargetAtTime(level * 0.35, Math.max(0, t - 0.03), 0.007)
+      amp.setTargetAtTime(level, t, 0.012)
       this.burst(t, 0.02)
     } else if (glidingIn) {
       // the level dips while the finger rolls off the hole and recovers as the pitch settles
       amp.setTargetAtTime(level, Math.max(t, glideEnd - 0.06), 0.05)
     } else {
-      amp.setTargetAtTime(level, t, 0.01)
+      // a fingered change briefly disturbs the air even when slurred
+      amp.setTargetAtTime(level * 0.8, Math.max(0, t - 0.012), 0.005)
+      amp.setTargetAtTime(level, t, 0.012)
     }
 
     const slideTo = n.ornament?.type === 'slide' && !n.stop ? n.slideTo : undefined
