@@ -1,3 +1,5 @@
+*English* · [Русский](README.ru.md)
+
 <div align="center">
 
 <img src="assets/icon-only.png" width="96" alt="Tin Whistler icon" />
