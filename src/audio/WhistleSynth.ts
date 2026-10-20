@@ -36,6 +36,10 @@ const BREATH_BAND = 0.06
 const BREATH_BROAD = 0.004
 const BREATH_TOP_HZ = 4500
 const REVERB_WET = 0.16
+/** Tongued "to" / "ru" puffs: centre of the noise band and their levels. */
+const CHIFF_HZ = 1100
+const CHIFF_TONGUE = 0.03
+const CHIFF_RU = 0.014
 
 let noiseBuffer: AudioBuffer | null = null
 function getNoise(ctx: BaseAudioContext): AudioBuffer {
@@ -195,12 +199,17 @@ export class WhistleVoice {
     broadGain.gain.value = BREATH_BROAD
     noise.connect(this.broadFilter).connect(broadTop).connect(broadGain).connect(this.breathLevel)
 
-    const chiffFilter = ctx.createBiquadFilter()
-    chiffFilter.type = 'highpass'
-    chiffFilter.frequency.value = 2500
+    // the tongue's puff of air: a low, wide band of noise (a high band sounded like a hi-hat)
+    const chiffBand = ctx.createBiquadFilter()
+    chiffBand.type = 'bandpass'
+    chiffBand.frequency.value = CHIFF_HZ
+    chiffBand.Q.value = 0.9
+    const chiffTop = ctx.createBiquadFilter()
+    chiffTop.type = 'lowpass'
+    chiffTop.frequency.value = 3000
     this.chiff = ctx.createGain()
     this.chiff.gain.setValueAtTime(0, t)
-    noise.connect(chiffFilter).connect(this.chiff).connect(destination)
+    noise.connect(chiffBand).connect(chiffTop).connect(this.chiff).connect(destination)
 
     this.sources = [lfo, noise, drift, wobble, ...this.oscs]
     for (const s of this.sources) s.start(t)
@@ -229,8 +238,9 @@ export class WhistleVoice {
   }
 
   private burst(at: number, amount: number): void {
-    this.chiff.gain.setTargetAtTime(amount, at, 0.002)
-    this.chiff.gain.setTargetAtTime(0, at + 0.014, 0.012)
+    // a soft swell and a ~50 ms breathy tail instead of a click
+    this.chiff.gain.setTargetAtTime(amount, at, 0.006)
+    this.chiff.gain.setTargetAtTime(0, at + 0.02, 0.025)
   }
 
   schedule(n: VoiceNote): void {
@@ -255,15 +265,15 @@ export class WhistleVoice {
     // over ~30 ms; a slur keeps the air going
     if (!this.sounding) {
       amp.setTargetAtTime(level, t, attack === 'slur' ? 0.025 : 0.013)
-      if (attack !== 'slur') this.burst(t, 0.06)
+      if (attack !== 'slur') this.burst(t, CHIFF_TONGUE)
     } else if (attack === 'tongue') {
       amp.setTargetAtTime(level * 0.06, Math.max(0, t - 0.045), 0.007)
       amp.setTargetAtTime(level, t, 0.012)
-      this.burst(t, 0.05)
+      this.burst(t, CHIFF_TONGUE)
     } else if (attack === 'ru') {
       amp.setTargetAtTime(level * 0.35, Math.max(0, t - 0.03), 0.007)
       amp.setTargetAtTime(level, t, 0.012)
-      this.burst(t, 0.02)
+      this.burst(t, CHIFF_RU)
     } else if (glidingIn) {
       // the level dips while the finger rolls off the hole and recovers as the pitch settles
       amp.setTargetAtTime(level, Math.max(t, glideEnd - 0.06), 0.05)
