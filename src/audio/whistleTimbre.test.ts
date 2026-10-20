@@ -15,7 +15,7 @@ describe('whistle timbre', () => {
     const low = whistleTimbre(0)
     const high = whistleTimbre(12)
     expect(db(high.harmonics[2])).toBeLessThan(db(low.harmonics[2]) - 10)
-    expect(high.breath).toBeGreaterThan(low.breath * 2)
+    expect(high.breath).toBeGreaterThan(low.breath * 1.4)
   })
 
   it('interpolates between measured points and clamps outside the range', () => {

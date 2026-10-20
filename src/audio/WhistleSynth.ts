@@ -27,9 +27,14 @@ const VIBRATO_HZ = 4.8
 /** Slow wandering of pitch (cents) and loudness (fraction) that keeps a held note alive. */
 const DRIFT_CENTS = 4.5
 const FLUTTER = 0.17
-/** Breath noise: a band around the note plus a broad hiss, as in a real fipple. */
-const BREATH_BAND = 0.065
-const BREATH_BROAD = 0.013
+/**
+ * Breath noise: a band around the note plus a soft broad hiss. The recordings' measured noise also
+ * holds room reverb and MP3 artefacts, so the hiss sits well below it: at the measured level it
+ * sounded like white noise in headphones.
+ */
+const BREATH_BAND = 0.06
+const BREATH_BROAD = 0.004
+const BREATH_TOP_HZ = 4500
 const REVERB_WET = 0.16
 
 let noiseBuffer: AudioBuffer | null = null
@@ -179,13 +184,13 @@ export class WhistleVoice {
     const bandGain = ctx.createGain()
     bandGain.gain.value = BREATH_BAND
     noise.connect(this.breathFilter).connect(bandGain).connect(this.breathLevel)
-    // the broad hiss starts a little below the note and fades above ~9 kHz
+    // the broad hiss starts a little below the note and fades above ~4.5 kHz
     this.broadFilter = ctx.createBiquadFilter()
     this.broadFilter.type = 'highpass'
     this.broadFilter.frequency.setValueAtTime(420, t)
     const broadTop = ctx.createBiquadFilter()
     broadTop.type = 'lowpass'
-    broadTop.frequency.value = 9000
+    broadTop.frequency.value = BREATH_TOP_HZ
     const broadGain = ctx.createGain()
     broadGain.gain.value = BREATH_BROAD
     noise.connect(this.broadFilter).connect(broadTop).connect(broadGain).connect(this.breathLevel)

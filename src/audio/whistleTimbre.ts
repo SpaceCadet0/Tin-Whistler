@@ -11,9 +11,9 @@ const ANCHORS: { offset: number; harmonicsDb: number[] }[] = [
   { offset: 12, harmonicsDb: [-28, -26, -35.5, -35.5, -44] },
 ]
 
-/** Breath noise relative to the low register: the second octave is about 9 dB breathier. */
+/** Breath noise relative to the low register: the second octave is breathier (about 4 dB). */
 const BREATH_LOW = 1
-const BREATH_HIGH = 2.8
+const BREATH_HIGH = 1.6
 
 export const HARMONIC_COUNT = ANCHORS[0].harmonicsDb.length + 1
 
