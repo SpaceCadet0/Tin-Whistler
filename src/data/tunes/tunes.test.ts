@@ -182,15 +182,4 @@ describe('Jigs written out from the MIDI files in reference/abc', () => {
     expect(labels(oldJohns, 3)).toEqual(["E'", "D'", 'C'])
     expect(blackthornStick.sections).toHaveLength(1)
   })
-
-  it('carry rolls, cuts, taps and slides on a modest share of the notes', () => {
-    for (const t of JIGS) {
-      const notes = t.sections.flatMap(sectionNotes).filter((n) => n.pitch != null)
-      const share = notes.filter((n) => n.ornament).length / notes.length
-      expect(share, t.id).toBeGreaterThan(0.02)
-      expect(share, t.id).toBeLessThan(0.2)
-    }
-    const types = new Set(JIGS.flatMap((t) => t.sections.flatMap(sectionNotes)).map((n) => n.ornament?.type))
-    expect([...types]).toEqual(expect.arrayContaining(['roll', 'cut', 'bounce', 'slide']))
-  })
 })

@@ -3,8 +3,6 @@ import { fromAbc } from './abcTunes'
 /*
  * Session jigs, written out in ABC from the MIDI files in reference/abc (one played-through
  * setting each). Repeated parts are folded back into |: :| with first and second endings.
- * The MIDI has no ornaments; rolls, cuts, taps and slides were added in the usual places:
- * rolls on long notes, cuts on repeated notes, taps on the bottom D, slides into F#.
  * Old John's ties its last A into the next part in the MIDI; here that A is played again.
  */
 
@@ -16,9 +14,9 @@ R:jig
 M:6/8
 L:1/8
 K:Dmix
-|:D{g}ED DEG|~A3 ABc|BAG A{c}GE|GEA GED|D{g}ED DEG|~A3 ABc|BAG A{c}GE|GED D3:|
-|:d{g}ed dBG|AGA BGE|d{g}ed dBG|AGA GBd|~g2e dBG|AGA BGE|~B2G A{c}GE|GED D3:|
-|:A2!tap!D B2!tap!D|A2!tap!D ABc|BAG A{c}GE|GEA GED|A!tap!DD B!tap!DD|A!tap!DD ABc|BAG A{c}GE|GED D3:|`,
+|:DED DEG|A3 ABc|BAG AGE|GEA GED|DED DEG|A3 ABc|BAG AGE|GED D3:|
+|:ded dBG|AGA BGE|ded dBG|AGA GBd|g2e dBG|AGA BGE|B2G AGE|GED D3:|
+|:A2D B2D|A2D ABc|BAG AGE|GEA GED|ADD BDD|ADD ABc|BAG AGE|GED D3:|`,
   {
     difficulty: 3,
     composer: 'Traditional Irish',
@@ -38,8 +36,8 @@ R:jig
 M:6/8
 L:1/8
 K:Gmaj
-|:~B3 BAG|BdB ~A2B|GED ~G2A|BdB AGA|~B3 BAG|BdB ~A2B|GED ~G2A|1 BGF G2A:|2 BGF GBd||
-|:ege {a}edB|ege {a}edB|~d2d def|gfe dBA|~G2A ~B2d|ege dBA|GED ~G2A|1 BGF GBd:|2 BGF G3|]`,
+|:B3 BAG|BdB A2B|GED G2A|BdB AGA|B3 BAG|BdB A2B|GED G2A|1 BGF G2A:|2 BGF GBd||
+|:ege edB|ege edB|d2d def|gfe dBA|G2A B2d|ege dBA|GED G2A|1 BGF GBd:|2 BGF G3|]`,
   {
     difficulty: 3,
     composer: 'Traditional Irish',
@@ -59,8 +57,8 @@ R:jig
 M:6/8
 L:1/8
 K:Ador
-|:E{c}AA E{c}AA|BAB ~G2A|B{g}ee edB|def gfg|e{c}AA e{c}AA|BAB ~G2A|B{g}ee edB|1 dBA ~A3:|2 dBA A2d||
-|:e{b}aa age|dBA ~G2A|B{g}ee edB|def gfg|e{b}aa age|dBA ~G2A|B{g}ee edB|1 dBA A2d:|2 dBA ~A3|]`,
+|:EAA EAA|BAB G2A|Bee edB|def gfg|eAA eAA|BAB G2A|Bee edB|1 dBA A3:|2 dBA A2d||
+|:eaa age|dBA G2A|Bee edB|def gfg|eaa age|dBA G2A|Bee edB|1 dBA A2d:|2 dBA A3|]`,
   {
     difficulty: 3,
     composer: 'Traditional Irish',
@@ -80,9 +78,9 @@ R:jig
 M:6/8
 L:1/8
 K:Edor
-|:~E3 B3|EBE A!slide!FD|EDE ~B3|dcB AFD|~E3 B3|EBE A!slide!FD|~G3 FGA|dAG FED:|
-B{g}ee fee|a{g}ee fee|B{g}ee fee|a2g fed|B{g}ee fee|a{g}ee fee|gfe ~d2A|BAG FGA|
-B{g}ee fee|a{g}ee fee|B{g}ee fee|faf def|~g3 gfe|def ~g2d|edc ~d2A|BAG FED|]`,
+|:E3 B3|EBE AFD|EDE B3|dcB AFD|E3 B3|EBE AFD|G3 FGA|dAG FED:|
+Bee fee|aee fee|Bee fee|a2g fed|Bee fee|aee fee|gfe d2A|BAG FGA|
+Bee fee|aee fee|Bee fee|faf def|g3 gfe|def g2d|edc d2A|BAG FED|]`,
   {
     difficulty: 4,
     composer: 'Traditional Irish',
@@ -102,9 +100,9 @@ R:jig
 M:6/8
 L:1/8
 K:Dmix
-|:fed cAG|~A2d cAG|!slide!F2D D{g}ED|FEF GFG|AGA cAG|AGA cde|fed cAG|Ad^c d3:|
-|:~f2d d^cd|f2g agf|~e2c cBc|e2f gfe|~f2g agf|e2f gfe|fed cAG|Ad^c d3:|
-|:f2g e2f|d2e c2d|A{c}BA G{A}AG|!slide!F2F GED|{d}c3 cAG|AGA cde|fed cAG|Ad^c d3:|`,
+|:fed cAG|A2d cAG|F2D DED|FEF GFG|AGA cAG|AGA cde|fed cAG|Ad^c d3:|
+|:f2d d^cd|f2g agf|e2c cBc|e2f gfe|f2g agf|e2f gfe|fed cAG|Ad^c d3:|
+|:f2g e2f|d2e c2d|ABA GAG|F2F GED|c3 cAG|AGA cde|fed cAG|Ad^c d3:|`,
   {
     difficulty: 4,
     composer: 'Traditional Irish',
@@ -124,8 +122,8 @@ R:jig
 M:6/8
 L:1/8
 K:Dmaj
-|:F{c}AA d{c}AA|BAA dAG|F{c}AA dfe|d{e}BB BAG|F{c}AA d{c}AA|BAA def|gfe dfe|1 d{e}BB BAG:|2 d{e}BB ~B3||
-|:fbb faf|fed ede|fbb faf|fed ~e3|fbb faf|fed def|gfe dfe|1 d{e}BB ~B3:|2 d{e}BB BAG|]`,
+|:FAA dAA|BAA dAG|FAA dfe|dBB BAG|FAA dAA|BAA def|gfe dfe|1 dBB BAG:|2 dBB B3||
+|:fbb faf|fed ede|fbb faf|fed e3|fbb faf|fed def|gfe dfe|1 dBB B3:|2 dBB BAG|]`,
   {
     difficulty: 3,
     composer: 'Traditional Irish',
@@ -145,8 +143,8 @@ R:jig
 M:6/8
 L:1/8
 K:Ador
-|:e/d/cA {c}AcA|AGE FGA|BcA {c}AA2|GAd {e}dde|dcA {c}AcA|AGE FGA|Bcd e~e2|BcA {c}AA2:|
-|:Aef gea|age dcA|Aef gea|aba ga2-|aef gea|age dcA|Acd e~e2|dcA {c}AA2:|`,
+|:e/d/cA AcA|AGE FGA|BcA AA2|GAd dde|dcA AcA|AGE FGA|Bcd ee2|BcA AA2:|
+|:Aef gea|age dcA|Aef gea|aba ga2-|aef gea|age dcA|Acd ee2|dcA AA2:|`,
   {
     difficulty: 4,
     composer: 'Traditional Irish',
@@ -166,8 +164,8 @@ R:jig
 M:6/8
 L:1/8
 K:Gmaj
-dBA GE2|GD2 DEG|G~G2 DGA|Bc2 cBA|GBd B~A2|DGA Bc2|cBA GBd|ded cBA|
-GEG EDB,|DEG G~G2|DGA Bc2|cBA GBd|ded cBA|GEG EDB,|DEG G~G2|]`,
+dBA GE2|GD2 DEG|GG2 DGA|Bc2 cBA|GBd BA2|DGA Bc2|cBA GBd|ded cBA|
+GEG EDB,|DEG GG2|DGA Bc2|cBA GBd|ded cBA|GEG EDB,|DEG GG2|]`,
   {
     difficulty: 2,
     transpose: 0,
