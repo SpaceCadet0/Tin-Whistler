@@ -4,7 +4,8 @@ import { fromAbc } from './abcTunes'
  * Songs, airs, marches and anthems. Transcribed by hand from open sources (reference/abc);
  * chord symbols are kept, the parser skips them. Fixes against the originals: Scotland the Brave
  * and The Foggy Dew count in quarter notes (L:1/4) so their bars are whole; the tied D# at the end
- * of Korobeiniki keeps its sharp; a missing "/" in Charlie He's My Darling.
+ * of Korobeiniki keeps its sharp; a missing "/" in Charlie He's My Darling. Loch Lomond is moved
+ * to G to sit in the first octave; Charlie He's My Darling keeps its D minor on a C whistle.
  */
 
 export const wayfaringStranger = fromAbc(
@@ -99,12 +100,13 @@ B2 BA F2 FA|GF ED B,2 A,B,|D2 FA B2 AF|E4 D4||`,
   {
     difficulty: 2,
     type: 'song',
+    transpose: 5,
     composer: 'Traditional Scottish',
     sectionNames: ['Chorus'],
-    tags: ['song', 'scottish', 'second octave'],
+    tags: ['song', 'scottish'],
     description: {
-      en: '"O ye\'ll tak\' the high road": the chorus of the Scottish ballad. It dips below the whistle\'s low D, so it is played an octave up, all in the second octave.',
-      ru: '«O ye\'ll tak\' the high road» — припев шотландской баллады. Мелодия опускается ниже нижнего D вистла, поэтому играется октавой выше, целиком во второй октаве.',
+      en: '"O ye\'ll tak\' the high road": the chorus of the Scottish ballad. Written in D it dips below the whistle, so it is set in G, where it sits comfortably in the first octave.',
+      ru: '«O ye\'ll tak\' the high road» — припев шотландской баллады. В ре мажоре мелодия уходит ниже вистла, поэтому она в соль мажоре, где удобно ложится в первую октаву.',
     },
   },
 )
@@ -185,11 +187,13 @@ d|^c(A=Bc) ~d>efd|^c(A=Bc) d2 e2|f>efd =c>A ~F(G/A/)|B>G A>F EA/G/ FE|
 ~D>EFG (A2 d) z/A/|(B2 d) z/B/ (A2 d) A/F/|~D>EFG A2 ~d>e|f2 e>d d3||`,
   {
     difficulty: 4,
+    whistle: 'C',
+    transpose: 0,
     composer: 'Traditional Scottish',
-    tags: ['air', 'scottish', 'minor', 'rolls', 'slurs'],
+    tags: ['air', 'scottish', 'minor', 'rolls', 'slurs', 'C whistle'],
     description: {
-      en: 'A Jacobite song played as a slow air in D minor. Slurred groups, rolls, dotted rhythms and the half-holed B flat and C natural of the minor key.',
-      ru: 'Якобитская песня, сыгранная как медленный эйр в ре миноре. Легато, rolls, пунктирный ритм и полузакрытые B♭ и C натуральное минорного лада.',
+      en: 'A Jacobite song played as a slow air in D minor, set for a C whistle where the B flat is a simple cross-fingering. Slurred groups, rolls and dotted rhythms.',
+      ru: 'Якобитская песня, сыгранная как медленный эйр в ре миноре. Записана для C-вистла, где B♭ берётся простой вилочной аппликатурой. Легато, rolls и пунктирный ритм.',
     },
   },
 )

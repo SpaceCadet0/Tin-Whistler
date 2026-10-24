@@ -67,11 +67,13 @@ A,2DA, FA,DA,|B,2DB, FB,DB,|C2EC FCEC|1 FEDC D2C2:|2 FEDC D2A2||
 dcAG F2D2|dcAG F2D2|B,A,B,C DCDE|1 FEDC D2 A2:|2 FEDC D2z2||`,
   {
     difficulty: 5,
+    whistle: 'G',
+    transpose: 0,
     composer: 'Davy Arthur',
-    tags: ['reel', 'session', 'minor'],
+    tags: ['reel', 'session', 'minor', 'G whistle'],
     description: {
-      en: 'The "Glasgow Reel": a dark minor reel that drives off a low pedal note. Written in D minor below the whistle, it is moved to B minor so every note is a plain fingering.',
-      ru: '«Глазго-рил»: тёмный минорный рил, который раскачивается от низкой педальной ноты. Записан в ре миноре ниже вистла, поэтому перенесён в си минор, где все ноты играются обычной аппликатурой.',
+      en: 'The "Glasgow Reel": a dark minor reel that drives off a low pedal note. Its D minor runs below a D whistle, so it is set for a G whistle in the key sessions play it in, with a half-holed B flat.',
+      ru: '«Глазго-рил»: тёмный минорный рил, который раскачивается от низкой педальной ноты. Его ре минор уходит ниже D-вистла, поэтому он записан для G-вистла в той тональности, в которой его играют на сейшенах, с полузакрытым B♭.',
     },
   },
 )

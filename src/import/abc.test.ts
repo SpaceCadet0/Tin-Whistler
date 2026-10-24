@@ -32,6 +32,14 @@ describe('ABC whistle extras', () => {
     expect(parseAbc('X:1\nT:T\nM:4/4\nL:1/8\nK:FMin\nCFG|AF3- F CFG|AF3- F z2|', 'C').tune.key).toBe('AMin')
   })
 
+  it('keeps the written key when asked, choosing only the octave', () => {
+    const abc = 'X:1\nT:T\nM:4/4\nL:1/8\nK:Dmin\nA,2DA, FA,DA,|B,2DB, FB,DB,|'
+    expect(parseAbc(abc, 'D').tune.key).not.toBe('Dmin')
+    const kept = parseAbc(abc, 'G', 0)
+    expect(kept.tune.key).toBe('Dmin')
+    expect(kept.transposed % 12).toBe(0)
+  })
+
   it('still groups two bars per phrase without breath marks', () => {
     const section = parseAbc(ABC('D2 E2 F2 G2|A8|B8|d8|')).tune.sections[0]
     expect(section.phrases).toHaveLength(2)

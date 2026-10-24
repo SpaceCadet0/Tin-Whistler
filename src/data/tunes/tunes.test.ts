@@ -5,7 +5,7 @@ import { BUILTIN_TUNES } from '.'
 import { auldLangSyne, butterfly, cooleysReel, saints, scarboroughFair } from './abcTunes'
 import { drunkenSailor, greensleeves, joyToTheWorld, POPULAR_TUNES, silentNight, twinkle } from './popularTunes'
 import { FOLK_SONGS } from './folkSongs'
-import { AIRS_AND_MARCHES } from './airsAndMarches'
+import { AIRS_AND_MARCHES, charlieHesMyDarling, lochLomond } from './airsAndMarches'
 import { musicalPriest, SESSION_TUNES, siegeOfEnnis, tamLin, windThatShakesTheBarley } from './sessionTunes'
 import { thePrayer } from './thePrayer'
 
@@ -128,10 +128,18 @@ describe('Session tunes, airs and marches from reference/abc', () => {
     expect(tunes).toHaveLength(23)
     for (const t of tunes) {
       const pitches = t.sections.flatMap(sectionNotes).flatMap((n) => (n.pitch == null ? [] : [n.pitch]))
-      expect(Math.min(...pitches) - 74, t.id).toBeGreaterThanOrEqual(0)
-      expect(Math.max(...pitches) - 74, t.id).toBeLessThanOrEqual(23)
+      const base = getWhistle(t.whistle).baseMidi
+      expect(Math.min(...pitches) - base, t.id).toBeGreaterThanOrEqual(0)
+      expect(Math.max(...pitches) - base, t.id).toBeLessThanOrEqual(23)
       expect(t.description?.en && t.description.ru, t.id).toBeTruthy()
     }
+  })
+
+  it('keep the written key where a whistle plays it, on the whistle that suits it', () => {
+    expect(tamLin).toMatchObject({ whistle: 'G', key: 'Dmin' })
+    expect(charlieHesMyDarling).toMatchObject({ whistle: 'C', key: 'Dmin' })
+    expect(lochLomond).toMatchObject({ whistle: 'D', key: 'Gmaj' })
+    expect(labels(lochLomond, 4)).toEqual(['D', 'E', 'G', 'G'])
   })
 
   it('keep the bars whole, allowing a pickup', () => {
@@ -150,6 +158,5 @@ describe('Session tunes, airs and marches from reference/abc', () => {
     expect(musicalPriest.sections).toHaveLength(3)
     expect(labels(siegeOfEnnis, 4)).toEqual(['A', 'B', 'A', 'G'])
     expect(windThatShakesTheBarley.sections.flatMap(sectionNotes).filter((n) => n.ornament?.type === 'bounce')).toHaveLength(4)
-    expect(tamLin.key).toBe('Bmin')
   })
 })

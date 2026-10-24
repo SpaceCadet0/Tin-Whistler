@@ -9,7 +9,7 @@ import { parseTabText, sectionToTabText } from './tabText'
 import { autoSection, flattenTune, sectionNotes, usedNotes } from './tune'
 import { scaleNotes } from './scales'
 import type { TuneSection } from './types'
-import { fingeringForMidi, noteById, whistleLabel } from './whistles'
+import { fingeringForMidi, getWhistle, noteById, whistleLabel } from './whistles'
 
 describe('whistle notes', () => {
   it('maps standard D whistle fingerings', () => {
@@ -91,9 +91,10 @@ describe('tab text', () => {
 describe('built-in tunes', () => {
   it('all parse and fit the whistle', () => {
     for (const t of BUILTIN_TUNES) {
+      const base = getWhistle(t.whistle).baseMidi
       for (const s of t.sections) for (const n of sectionNotes(s)) if (n.pitch != null) {
-        expect(n.pitch).toBeGreaterThanOrEqual(74)
-        expect(n.pitch).toBeLessThanOrEqual(97)
+        expect(n.pitch, t.id).toBeGreaterThanOrEqual(base)
+        expect(n.pitch, t.id).toBeLessThanOrEqual(base + 23)
       }
     }
   })

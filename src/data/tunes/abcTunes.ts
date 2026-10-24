@@ -9,9 +9,9 @@ import type { LocalizedText, Tune, TuneType } from '../../music/types'
 export function fromAbc(
   id: string,
   abc: string,
-  meta: { description: LocalizedText; difficulty: number; type?: TuneType; sectionNames?: string[]; tags?: string[]; composer?: string; whistle?: string },
+  meta: { description: LocalizedText; difficulty: number; type?: TuneType; sectionNames?: string[]; tags?: string[]; composer?: string; whistle?: string; transpose?: number },
 ): Tune {
-  const { tune } = parseAbc(abc, meta.whistle ?? 'D')
+  const { tune } = parseAbc(abc, meta.whistle ?? 'D', meta.transpose)
   return {
     ...tune,
     id,

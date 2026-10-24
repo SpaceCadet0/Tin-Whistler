@@ -77,7 +77,11 @@ interface RawNote extends TuneNote {
   breath?: boolean
 }
 
-export function parseAbc(text: string, whistleId = 'D'): AbcParseResult {
+/**
+ * `transpose` (semitones) fixes the key instead of letting the parser pick the most whistle-friendly
+ * one: 0 keeps the written key, and only the octave is chosen to fit the whistle.
+ */
+export function parseAbc(text: string, whistleId = 'D', transpose?: number): AbcParseResult {
   const warnings: string[] = []
   const lines = text.replace(/\r/g, '').split('\n')
   const header: Record<string, string> = {}
@@ -364,7 +368,10 @@ export function parseAbc(text: string, whistleId = 'D'): AbcParseResult {
   if (!sectionsRaw.length) throw new Error('No notes found in the ABC body.')
 
   const allPitches = sectionsRaw.flatMap((s) => s.notes.map((n) => n.pitch).filter((p): p is number => p != null))
-  const fit = bestFit(allPitches, whistleId)
+  const fit =
+    transpose == null
+      ? bestFit(allPitches, whistleId)
+      : ((f) => ({ ...f, shift: f.shift + transpose }))(bestFit(allPitches.map((p) => p + transpose), whistleId, false))
   if (fit.outOfRange) warnings.push(`${fit.outOfRange} note(s) were outside the whistle range and were moved by an octave.`)
 
   const sections: TuneSection[] = sectionsRaw.map((s, i) => {
