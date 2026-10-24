@@ -9,7 +9,9 @@ class AudioEngine {
 
   get context(): AudioContext {
     if (!this.ctx) {
-      this.ctx = new AudioContext({ latencyHint: 'interactive' })
+      // 'interactive' gave phones the smallest buffer, and early underruns crackled at note starts
+      // until the browser grew it; scoring already compensates for the output latency
+      this.ctx = new AudioContext({ latencyHint: 'balanced' })
       const comp = this.ctx.createDynamicsCompressor()
       comp.threshold.value = -14
       comp.ratio.value = 3

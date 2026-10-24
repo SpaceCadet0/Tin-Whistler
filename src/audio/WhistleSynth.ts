@@ -41,14 +41,27 @@ const CHIFF_HZ = 1100
 const CHIFF_TONGUE = 0.03
 const CHIFF_RU = 0.014
 
-let noiseBuffer: AudioBuffer | null = null
-function getNoise(ctx: BaseAudioContext): AudioBuffer {
-  if (!noiseBuffer) {
-    noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate)
-    const d = noiseBuffer.getChannelData(0)
+/**
+ * Buffers every voice needs, built once per context. Generating them takes tens of milliseconds
+ * on a cold phone; done inside play() it pushed the first notes into the past, and their attacks
+ * snapped on with a click.
+ */
+interface VoiceBuffers {
+  noise: AudioBuffer
+  drift: AudioBuffer
+  wobble: AudioBuffer
+}
+const buffers = new WeakMap<BaseAudioContext, VoiceBuffers>()
+function voiceBuffers(ctx: BaseAudioContext): VoiceBuffers {
+  let b = buffers.get(ctx)
+  if (!b) {
+    const noise = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate)
+    const d = noise.getChannelData(0)
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1
+    b = { noise, drift: wanderBuffer(ctx, 7, 2.5), wobble: wanderBuffer(ctx, 5, 6) }
+    buffers.set(ctx, b)
   }
-  return noiseBuffer
+  return b
 }
 
 /** A smooth random curve (RMS 1) changing a few times a second, looped as a modulation source. */
@@ -76,18 +89,17 @@ function reverbSend(destination: AudioNode): AudioNode {
   let send = reverbs.get(destination)
   if (!send) {
     const ctx = destination.context
-    const len = Math.round(ctx.sampleRate * 1.2)
-    const ir = ctx.createBuffer(2, len, ctx.sampleRate)
-    for (let c = 0; c < 2; c++) {
-      const d = ir.getChannelData(c)
-      let lp = 0
-      for (let i = 0; i < len; i++) {
-        const t = i / ctx.sampleRate
-        // darker as it decays, like the air absorbing the highs
-        const a = Math.min(0.9, 0.25 + t * 1.2)
-        lp = lp * a + (Math.random() * 2 - 1) * (1 - a)
-        d[i] = lp * Math.exp(-t / 0.28) * (t < 0.012 ? t / 0.012 : 1)
-      }
+    // mono and under a second: a long stereo impulse cost the audio thread more than it gave
+    const len = Math.round(ctx.sampleRate * 0.9)
+    const ir = ctx.createBuffer(1, len, ctx.sampleRate)
+    const d = ir.getChannelData(0)
+    let lp = 0
+    for (let i = 0; i < len; i++) {
+      const t = i / ctx.sampleRate
+      // darker as it decays, like the air absorbing the highs
+      const a = Math.min(0.9, 0.25 + t * 1.2)
+      lp = lp * a + (Math.random() * 2 - 1) * (1 - a)
+      d[i] = lp * Math.exp(-t / 0.28) * (t < 0.012 ? t / 0.012 : 1)
     }
     const conv = ctx.createConvolver()
     conv.buffer = ir
@@ -98,6 +110,12 @@ function reverbSend(destination: AudioNode): AudioNode {
     reverbs.set(destination, send)
   }
   return send
+}
+
+/** Build the shared buffers and room ahead of the first note (e.g. when a player page opens). */
+export function prepareWhistleVoice(destination: AudioNode = audioEngine.output): void {
+  voiceBuffers(destination.context)
+  reverbSend(destination)
 }
 
 /**
@@ -149,13 +167,14 @@ export class WhistleVoice {
     lfo.connect(this.vibrato)
 
     const drift = ctx.createBufferSource()
-    drift.buffer = wanderBuffer(ctx, 7, 2.5)
+    const { noise: noiseBuf, drift: driftBuf, wobble: wobbleBuf } = voiceBuffers(ctx)
+    drift.buffer = driftBuf
     drift.loop = true
     const driftGain = ctx.createGain()
     driftGain.gain.value = DRIFT_CENTS
     drift.connect(driftGain)
     const wobble = ctx.createBufferSource()
-    wobble.buffer = wanderBuffer(ctx, 5, 6)
+    wobble.buffer = wobbleBuf
     wobble.loop = true
     const wobbleGain = ctx.createGain()
     wobbleGain.gain.value = FLUTTER
@@ -176,7 +195,7 @@ export class WhistleVoice {
     }
 
     const noise = ctx.createBufferSource()
-    noise.buffer = getNoise(ctx)
+    noise.buffer = noiseBuf
     noise.loop = true
     this.breathLevel = ctx.createGain()
     this.breathLevel.gain.value = initial.breath

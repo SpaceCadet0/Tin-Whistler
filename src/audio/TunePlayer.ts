@@ -4,7 +4,7 @@ import type { TimedNote, Tune, TuneNote } from '../music/types'
 import { audioEngine } from './AudioEngine'
 import { scheduleClick } from './click'
 import { LOOKAHEAD_MS, onHide, scheduleAhead } from './lookahead'
-import { WhistleVoice } from './WhistleSynth'
+import { prepareWhistleVoice, WhistleVoice } from './WhistleSynth'
 
 export interface PlayerOptions {
   /** Tempo multiplier, 0.25 … 1.5. */
@@ -78,6 +78,11 @@ export class TunePlayer {
   load(tune: Tune): void {
     this.stop()
     this.tune = tune
+    try {
+      prepareWhistleVoice()
+    } catch {
+      // no Web Audio here: nothing to warm up, and play() surfaces the real problem
+    }
     this.rebuild()
   }
 
@@ -153,6 +158,9 @@ export class TunePlayer {
     this.range = [from, to]
     this.buildEvents(from, to)
 
+    // build the voice before reading the clock, so its setup can't make the first notes late
+    this.voice = new WhistleVoice(audioEngine.output, this.options.a4, this.tune.whistle)
+    this.voice2 = null
     const now = audioEngine.now
     const lead = countIn ? this.options.countIn * this.secPerPulse() : 0
     this.passStart = now + 0.12 + lead
@@ -164,8 +172,6 @@ export class TunePlayer {
         scheduleClick(now + 0.12 + i * this.secPerPulse(), i === 0)
       }
     }
-    this.voice = new WhistleVoice(audioEngine.output, this.options.a4, this.tune.whistle)
-    this.voice2 = null
     this.setState(lead > 0 ? 'counting' : 'playing')
     this.passStarted.emit({ pass: 0, startTime: this.passStart })
     this.tick()
