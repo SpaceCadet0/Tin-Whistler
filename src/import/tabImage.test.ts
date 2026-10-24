@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { PNG } from 'pngjs'
 import { describe, expect, it } from 'vitest'
 import { shepardsFlute } from '../data/tunes/shepardsFlute'
+import { thePrayer } from '../data/tunes/thePrayer'
 import { sectionNotes } from '../music/tune'
 import { whistleLabel } from '../music/whistles'
 import { recognizeTab, sectionFromRecognition } from './tabImage'
@@ -28,6 +29,9 @@ describe('tab image recognition', () => {
     expect(pitchClass).toBeGreaterThanOrEqual(0.97)
     expect(exact).toBeGreaterThanOrEqual(0.85)
     expect(ringHits).toBeGreaterThanOrEqual(0.9)
+    // articulation letters t / r / - / i under the columns
+    const attacks = got.filter((g, i) => (g.attack ?? 'tongue') === (want[i].attack ?? 'tongue') && !!g.stop === !!want[i].stop).length / want.length
+    expect(attacks).toBeGreaterThanOrEqual(0.92)
   })
 
   it('reads dark-theme tabs (light dots on a dark background) like the light originals', () => {
@@ -73,5 +77,13 @@ describe('tab panel read from a video (The Prayer, section 2)', () => {
     const r = recognizeTab({ width: png.width, height: png.height, data: png.data })
     expect(r.systems).toHaveLength(2)
     expect(r.systems.reduce((n, s) => n + s.columns.length, 0)).toBe(55)
+  })
+
+  it('reads "tu", "du" and "-" written as syllables under the notes', () => {
+    const png = PNG.sync.read(readFileSync(new URL('./__fixtures__/prayer-2.png', import.meta.url)))
+    const got = sectionNotes(sectionFromRecognition(recognizeTab({ width: png.width, height: png.height, data: png.data }), 's', 'S'))
+    const want = sectionNotes(thePrayer.sections[1]).filter((n) => n.pitch != null)
+    const attacks = got.filter((g, i) => (g.attack ?? 'tongue') === (want[i].attack ?? 'tongue')).length / want.length
+    expect(attacks).toBeGreaterThanOrEqual(0.65)
   })
 })

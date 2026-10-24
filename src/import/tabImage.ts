@@ -308,6 +308,10 @@ function crossAt(mask: Mask, W: number, H: number, x: number, yFrom: number, yTo
 
 /** Dash shape under a column (slur): width / height above the ratio, or height below the share of a dot. */
 const DASH_RATIO = 2.5
+/** Joined letters under a column this much wider than tall: articulation written as syllables. */
+const SYLLABLE_RATIO = 1.15
+/** ...and found under at least this share of the line's columns, not under a stray few. */
+const SYLLABLE_SHARE = 0.3
 const DASH_HEIGHT = 0.25
 
 /** Background channels at or above this are already "white". */
@@ -600,19 +604,6 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
       }
       return topOf(b.x1 - Math.round(w * 0.35), b.x1) - topOf(b.x0, b.x0 + Math.round(w * 0.35)) > (b.y1 - b.y0 + 1) * 0.12
     }
-    // a small dash is as short as a dot but clearly wider than tall
-    const isDot = (b: Blob) => {
-      const w = b.x1 - b.x0 + 1
-      const h = b.y1 - b.y0 + 1
-      return h < D * 0.4 && w < D * 0.4 && w / h < 1.3
-    }
-    const dotsBelow = below.filter(isDot)
-    const singles = below.filter((b) => !isDot(b))
-    // "t" and "u" may come out as separate shapes (one-colour text, small serif type): join the letters under each
-    // column so "tu" vs "ru" is judged on the whole syllable (dashes stay on their own)
-    // a dash is flat: much wider than tall, or barely any height (a whole word like "du" is wide too,
-    // and a lone "u" is short, but neither is that flat)
-    const isDash = (b: Blob) => (b.x1 - b.x0 + 1) / (b.y1 - b.y0 + 1) > DASH_RATIO || b.y1 - b.y0 + 1 < D * DASH_HEIGHT
     const joinUnderColumns = (shapes: Blob[]): Blob[] => {
       const groups = new Map<number, Blob[]>()
       for (const b of shapes) groups.set(colAt(b.cx), [...(groups.get(colAt(b.cx)) ?? []), b])
@@ -624,10 +615,31 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
         return { x0, x1, y0, y1, n: g.reduce((a, b) => a + b.n, 0), cx: (x0 + x1) / 2, cy: (y0 + y1) / 2 }
       })
     }
-    const letters = [...singles.filter(isDash), ...joinUnderColumns(singles.filter((b) => !isDash(b)))]
-    // height of the short letters ("u", "r"): the lowest fifth of the letter shapes
+    // Articulation written as syllables ("tu", "du", "ru" under each note, as in video tabs) rather
+    // than single letters (t, r): the letters under a column, joined, are clearly wider than tall.
+    const letterSized = (b: Blob) => b.y1 - b.y0 + 1 >= D * 0.5 && b.y1 - b.y0 + 1 <= D * 1.4 && b.x1 - b.x0 + 1 <= D * 3
+    const tallish = joinUnderColumns(below.filter(letterSized)).filter(letterSized)
+    const syllables = tallish.length >= Math.max(3, columns.length * SYLLABLE_SHARE) && median(tallish.map((b) => (b.x1 - b.x0 + 1) / (b.y1 - b.y0 + 1))) >= SYLLABLE_RATIO
+    // a staccato dot is small and round; with syllables, a short dash is just as small but flat
+    const isDot = (b: Blob) => {
+      const w = b.x1 - b.x0 + 1
+      const h = b.y1 - b.y0 + 1
+      return h < D * 0.4 && w < D * 0.4 && (!syllables || w / h < 1.3)
+    }
+    const dotsBelow = below.filter(isDot)
+    const singles = below.filter((b) => !isDot(b))
+    // a dash is flat; next to syllables it must be flatter still (a whole "du" is wide, a lone "u" short)
+    const isDash = (b: Blob) => {
+      const ratio = (b.x1 - b.x0 + 1) / (b.y1 - b.y0 + 1)
+      const h = b.y1 - b.y0 + 1
+      return syllables ? ratio > DASH_RATIO || h < D * DASH_HEIGHT : ratio > 1.6 || h < D * 0.42
+    }
+    // one-colour text or syllables: "t" and "u" may come out as separate shapes; join the letters under
+    // each column so "tu" vs "ru" is judged on the whole syllable (dashes stay on their own)
+    const letters = letterMask === redLetters && !syllables ? singles : [...singles.filter(isDash), ...joinUnderColumns(singles.filter((b) => !isDash(b)))]
+    // with syllables, the height of the short letters ("u", "r"): the lowest fifth of the letter shapes
     const heights = singles.filter((b) => !isDash(b)).map((b) => b.y1 - b.y0 + 1).sort((a, b) => a - b)
-    const xHeight = heights.length >= 5 ? heights[Math.floor(heights.length * 0.2)] : 0
+    const xHeight = syllables && heights.length >= 5 ? heights[Math.floor(heights.length * 0.2)] : 0
     const dashCols = new Set<number>()
     for (const b of letters) {
       const w = b.x1 - b.x0 + 1
@@ -644,10 +656,12 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
       if (hasDot) {
         col.stop = true
         col.attack ??= 'slur'
-      } else if (hasCounter(b, letterMask, W, D) || (w / h > 0.9 && xHeight && h >= xHeight * D_ASCENDER)) col.attack = 'ru'
+      }
       // "du" is the soft "ru" attack: its "d" has a closed bowl and rises well above a "t"
-      // a syllable: "tu" rises above the x-height ("t"), "ru" does not
-      else if (w / h > 0.9) col.attack = xHeight ? (h >= xHeight * T_ASCENDER ? 'tongue' : 'ru') : risesOnLeft(b) ? 'tongue' : 'ru'
+      else if (xHeight && w / h > 0.9 && (hasCounter(b, letterMask, W, D) || h >= xHeight * D_ASCENDER)) col.attack = 'ru'
+      // "tu" rises above the x-height ("t"), "ru" does not
+      else if (xHeight && w / h > 0.9) col.attack = h >= xHeight * T_ASCENDER ? 'tongue' : 'ru'
+      else if (w / h > 0.9) col.attack = risesOnLeft(b) ? 'tongue' : 'ru'
       else if (h > D * 1.05) col.attack = 'tongue'
       // "tu" can split into "t" and "u": the short "u" must not turn a tongued note into "ru"
       else if (col.attack !== 'tongue') col.attack = 'ru'

@@ -122,11 +122,16 @@ export function attackAt(frames: PitchFrame[], t: number, loud: number, levelOnl
   let after = 0
   for (let k = t; k < Math.min(frames.length, t + look * 2); k++) after = Math.max(after, frames[k].rms)
   if (after < loud * SOUNDING) return 0
+  // the attack is where the dip bottoms out, before the level climbs back: not anywhere after it
+  const here = frames[t].rms
+  if (here > lo * DIP_BOTTOM || here > frames[Math.min(frames.length - 1, t + 2)].rms) return levelOnly ? 0 : clarityBlur(minClarity)
   const rise = Math.max(0, 1 - lo / after)
   if (levelOnly) return rise
-  const blur = Math.min(1, Math.max(0, (1 - minClarity) / (1 - ATTACK_CLARITY)))
-  return Math.max(rise, blur)
+  return Math.max(rise, clarityBlur(minClarity))
 }
+const clarityBlur = (minClarity: number) => Math.min(1, Math.max(0, (1 - minClarity) / (1 - ATTACK_CLARITY)))
+/** A frame this close to the dip's lowest level still counts as its bottom. */
+const DIP_BOTTOM = 1.2
 /** Level (share of a loud frame) a note must reach after its attack. */
 const SOUNDING = 0.25
 
@@ -144,71 +149,81 @@ export function alignNotes(frames: PitchFrame[], pitches: number[], opts: AlignO
   const gapCost = (t: number) => (frames[t].midi == null || quiet(t) ? QUIET_GAP : VOICED_IN_GAP)
   const dip = frames.map((_, t) => attackAt(frames, t, loud))
 
-  // state per note: in the note (a) or in the silence after it (b); before the first note: lead
-  const INF = 1e18
-  const a = new Float64Array((N + 1) * (T + 1)).fill(INF)
-  const b = new Float64Array((N + 1) * (T + 1)).fill(INF)
-  const runLen = new Int32Array((N + 1) * (T + 1))
-  const fromA = new Uint8Array((N + 1) * (T + 1)) // a[i][t] came from: 0 stay, 1 a[i-1], 2 b[i-1], 3 lead
-  const fromB = new Uint8Array((N + 1) * (T + 1)) // b[i][t] came from: 0 stay, 1 a[i]
-  const idx = (i: number, t: number) => i * (T + 1) + t
-  const lead = new Float64Array(T + 1)
+  /*
+   * Exact minimum note length: L[i][t] = in note i at frame t having sounded for at least minLen
+   * frames (reached by staying, or by starting at t - minLen + 1 and holding through t); G[i][t] =
+   * in the silence after note i. A note can only be left from L, so no note is shorter than
+   * minLen. Holding costs come from per-note running sums of the frame costs.
+   */
+  const INF = Infinity
+  const W = T + 1
+  const L = new Float64Array((N + 1) * W).fill(INF)
+  const G = new Float64Array((N + 1) * W).fill(INF)
+  const fromL = new Uint8Array((N + 1) * W) // 0 stay, 1 started minLen frames ago
+  const fromG = new Uint8Array((N + 1) * W) // 0 stay, 1 left L[i]
+  const startFrom = new Uint8Array((N + 1) * W) // how note i was started at frame t: 1 L[i-1], 2 G[i-1], 3 lead
+  const idx = (i: number, t: number) => i * W + t
+  const lead = new Float64Array(W)
   for (let t = 1; t <= T; t++) lead[t] = lead[t - 1] + gapCost(t - 1)
-
-  for (let t = 1; t <= T; t++) {
-    const f = t - 1
-    for (let i = 1; i <= N; i++) {
-      const enter = ENTER - DIP_BONUS * dip[f]
-      let best = a[idx(i, t - 1)]
-      let src = 0
-      let len = runLen[idx(i, t - 1)] + 1
-      const prevNote = i === 1 ? lead[t - 1] : runLen[idx(i - 1, t - 1)] >= minLen ? a[idx(i - 1, t - 1)] : INF
-      const prevGap = i === 1 ? INF : b[idx(i - 1, t - 1)]
-      if (prevNote + enter < best) {
-        best = prevNote + enter
-        src = i === 1 ? 3 : 1
-        len = 1
+  const sums = new Float64Array(W)
+  for (let i = 1; i <= N; i++) {
+    for (let t = 1; t <= T; t++) sums[t] = sums[t - 1] + noteCost(t - 1, i - 1)
+    for (let t = 1; t <= T; t++) {
+      // start note i at frame s = t - minLen (0-based), coming from the state at s
+      const s0 = t - minLen
+      if (s0 >= 0) {
+        const fromPrev = i === 1 ? INF : L[idx(i - 1, s0)]
+        const fromGap = i === 1 ? INF : G[idx(i - 1, s0)]
+        const fromLead = i === 1 ? lead[s0] : INF
+        const before = Math.min(fromPrev, fromGap, fromLead)
+        if (before < INF) {
+          const started = before + ENTER - DIP_BONUS * dip[s0] + sums[t] - sums[s0]
+          if (started < L[idx(i, t)]) {
+            L[idx(i, t)] = started
+            fromL[idx(i, t)] = 1
+            startFrom[idx(i, t)] = before === fromPrev ? 1 : before === fromGap ? 2 : 3
+          }
+        }
       }
-      if (prevGap + enter < best) {
-        best = prevGap + enter
-        src = 2
-        len = 1
+      const stay = L[idx(i, t - 1)] + noteCost(t - 1, i - 1)
+      if (stay < L[idx(i, t)]) {
+        L[idx(i, t)] = stay
+        fromL[idx(i, t)] = 0
       }
-      a[idx(i, t)] = best + noteCost(f, i - 1)
-      fromA[idx(i, t)] = src
-      runLen[idx(i, t)] = len
-      const stay = b[idx(i, t - 1)]
-      const leave = runLen[idx(i, t - 1)] >= minLen ? a[idx(i, t - 1)] : INF
-      b[idx(i, t)] = Math.min(stay, leave) + gapCost(f)
-      fromB[idx(i, t)] = leave < stay ? 1 : 0
+      const gapStay = G[idx(i, t - 1)]
+      const gapLeave = L[idx(i, t - 1)]
+      G[idx(i, t)] = Math.min(gapStay, gapLeave) + gapCost(t - 1)
+      fromG[idx(i, t)] = gapLeave < gapStay ? 1 : 0
     }
   }
+  if (Math.min(L[idx(N, T)], G[idx(N, T)]) === INF) throw new Error(`Cannot fit ${N} notes into ${(T * HOP).toFixed(1)} s of recording`)
 
   // backtrack from the better of "in the last note" or "silent after it"
   const onsets = new Array<number>(N).fill(0)
   const ends = new Array<number>(N).fill(T)
   let i = N
   let t = T
-  let inGap = b[idx(N, T)] < a[idx(N, T)]
-  while (i >= 1 && t >= 1) {
+  let inGap = G[idx(N, T)] < L[idx(N, T)]
+  while (i >= 1 && t >= 0) {
     if (inGap) {
-      if (fromB[idx(i, t)] === 1) {
+      if (fromG[idx(i, t)] === 1) {
         ends[i - 1] = t - 1
         inGap = false
       }
       t--
       continue
     }
-    const src = fromA[idx(i, t)]
-    if (src === 0) {
+    if (fromL[idx(i, t)] === 0) {
       t--
       continue
     }
-    onsets[i - 1] = t - 1
+    const s0 = t - minLen
+    onsets[i - 1] = s0
+    const src = startFrom[idx(i, t)]
     if (src === 2) inGap = true
-    else if (i > 1) ends[i - 2] = t - 1
+    else if (src === 1) ends[i - 2] = s0
     i--
-    t--
+    t = s0
   }
   const misfit = onsets.map((on, k) => {
     const end = Math.max(on + 1, ends[k])

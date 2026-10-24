@@ -34,6 +34,15 @@ describe('aligning tab notes to a recording', () => {
     expect(notes.map((n) => n.beats)).toEqual([0.5, 0.3, 0.5])
   })
 
+  it('fits a whole performance of many notes (every note at least the minimum length)', () => {
+    const segments: [number, number][] = Array.from({ length: 200 }, (_, k) => [k % 3 ? 76 : 74, 0.4 + (k % 4) * 0.1])
+    const frames = track(segments)
+    const al = alignNotes(frames, segments.map(([m]) => m))
+    expect(al.onsets).toHaveLength(200)
+    expect(al.onsets.every((o, k) => k === 0 || o > al.onsets[k - 1])).toBe(true)
+    expect(startsAt(frames, [al.onsets[199]])[0]).toBeCloseTo(segments.slice(0, 199).reduce((t, [, s]) => t + s, 0), 1)
+  })
+
   it('undoes a sharp upper register before matching', () => {
     const frames = track([[74.3, 0.5], [86.7, 0.5], [88.7, 0.5]])
     const tuned = correctTuning(frames, [74, 86, 88], 85.5)

@@ -18,7 +18,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parseArgs } from 'node:util'
 import { PNG } from 'pngjs'
-import { alignNotes, attackAt, bestTuning, correctTuning, HOP, pitchTrack, timedNotes, type PitchFrame } from '../src/import/align'
+import { alignNotes, attackAt, correctTuning, HOP, pitchTrack, timedNotes, type PitchFrame } from '../src/import/align'
 import { recognizeTab, sectionFromRecognition, type RGBAImage } from '../src/import/tabImage'
 import { cropImage, keepStill, medianFrame, paperPanel, stillMask, tabPages } from '../src/import/videoFrames'
 import { builtinTune } from '../src/data/tunes'
@@ -40,6 +40,13 @@ const WEAK_REPEAT = 0.3
 const SHORT_NOTE = 0.08
 /** Below this attack strength a note with no articulation mark is taken as slurred. */
 const SLUR_ATTACK = 0.25
+/** Attack strength that clearly means a tongued note. */
+const TONGUED = 0.6
+/** Below this (level and clarity together) a note starts with no attack at all. */
+const SMOOTH = 0.15
+/** A rival attack this close in strength, further than RIVAL_GAP seconds away, makes a repeat's split doubtful. */
+const RIVAL_SHARE = 0.9
+const RIVAL_GAP = 0.1
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -102,62 +109,93 @@ if (!parts.length) {
   process.exit(1)
 }
 
-// 3) whistle key: shift the D-read fingerings to each key and keep the one the recording fits best
+// 3) whistle key, then timing. The whole performance is aligned at once, from the first section's
+// start to the last one's end: a tab page often stays on screen a little before or after it is
+// played, so chapter marks are not trusted as note boundaries. The tab gives fingerings (read as a
+// D whistle) and the recording gives pitches: each key is tried, the best-fitting alignment wins.
+// (Matching pitch classes alone can't tell D from G: their scales share six notes.)
 const samples = audioSamples(video, SAMPLE_RATE)
-const tracks: PitchFrame[][] = parts.map((p) => pitchTrack(samples.subarray(Math.round(p.start * SAMPLE_RATE), Math.round(p.end * SAMPLE_RATE)), SAMPLE_RATE))
-const tabPitches = parts.flatMap((p) => sectionNotes(p.section).flatMap((n) => (n.pitch == null ? [] : [n.pitch])))
-const heard = tracks.flat().flatMap((f) => (f.midi == null ? [] : [f.midi]))
-const keyFits = WHISTLE_KEYS.filter((w) => w.id !== 'lowD').map((w) => ({ id: w.id, ...bestTuning(heard, tabPitches.map((p) => p + w.baseMidi - 74)) }))
-keyFits.sort((a, b) => a.misfit - b.misfit)
-let whistle = values.whistle ?? keyFits[0].id
+const from = parts[0].start
+const until = parts[parts.length - 1].end
+const track: PitchFrame[] = pitchTrack(samples.subarray(Math.round(from * SAMPLE_RATE), Math.round(until * SAMPLE_RATE)), SAMPLE_RATE)
+const tabNotes = parts.map((p) => sectionNotes(p.section).filter((n) => n.pitch != null))
+const allTab = tabNotes.flat()
+const fit = (keyShift: number) => {
+  const pitches = allTab.map((n) => n.pitch! + keyShift)
+  const tuning = correctTuning(track, pitches, 74 + keyShift + 11.5)
+  const al = alignNotes(tuning.frames, pitches)
+  return { tuning, al, misfit: al.misfit.reduce((x, y) => x + y, 0) / Math.max(1, pitches.length) }
+}
+const keyFits = WHISTLE_KEYS.filter((w) => w.id !== 'lowD' && (!values.whistle || w.id === values.whistle || (values.whistle === 'lowD' && w.id === 'D'))).map((w) => ({ id: w.id, ...fit(w.baseMidi - 74) }))
+keyFits.sort((x, y) => x.misfit - y.misfit)
+const best = keyFits[0]
+let whistle = values.whistle ?? best.id
 // a low D whistle plays the D whistle's fingerings an octave down
-const heardMedian = [...heard].sort((a, b) => a - b)[heard.length >> 1]
-if (!values.whistle && whistle === 'D' && heardMedian < 74) whistle = 'lowD'
+const heard = track.flatMap((f) => (f.midi == null ? [] : [f.midi])).sort((x, y) => x - y)
+if (!values.whistle && whistle === 'D' && heard[heard.length >> 1] < 74) whistle = 'lowD'
 const shift = getWhistle(whistle).baseMidi - 74
+const { tuning, al } = best
+const tuningText = `${tuning.low >= 0 ? '+' : ''}${tuning.low}/${tuning.high >= 0 ? '+' : ''}${tuning.high}`
 
-// 4) align and time each section
+// 4) time each section
 interface Flag {
   section: number
   note: number
   token: string
   at: string
   reason: string
+  /** "check": worth a look; "fixed": the recording settled it (the octave), listed for the record. */
+  kind: 'check' | 'fixed'
 }
 const flags: Flag[] = []
 const tuned: TuneSection[] = []
-const tunings: string[] = []
 const clock = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, '0')}`
-parts.forEach((part, si) => {
-  const notes = sectionNotes(part.section).map((n): TuneNote => (n.pitch == null ? n : { ...n, pitch: n.pitch + shift }))
-  const sounding = notes.filter((n) => n.pitch != null)
-  const split = getWhistle(whistle).baseMidi + 11.5
-  const tuning = correctTuning(tracks[si], sounding.map((n) => n.pitch!), split)
-  tunings.push(`${tuning.low >= 0 ? '+' : ''}${tuning.low}/${tuning.high >= 0 ? '+' : ''}${tuning.high}`)
-  const al = alignNotes(tuning.frames, sounding.map((n) => n.pitch!))
-  const loud = [...tuning.frames.map((f) => f.rms)].sort((a, b) => a - b)[Math.floor(tuning.frames.length * 0.9)]
-  // no articulation read under a note: the recording decides, a smooth change of pitch is a slur
-  const articulated = sounding.map((n, k): TuneNote => (n.attack || k === 0 || attackAt(tuning.frames, al.onsets[k], loud, true) >= SLUR_ATTACK ? n : { ...n, attack: 'slur' }))
-  const timed = timedNotes(articulated, tuning.frames, al, BPM)
-  sounding.forEach((n, k) => {
-    const at = clock(part.start + al.onsets[k] * HOP)
-    const token = `#${k + 1} ${n.pitch}`
-    const len = ((k + 1 < sounding.length ? al.onsets[k + 1] : al.ends[k]) - al.onsets[k]) * HOP
-    if (al.misfit[k] > MISFIT) flags.push({ section: si + 1, note: k + 1, token, at, reason: 'the recording does not match the tab here' })
-    if (k > 0 && sounding[k - 1].pitch === n.pitch && attackAt(tuning.frames, al.onsets[k], loud) < WEAK_REPEAT)
-      flags.push({ section: si + 1, note: k + 1, token, at, reason: 'repeated note with a soft attack: the split may be off' })
-    if (len < SHORT_NOTE) flags.push({ section: si + 1, note: k + 1, token, at, reason: 'very short' })
-  })
-  // back into the tab's phrases: each sounding note brings the rest that follows it
-  let cursor = 0
+const loud = [...tuning.frames.map((f) => f.rms)].sort((x, y) => x - y)[Math.floor(tuning.frames.length * 0.9)]
+const sounding = allTab.map((n): TuneNote => ({ ...n, pitch: n.pitch! + shift }))
+// no articulation read under a note: the recording decides, a smooth change of pitch is a slur
+const articulated = sounding.map((n, k): TuneNote => (n.attack || k === 0 || attackAt(tuning.frames, al.onsets[k], loud, true) >= SLUR_ATTACK ? n : { ...n, attack: 'slur' }))
+const timedAll = timedNotes(articulated, tuning.frames, al, BPM)
+const timedSounding = timedAll.filter((n) => n.pitch != null)
+const sectionOf: number[] = tabNotes.flatMap((ns, si) => ns.map(() => si))
+const firstOf = tabNotes.map((_, si) => sectionOf.indexOf(si))
+const flag = (k: number, reason: string, kind: Flag['kind'] = 'check') => {
+  const si = sectionOf[k]
+  flags.push({ section: si + 1, note: k - firstOf[si] + 1, token: `#${k - firstOf[si] + 1} ${sounding[k].pitch}`, at: clock(from + al.onsets[k] * HOP), reason, kind })
+}
+sounding.forEach((n, k) => {
+  const len = ((k + 1 < sounding.length ? al.onsets[k + 1] : al.ends[k]) - al.onsets[k]) * HOP
+  if (al.misfit[k] > MISFIT) flag(k, 'the recording does not match the tab here')
+  if (len < SHORT_NOTE) flag(k, 'very short')
+  // a repeated note: is there another place in the two notes that looks just as much like the attack?
+  if (k > 0 && sounding[k - 1].pitch === n.pitch) {
+    const chosen = attackAt(tuning.frames, al.onsets[k], loud)
+    const start = al.onsets[k - 1] + Math.round(SHORT_NOTE / HOP)
+    const stop = k + 1 < sounding.length ? al.onsets[k + 1] : al.ends[k]
+    let rival = 0
+    for (let f = start; f < stop - Math.round(SHORT_NOTE / HOP); f++) if (Math.abs(f - al.onsets[k]) * HOP > RIVAL_GAP) rival = Math.max(rival, attackAt(tuning.frames, f, loud))
+    if (chosen < WEAK_REPEAT || rival >= chosen * RIVAL_SHARE) flag(k, 'repeated note: the split between the two may be off')
+  }
+  // the tab's "+" and the octave heard
+  if (timedSounding[k].pitch !== n.pitch) flag(k, `octave taken from the recording (${n.pitch} in the tab, ${timedSounding[k].pitch} heard)`, 'fixed')
+  // the tab's articulation against the recording
+  const level = attackAt(tuning.frames, al.onsets[k], loud, true)
+  if (k > 0 && n.attack === 'slur' && level >= TONGUED) flag(k, 'tab says slur, the recording has an attack')
+  if (k > 0 && n.attack && n.attack !== 'slur' && attackAt(tuning.frames, al.onsets[k], loud) < SMOOTH && sounding[k - 1].pitch !== n.pitch) flag(k, `tab says ${n.attack}, the recording sounds slurred`)
+})
+// back into each section's phrases: every sounding note brings the rest that follows it
+let cursor = 0
+for (const part of parts) {
   const phrases: Phrase[] = part.section.phrases.map((p) =>
     p.flatMap(() => {
-      const note = timed[cursor++]
-      const rest = timed[cursor] && timed[cursor].pitch == null ? [timed[cursor++]] : []
+      const note = timedAll[cursor++]
+      const rest = timedAll[cursor] && timedAll[cursor].pitch == null ? [timedAll[cursor++]] : []
       return [note, ...rest]
     }),
   )
   tuned.push({ ...part.section, phrases })
-})
+}
+/** Where each section was actually played. */
+const played = parts.map((_, si) => [from + al.onsets[firstOf[si]] * HOP, from + (si + 1 < parts.length ? al.onsets[firstOf[si + 1]] : al.ends[al.ends.length - 1]) * HOP])
 
 // 5) write the tune, the report and the summary
 const camel = id.replace(/-(\w)/g, (_, c: string) => c.toUpperCase()).replace(/^\d/, '_$&')
@@ -193,13 +231,13 @@ const report = {
   video: info.url ?? source,
   title,
   whistle,
-  keyFits,
+  tuning: tuningText,
+  keyFits: keyFits.map((k) => ({ id: k.id, misfit: Math.round(k.misfit * 100) / 100 })),
   sections: parts.map((p, i) => ({
     title: p.title,
-    start: p.start,
-    end: p.end,
+    shown: [p.start, p.end],
+    played: played[i].map((x) => Math.round(x * 10) / 10),
     notes: sectionNotes(p.section).length,
-    tuning: tunings[i],
     warnings: p.warnings,
     panel: join(outDir, 'panels', `s${i + 1}.png`),
   })),
@@ -207,10 +245,12 @@ const report = {
 }
 writeFileSync(join(outDir, 'report.json'), JSON.stringify(report, null, 2))
 
-console.log(`${title}\n${getWhistle(whistle).label} (fit ${keyFits.map((k) => `${k.id} ${k.misfit.toFixed(2)}`).join(', ')})`)
-parts.forEach((p, i) => console.log(`· ${p.title} ${clock(p.start)}–${clock(p.end)}: ${report.sections[i].notes} notes, tuning ${tunings[i]} st${p.warnings.length ? `, ${p.warnings.join(' ')}` : ''}`))
-console.log(flags.length ? `${flags.length} place(s) to check:` : 'Nothing flagged.')
-for (const f of flags) console.log(`  S${f.section} ${f.token} at ${f.at}: ${f.reason}`)
+console.log(`${title}\n${getWhistle(whistle).label} (fit ${keyFits.map((k) => `${k.id} ${k.misfit.toFixed(2)}`).join(', ')}), tuning ${tuningText} st (low/high register)`)
+parts.forEach((p, i) => console.log(`· ${p.title}: shown ${clock(p.start)}–${clock(p.end)}, played ${clock(played[i][0])}–${clock(played[i][1])}, ${report.sections[i].notes} notes${p.warnings.length ? `, ${p.warnings.join(' ')}` : ''}`))
+const toCheck = flags.filter((f) => f.kind === 'check')
+const fixed = flags.length - toCheck.length
+console.log(`${toCheck.length ? `${toCheck.length} place(s) to check` : 'Nothing to check'}${fixed ? `; ${fixed} octave(s) taken from the recording` : ''}`)
+for (const f of toCheck) console.log(`  S${f.section} ${f.token} at ${f.at}: ${f.reason}`)
 console.log(`→ ${join(outDir, `${id}.ts`)}`)
 
 // optional: compare with a built-in tune (regression check against a hand-made transcription)
