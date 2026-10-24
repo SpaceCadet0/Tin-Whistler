@@ -378,7 +378,7 @@ export function parseAbc(text: string, whistleId = 'D'): AbcParseResult {
       source: 'abc',
       type,
       whistle: whistleId,
-      key: (header.K || 'C').split(/\s/)[0],
+      key: transposeKey((header.K || 'C').split(/\s/)[0], fit.shift),
       meter,
       bpm,
       pulse: compound ? 1.5 : 1,
@@ -415,6 +415,16 @@ function lengthOf(s: string): number {
   if (!m[2]) return num
   const den = m[3] ? Number(m[3]) : Math.pow(2, m[2].length)
   return num / den
+}
+
+const KEY_NAMES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
+
+/** The key name after the melody was moved by `shift` semitones (the mode suffix is kept). */
+function transposeKey(key: string, shift: number): string {
+  const m = /^([A-G])([#b]?)(.*)$/.exec(key)
+  if (!m || shift % 12 === 0) return key
+  const pc = LETTER_PC[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0)
+  return KEY_NAMES[(((pc + shift) % 12) + 12) % 12] + m[3]
 }
 
 /** Phrases cut at the breath marks. */

@@ -16,6 +16,10 @@ describe('ABC whistle extras', () => {
     expect(section.lineBreaks).toEqual([2])
   })
 
+  it('names the key it moved the melody to', () => {
+    expect(parseAbc('X:1\nT:T\nM:4/4\nL:1/8\nK:FMin\nCFG|AF3- F CFG|AF3- F z2|', 'C').tune.key).toBe('AMin')
+  })
+
   it('still groups two bars per phrase without breath marks', () => {
     const section = parseAbc(ABC('D2 E2 F2 G2|A8|B8|d8|')).tune.sections[0]
     expect(section.phrases).toHaveLength(2)

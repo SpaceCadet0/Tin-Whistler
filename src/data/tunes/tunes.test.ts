@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { sectionNotes } from '../../music/tune'
-import { whistleLabel } from '../../music/whistles'
+import { getWhistle, whistleLabel } from '../../music/whistles'
 import { BUILTIN_TUNES } from '.'
 import { auldLangSyne, butterfly, cooleysReel, saints, scarboroughFair } from './abcTunes'
 import { drunkenSailor, greensleeves, joyToTheWorld, POPULAR_TUNES, silentNight, twinkle } from './popularTunes'
+import { FOLK_SONGS } from './folkSongs'
 import { thePrayer } from './thePrayer'
 
 const labels = (t: typeof saints, n: number) =>
@@ -44,7 +45,7 @@ describe('ABC-defined built-in tunes', () => {
   it('are unique and ordered by difficulty', () => {
     const ids = BUILTIN_TUNES.map((t) => t.id)
     expect(new Set(ids).size).toBe(ids.length)
-    expect(BUILTIN_TUNES).toHaveLength(33)
+    expect(BUILTIN_TUNES).toHaveLength(38)
     const levels = BUILTIN_TUNES.map((t) => t.difficulty)
     expect(levels).toEqual([...levels].sort((a, b) => a - b))
   })
@@ -92,5 +93,26 @@ describe('The Prayer (transcribed from video)', () => {
     const slides = notes.filter((n) => n.ornament?.type === 'slide')
     expect(slides.length).toBe(11)
     expect(slides.every((n) => n.ornament?.hole)).toBe(true)
+  })
+})
+
+describe('Folk songs from ABC with whistle extras', () => {
+  it('keep every bar whole and stay inside the whistle range', () => {
+    for (const t of FOLK_SONGS) {
+      const notes = t.sections.flatMap(sectionNotes)
+      const total = notes.reduce((a, n) => a + n.beats, 0)
+      expect(total % t.beatsPerBar!, t.id).toBe(0)
+      const base = getWhistle(t.whistle).baseMidi
+      const pitches = notes.flatMap((n) => (n.pitch == null ? [] : [n.pitch]))
+      expect(Math.min(...pitches) - base, t.id).toBeGreaterThanOrEqual(0)
+      expect(Math.max(...pitches) - base, t.id).toBeLessThanOrEqual(23)
+    }
+  })
+
+  it('carry breath marks, ornaments and the C whistle setting', () => {
+    for (const t of FOLK_SONGS) expect(t.sections.some((s) => s.phrases.length > 2), t.id).toBe(true)
+    const dannyBoy = FOLK_SONGS.find((t) => t.id === 'danny-boy')!
+    expect(dannyBoy.sections.flatMap(sectionNotes).filter((n) => n.ornament?.type === 'slide').length).toBeGreaterThan(3)
+    expect(FOLK_SONGS.find((t) => t.id === 'bella-ciao')).toMatchObject({ whistle: 'C', key: 'Amin' })
   })
 })

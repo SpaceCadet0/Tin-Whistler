@@ -1,6 +1,7 @@
 import type { Tune } from '../../music/types'
 import { auldLangSyne, butterfly, cooleysReel, saints, scarboroughFair } from './abcTunes'
 import { amazingGrace, hotCrossBuns, keshJig, maryLamb, odeToJoy, strandPolka } from './beginner'
+import { bellaCiao, dannyBoy, mollyMalone, wellerman, wildRover } from './folkSongs'
 import {
   deckTheHalls,
   drunkenSailor,
@@ -46,11 +47,16 @@ const CURATED: Tune[] = [
   deckTheHalls,
   silentNight,
   drunkenSailor,
+  mollyMalone,
+  wildRover,
+  wellerman,
+  bellaCiao,
   strandPolka,
   amazingGrace,
   auldLangSyne,
   jingleBells,
   scarboroughFair,
+  dannyBoy,
   eineKleine,
   morningMood,
   minuetInG,
