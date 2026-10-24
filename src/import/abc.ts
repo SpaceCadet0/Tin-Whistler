@@ -7,6 +7,10 @@ import { bestFit, transposeNotes } from './fit'
  * headers X T C M L Q K R, notes with accidentals/octaves/lengths, rests, ties, broken rhythm,
  * triplets, chords (top note), grace notes (→ cut), ~ (→ roll), slurs, repeats with 1st/2nd
  * endings (expanded), inline fields. Durations become quarter-note beats.
+ *
+ * Whistle extras, as ABC decorations: !slide!, !tap! (bounce), !trill!, !ru! (a soft "ru" attack)
+ * and !breath! (a phrase break: breathe here). When a part has breath marks its phrases follow
+ * them and its display lines follow the ABC lines; otherwise phrases are cut every two bars.
  */
 
 const LETTER_PC: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }
@@ -69,6 +73,8 @@ const DEFAULT_QUARTER_BPM: Record<string, number> = { reel: 190, jig: 165, polka
 interface RawNote extends TuneNote {
   bar: number
   line: number
+  /** A breath mark came before this note: it opens a new phrase. */
+  breath?: boolean
 }
 
 export function parseAbc(text: string, whistleId = 'D'): AbcParseResult {
@@ -120,6 +126,10 @@ export function parseAbc(text: string, whistleId = 'D'): AbcParseResult {
   let pendingRoll = false
   let pendingTrill = false
   let pendingStaccato = false
+  let pendingSlide = false
+  let pendingTap = false
+  let pendingRu = false
+  let pendingBreath = false
   let inSlur = 0
   let slurFirst = false
   let tie = false
@@ -161,6 +171,10 @@ export function parseAbc(text: string, whistleId = 'D'): AbcParseResult {
           if (deco === 'roll' || deco === 'turn') pendingRoll = true
           if (deco === 'staccato') pendingStaccato = true
           if (deco === 'trill') pendingTrill = true
+          if (deco === 'slide') pendingSlide = true
+          if (deco === 'tap' || deco === 'bounce') pendingTap = true
+          if (deco === 'ru') pendingRu = true
+          if (deco === 'breath') pendingBreath = true
           i = end + 1
           continue
         }
@@ -306,17 +320,20 @@ export function parseAbc(text: string, whistleId = 'D'): AbcParseResult {
       }
       tie = false
       const note: RawNote = { pitch, beats, bar, line: lineNo }
+      if (pendingBreath) note.breath = true
       if (pitch != null) {
-        let attack: Attack = 'tongue'
+        let attack: Attack = pendingRu ? 'ru' : 'tongue'
         if (inSlur && !slurFirst) attack = 'slur'
         slurFirst = false
         note.attack = attack
         if (pendingGrace) note.ornament = { type: 'cut' }
         if (pendingRoll) note.ornament = { type: 'roll' }
         if (pendingTrill) note.ornament = { type: 'trill' }
+        if (pendingSlide) note.ornament = { type: 'slide' }
+        if (pendingTap) note.ornament = { type: 'bounce' }
         if (pendingStaccato) note.stop = true
       }
-      pendingGrace = pendingRoll = pendingTrill = pendingStaccato = false
+      pendingGrace = pendingRoll = pendingTrill = pendingStaccato = pendingSlide = pendingTap = pendingRu = pendingBreath = false
       target.push(note)
       i = j
     }
@@ -339,13 +356,14 @@ export function parseAbc(text: string, whistleId = 'D'): AbcParseResult {
   if (fit.outOfRange) warnings.push(`${fit.outOfRange} note(s) were outside the whistle range and were moved by an octave.`)
 
   const sections: TuneSection[] = sectionsRaw.map((s, i) => {
-    const notes = transposeNotes(s.notes.map(({ bar: _b, line: _l, ...n }) => n), fit.shift, whistleId)
-    const phrases: Phrase[] = phrasesByBars(notes, s.notes.map((n) => n.bar), 2)
+    const notes = transposeNotes(s.notes.map(({ bar: _b, line: _l, breath: _br, ...n }) => n), fit.shift, whistleId)
+    const byBreath = s.notes.some((n, k) => k > 0 && n.breath)
+    const phrases: Phrase[] = byBreath ? phrasesByBreath(notes, s.notes) : phrasesByBars(notes, s.notes.map((n) => n.bar), 2)
     return {
       id: `s${i + 1}`,
       name: s.name,
       phrases,
-      lineBreaks: phrases.map((_, k) => k).filter((k) => k > 0 && k % 2 === 0),
+      lineBreaks: byBreath ? lineBreaksByAbcLines(s.notes) : phrases.map((_, k) => k).filter((k) => k > 0 && k % 2 === 0),
       repeat: s.repeat > 1 ? s.repeat : undefined,
     }
   })
@@ -397,6 +415,22 @@ function lengthOf(s: string): number {
   if (!m[2]) return num
   const den = m[3] ? Number(m[3]) : Math.pow(2, m[2].length)
   return num / den
+}
+
+/** Phrases cut at the breath marks. */
+function phrasesByBreath(notes: TuneNote[], raw: RawNote[]): Phrase[] {
+  const phrases: Phrase[] = []
+  notes.forEach((n, k) => {
+    if (k === 0 || raw[k].breath) phrases.push([])
+    phrases[phrases.length - 1].push(n)
+  })
+  return phrases
+}
+
+/** Indexes of the phrases that start a new ABC line (the transcriber's own line layout). */
+function lineBreaksByAbcLines(raw: RawNote[]): number[] {
+  const starts = raw.flatMap((n, k) => (k === 0 || n.breath ? [n.line] : []))
+  return starts.map((line, k) => (k > 0 && line !== starts[k - 1] ? k : -1)).filter((k) => k > 0)
 }
 
 /** Group notes into phrases of `barsPerPhrase` bars. */
