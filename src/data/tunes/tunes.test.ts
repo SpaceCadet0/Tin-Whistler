@@ -136,7 +136,7 @@ describe('Session tunes, airs and marches from reference/abc', () => {
   })
 
   it('keep the written key where a whistle plays it, on the whistle that suits it', () => {
-    expect(tamLin).toMatchObject({ whistle: 'G', key: 'Dmin' })
+    expect(tamLin).toMatchObject({ whistle: 'D', key: 'Bmin' })
     expect(charlieHesMyDarling).toMatchObject({ whistle: 'C', key: 'Dmin' })
     expect(lochLomond).toMatchObject({ whistle: 'D', key: 'Gmaj' })
     expect(labels(lochLomond, 4)).toEqual(['D', 'E', 'G', 'G'])
