@@ -11,7 +11,7 @@ import { musicalPriest, SESSION_TUNES, siegeOfEnnis, tamLin, windThatShakesTheBa
 import { thePrayer } from './thePrayer'
 
 const labels = (t: typeof saints, n: number) =>
-  t.sections.flatMap(sectionNotes).filter((x) => x.pitch != null).slice(0, n).map((x) => whistleLabel(x.pitch!))
+  t.sections.flatMap(sectionNotes).filter((x) => x.pitch != null).slice(0, n).map((x) => whistleLabel(x.pitch!, t.whistle))
 
 describe('ABC-defined built-in tunes', () => {
   it('cover difficulties 1 to 5', () => {
@@ -80,7 +80,8 @@ describe('The Prayer (transcribed from video)', () => {
 
   it('follows the tab in four sections', () => {
     expect(thePrayer.sections).toHaveLength(4)
-    expect(labels(thePrayer, 8)).toEqual(['E', 'E', 'B', 'B', 'A', 'A', 'G', 'G'])
+    expect(thePrayer.whistle).toBe('C')
+    expect(labels(thePrayer, 8)).toEqual(['D', 'D', 'A', 'A', 'G', 'G', 'F', 'F'])
     expect(notes.filter((n) => n.pitch != null)).toHaveLength(64 + 55 + 41 + 21)
   })
 
