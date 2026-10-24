@@ -5,8 +5,8 @@ import { bestFit, transposeNotes } from './fit'
 /**
  * ABC notation → Tune. Supports the subset used for folk tunes (thesession.org et al.):
  * headers X T C M L Q K R, notes with accidentals/octaves/lengths, rests, ties, broken rhythm,
- * triplets, chords (top note), grace notes (→ cut), ~ (→ roll), slurs, repeats with 1st/2nd
- * endings (expanded), inline fields. Durations become quarter-note beats.
+ * triplets, chords (top note), grace notes (→ cut), ~ (→ roll), T (→ trill), P / M mordents
+ * (→ cut / tap), slurs, repeats with 1st/2nd endings (expanded), inline fields. Durations become quarter-note beats.
  *
  * Whistle extras, as ABC decorations: !slide!, !tap! (bounce), !trill!, !ru! (a soft "ru" attack)
  * and !breath! (a phrase break: breathe here). When a part has breath marks its phrases follow
@@ -190,6 +190,14 @@ export function parseAbc(text: string, whistleId = 'D'): AbcParseResult {
         i++
         continue
       }
+      // one-letter decorations: T trill, P upper mordent (→ cut), M lower mordent (→ tap)
+      if (c === 'T' || c === 'P' || c === 'M') {
+        if (c === 'T') pendingTrill = true
+        if (c === 'P') pendingGrace = true
+        if (c === 'M') pendingTap = true
+        i++
+        continue
+      }
       if (c === '.') {
         pendingStaccato = true
         i++
@@ -342,13 +350,17 @@ export function parseAbc(text: string, whistleId = 'D'): AbcParseResult {
   // ---- expand endings, build sections ----
   const letters = 'ABCDEFGHIJ'
   const sectionsRaw: { name: string; notes: RawNote[]; repeat: number }[] = []
-  parts
-    .filter((p) => p.notes.length || p.endings.length)
-    .forEach((p, idx) => {
-      const name = `${letters[idx] ?? idx + 1} part`
-      if (p.endings.length >= 2) sectionsRaw.push({ name, notes: [...p.notes, ...p.endings[0], ...p.notes, ...p.endings[1]], repeat: 1 })
-      else sectionsRaw.push({ name, notes: [...p.notes, ...(p.endings[0] ?? [])], repeat: p.repeat ? 2 : 1 })
-    })
+  const filled = parts.filter((p) => p.notes.length || p.endings.length)
+  // a lone pickup before the first repeat ("E|:...") opens the first part instead of being a part
+  const first = filled[0]
+  const pickup =
+    filled.length > 1 && !first.repeat && !first.endings.length && first.notes.reduce((a, n) => a + n.beats, 0) < beatsPerBar ? first.notes : []
+  filled.slice(pickup.length ? 1 : 0).forEach((p, idx) => {
+    const name = `${letters[idx] ?? idx + 1} part`
+    const lead = idx === 0 ? pickup : []
+    if (p.endings.length >= 2) sectionsRaw.push({ name, notes: [...lead, ...p.notes, ...p.endings[0], ...p.notes, ...p.endings[1]], repeat: 1 })
+    else sectionsRaw.push({ name, notes: [...lead, ...p.notes, ...(p.endings[0] ?? [])], repeat: p.repeat ? 2 : 1 })
+  })
   if (!sectionsRaw.length) throw new Error('No notes found in the ABC body.')
 
   const allPitches = sectionsRaw.flatMap((s) => s.notes.map((n) => n.pitch).filter((p): p is number => p != null))

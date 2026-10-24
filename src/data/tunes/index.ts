@@ -1,4 +1,5 @@
 import type { Tune } from '../../music/types'
+import { AIRS_AND_MARCHES } from './airsAndMarches'
 import { auldLangSyne, butterfly, cooleysReel, saints, scarboroughFair } from './abcTunes'
 import { amazingGrace, hotCrossBuns, keshJig, maryLamb, odeToJoy, strandPolka } from './beginner'
 import {
@@ -38,6 +39,7 @@ import {
   thisOldMan,
   twinkle,
 } from './popularTunes'
+import { SESSION_TUNES } from './sessionTunes'
 import { shepardsFlute } from './shepardsFlute'
 import { thePrayer } from './thePrayer'
 
@@ -89,6 +91,8 @@ const CURATED: Tune[] = [
   thePrayer,
   rockyRoadToDublin,
   butterfly,
+  ...AIRS_AND_MARCHES,
+  ...SESSION_TUNES,
 ]
 
 /** Ordered from easiest to hardest. */

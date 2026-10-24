@@ -5,6 +5,8 @@ import { BUILTIN_TUNES } from '.'
 import { auldLangSyne, butterfly, cooleysReel, saints, scarboroughFair } from './abcTunes'
 import { drunkenSailor, greensleeves, joyToTheWorld, POPULAR_TUNES, silentNight, twinkle } from './popularTunes'
 import { FOLK_SONGS } from './folkSongs'
+import { AIRS_AND_MARCHES } from './airsAndMarches'
+import { musicalPriest, SESSION_TUNES, siegeOfEnnis, tamLin, windThatShakesTheBarley } from './sessionTunes'
 import { thePrayer } from './thePrayer'
 
 const labels = (t: typeof saints, n: number) =>
@@ -45,7 +47,7 @@ describe('ABC-defined built-in tunes', () => {
   it('are unique and ordered by difficulty', () => {
     const ids = BUILTIN_TUNES.map((t) => t.id)
     expect(new Set(ids).size).toBe(ids.length)
-    expect(BUILTIN_TUNES).toHaveLength(46)
+    expect(BUILTIN_TUNES).toHaveLength(69)
     const levels = BUILTIN_TUNES.map((t) => t.difficulty)
     expect(levels).toEqual([...levels].sort((a, b) => a - b))
   })
@@ -116,5 +118,38 @@ describe('Folk songs from ABC with whistle extras', () => {
     const dannyBoy = FOLK_SONGS.find((t) => t.id === 'danny-boy')!
     expect(dannyBoy.sections.flatMap(sectionNotes).filter((n) => n.ornament?.type === 'slide').length).toBeGreaterThan(3)
     expect(FOLK_SONGS.find((t) => t.id === 'bella-ciao')).toMatchObject({ whistle: 'C', key: 'Amin' })
+  })
+})
+
+describe('Session tunes, airs and marches from reference/abc', () => {
+  const tunes = [...SESSION_TUNES, ...AIRS_AND_MARCHES]
+
+  it('adds twenty-three described tunes inside the whistle range', () => {
+    expect(tunes).toHaveLength(23)
+    for (const t of tunes) {
+      const pitches = t.sections.flatMap(sectionNotes).flatMap((n) => (n.pitch == null ? [] : [n.pitch]))
+      expect(Math.min(...pitches) - 74, t.id).toBeGreaterThanOrEqual(0)
+      expect(Math.max(...pitches) - 74, t.id).toBeLessThanOrEqual(23)
+      expect(t.description?.en && t.description.ru, t.id).toBeTruthy()
+    }
+  })
+
+  it('keep the bars whole, allowing a pickup', () => {
+    // Korobeiniki's coda and the anthem's verse have bars of their own, as transcribed
+    const irregular = new Set(['korobeiniki', 'amhran-na-bhfiann'])
+    for (const t of tunes.filter((x) => !irregular.has(x.id))) {
+      for (const s of t.sections) {
+        const rem = sectionNotes(s).reduce((a, n) => a + n.beats, 0) % t.beatsPerBar!
+        expect(rem <= 1 || rem >= t.beatsPerBar! - 1, `${t.id} ${s.name}`).toBe(true)
+      }
+    }
+  })
+
+  it('read the melodies, pickups and ornaments as written', () => {
+    expect(labels(musicalPriest, 5)).toEqual(['E', 'F#', 'B', 'B', 'A'])
+    expect(musicalPriest.sections).toHaveLength(3)
+    expect(labels(siegeOfEnnis, 4)).toEqual(['A', 'B', 'A', 'G'])
+    expect(windThatShakesTheBarley.sections.flatMap(sectionNotes).filter((n) => n.ornament?.type === 'bounce')).toHaveLength(4)
+    expect(tamLin.key).toBe('Bmin')
   })
 })
