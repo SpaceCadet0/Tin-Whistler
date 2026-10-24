@@ -11,6 +11,7 @@ import { Icon } from '../../ui/Icon'
 import { Button, ButtonLink, Chip, cn, Difficulty, EmptyState, PageHeader, ProgressBar } from '../../ui/primitives'
 import { FavoriteButton } from './FavoriteButton'
 import { rememberLibrarySearch } from './libraryReturn'
+import { SelectFilter } from './FilterMenu'
 import { TypeFilter } from './TypeFilter'
 import { Stagger } from '../../ui/motion'
 import { stopPreview, togglePreview, usePreview } from './preview'
@@ -149,6 +150,7 @@ export default function TuneLibrary() {
   // only offer keys and types that some tune actually has
   const whistleCounts = WHISTLE_KEYS.map((w) => ({ ...w, count: tunes.filter((x) => x.whistle === w.id).length })).filter((w) => w.count > 0)
   const typeCounts = TUNE_TYPES.map((type) => ({ type, count: tunes.filter((x) => x.type === type).length })).filter((x) => x.count > 0)
+  const levelCounts = LEVELS.filter((l) => l !== 'all').map((l) => ({ value: l, label: t(`tunes.level.${l}`), count: tunes.filter((x) => matchesLevel(x, l)).length }))
   const favorites = tunes.filter((x) => favoriteIds.includes(x.id)).length
   const query = f.query.toLowerCase()
   const filtered = tunes.filter((x) => {
@@ -196,36 +198,23 @@ export default function TuneLibrary() {
           <span className="tabular">{favorites}</span>
         </button>
         <TypeFilter options={typeCounts} selected={f.types} onChange={(types) => f.update({ types })} />
-        <label className="relative inline-flex items-center">
-          <span className="sr-only">{t('tune.difficulty')}</span>
-          <select
-            value={f.level}
-            onChange={(e) => f.update({ level: e.target.value as Level })}
-            className={cn('h-10 cursor-pointer rounded-2xl border-0 pr-8 pl-4 text-sm font-semibold transition', f.level === 'all' ? 'bg-surface-2 text-ink-soft' : 'bg-ink text-bg')}
-          >
-            {LEVELS.map((l) => (
-              <option key={l} value={l}>
-                {l === 'all' ? t('tunes.anyDifficulty') : t(`tunes.level.${l}`)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="relative inline-flex items-center">
-          <span className="sr-only">{t('editor.whistle')}</span>
-          <Icon name="whistle" size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-soft" />
-          <select
-            value={f.whistle}
-            onChange={(e) => f.update({ whistle: e.target.value })}
-            className={cn('h-10 cursor-pointer rounded-2xl border-0 pr-8 pl-9 text-sm font-semibold transition', f.whistle === 'all' ? 'bg-surface-2 text-ink-soft' : 'bg-ink text-bg')}
-          >
-            <option value="all">{t('tunes.allWhistles')}</option>
-            {whistleCounts.map((w) => (
-              <option key={w.id} value={w.id}>
-                {whistleShort(w.id)} · {w.count}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectFilter
+          name={t('tune.difficulty')}
+          allValue="all"
+          allLabel={t('tunes.anyDifficulty')}
+          value={f.level}
+          options={levelCounts}
+          onChange={(level) => f.update({ level })}
+        />
+        <SelectFilter
+          name={t('editor.whistle')}
+          icon="whistle"
+          allValue="all"
+          allLabel={t('tunes.allWhistles')}
+          value={f.whistle}
+          options={whistleCounts.map((w) => ({ value: w.id, label: whistleShort(w.id), count: w.count }))}
+          onChange={(whistle) => f.update({ whistle })}
+        />
       </div>
       <div className="mb-5 flex min-h-6 items-center gap-3 text-sm text-ink-soft">
         <span className="tabular">{t('tunes.found', { n: filtered.length })}</span>
