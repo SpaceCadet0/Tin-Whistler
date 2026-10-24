@@ -196,7 +196,8 @@ export const TabView = memo(function TabView({
       {lines.map((line, li) => (
         <div key={li} className="flex flex-wrap items-start gap-x-4 gap-y-3">
           {line.map((pi) => (
-            <div key={pi} className="flex items-start" role="group" aria-label={t('tab.phrase', { n: pi + 1 })}>
+            // a phrase wider than the screen wraps its own notes onto the next row
+            <div key={pi} className="flex max-w-full flex-wrap items-start gap-y-3" role="group" aria-label={t('tab.phrase', { n: pi + 1 })}>
               {section.phrases[pi].map((n, k) => renderNote(n, phraseStart[pi] + k))}
             </div>
           ))}

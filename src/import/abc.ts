@@ -469,7 +469,8 @@ function phrasesByBars(notes: TuneNote[], bars: number[], barsPerPhrase: number)
   let cur: TuneNote[] = []
   let startBar = bars[0]
   notes.forEach((n, i) => {
-    if (bars[i] - startBar >= barsPerPhrase && cur.length) {
+    // bar numbers go back where a repeat with endings was written out: a new phrase starts there too
+    if ((bars[i] - startBar >= barsPerPhrase || bars[i] < startBar) && cur.length) {
       phrases.push(cur)
       cur = []
       startBar = bars[i]

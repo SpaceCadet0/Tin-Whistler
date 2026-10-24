@@ -40,6 +40,11 @@ describe('ABC whistle extras', () => {
     expect(kept.transposed % 12).toBe(0)
   })
 
+  it('keeps cutting phrases through a repeat written out with endings', () => {
+    const section = parseAbc(ABC('|:D2 E2 F2 G2|A8|B8|d8|1 A8:|2 D8||')).tune.sections[0]
+    expect(Math.max(...section.phrases.map((p) => p.length))).toBeLessThanOrEqual(5)
+  })
+
   it('still groups two bars per phrase without breath marks', () => {
     const section = parseAbc(ABC('D2 E2 F2 G2|A8|B8|d8|')).tune.sections[0]
     expect(section.phrases).toHaveLength(2)
