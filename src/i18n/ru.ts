@@ -667,6 +667,8 @@ export const ru: Record<MessageKey, string> = {
   'tunes.addFavorite': 'Добавить «{title}» в избранное',
   'tunes.removeFavorite': 'Убрать «{title}» из избранного',
   'tunes.allTypes': 'Все типы',
+  'tunes.typesSelected': 'Типов: {n}',
+  'tunes.anyDifficulty': 'Любая сложность',
   'tunes.type': 'Тип мелодии',
   'tunes.found': 'Найдено: {n}',
   'tunes.resetFilters': 'Сбросить фильтры',

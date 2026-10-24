@@ -11,6 +11,7 @@ import { Icon } from '../../ui/Icon'
 import { Button, ButtonLink, Chip, cn, Difficulty, EmptyState, PageHeader, ProgressBar } from '../../ui/primitives'
 import { FavoriteButton } from './FavoriteButton'
 import { rememberLibrarySearch } from './libraryReturn'
+import { TypeFilter } from './TypeFilter'
 import { Stagger } from '../../ui/motion'
 import { stopPreview, togglePreview, usePreview } from './preview'
 
@@ -160,7 +161,6 @@ export default function TuneLibrary() {
   const builtin = filtered.filter((x) => x.origin === 'builtin')
   const mine = filtered.filter((x) => x.origin === 'user')
   const hasOwnTunes = tunes.some((x) => x.origin === 'user')
-  const toggleType = (type: TuneType) => f.update({ types: f.types.includes(type) ? f.types.filter((x) => x !== type) : [...f.types, type] })
 
   return (
     <div>
@@ -173,8 +173,8 @@ export default function TuneLibrary() {
           </ButtonLink>
         }
       />
-      <div className="mb-3 flex flex-wrap items-center gap-3">
-        <label className="relative min-w-48 flex-1 sm:max-w-xs">
+      <div className="mb-4 flex flex-wrap items-center gap-2 sm:gap-3">
+        <label className="relative w-full sm:w-auto sm:max-w-xs sm:flex-1">
           <span className="sr-only">{t('tunes.search')}</span>
           <input
             type="search"
@@ -184,11 +184,32 @@ export default function TuneLibrary() {
             className="h-11 w-full rounded-2xl border border-line bg-surface px-4 text-[15px] outline-none focus:border-moss"
           />
         </label>
-        <button type="button" aria-pressed={f.favorites} onClick={() => f.update({ favorites: !f.favorites })} className={cn(pill(f.favorites), 'inline-flex items-center gap-1.5')}>
-          <Icon name="heart" size={16} filled={f.favorites} className={f.favorites ? undefined : 'text-bad'} />
-          {t('tunes.favorites')}
-          <span className="tabular opacity-70">{favorites}</span>
+        <button
+          type="button"
+          aria-pressed={f.favorites}
+          aria-label={t('tunes.favorites')}
+          title={t('tunes.favorites')}
+          onClick={() => f.update({ favorites: !f.favorites })}
+          className={cn(pill(f.favorites), 'inline-flex items-center gap-1.5 px-3.5')}
+        >
+          <Icon name="heart" size={18} filled={f.favorites} className={f.favorites ? undefined : 'text-moss'} />
+          <span className="tabular">{favorites}</span>
         </button>
+        <TypeFilter options={typeCounts} selected={f.types} onChange={(types) => f.update({ types })} />
+        <label className="relative inline-flex items-center">
+          <span className="sr-only">{t('tune.difficulty')}</span>
+          <select
+            value={f.level}
+            onChange={(e) => f.update({ level: e.target.value as Level })}
+            className={cn('h-10 cursor-pointer rounded-2xl border-0 pr-8 pl-4 text-sm font-semibold transition', f.level === 'all' ? 'bg-surface-2 text-ink-soft' : 'bg-ink text-bg')}
+          >
+            {LEVELS.map((l) => (
+              <option key={l} value={l}>
+                {l === 'all' ? t('tunes.anyDifficulty') : t(`tunes.level.${l}`)}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="relative inline-flex items-center">
           <span className="sr-only">{t('editor.whistle')}</span>
           <Icon name="whistle" size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-soft" />
@@ -205,24 +226,6 @@ export default function TuneLibrary() {
             ))}
           </select>
         </label>
-        <div className="flex gap-1.5" role="group" aria-label={t('tune.difficulty')}>
-          {LEVELS.map((l) => (
-            <button key={l} type="button" aria-pressed={f.level === l} onClick={() => f.update({ level: l })} className={pill(f.level === l)}>
-              {t(`tunes.level.${l}`)}
-            </button>
-          ))}
-        </div>
-      </div>
-      {/* types scroll sideways on a phone instead of growing into a wall of chips */}
-      <div role="group" aria-label={t('tunes.type')} className="-mx-4 mb-4 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
-        <button type="button" aria-pressed={!f.types.length} onClick={() => f.update({ types: [] })} className={pill(!f.types.length)}>
-          {t('tunes.allTypes')}
-        </button>
-        {typeCounts.map(({ type, count }) => (
-          <button key={type} type="button" aria-pressed={f.types.includes(type)} onClick={() => toggleType(type)} className={pill(f.types.includes(type))}>
-            {t(`tuneType.${type}`)} <span className="tabular opacity-60">{count}</span>
-          </button>
-        ))}
       </div>
       <div className="mb-5 flex min-h-6 items-center gap-3 text-sm text-ink-soft">
         <span className="tabular">{t('tunes.found', { n: filtered.length })}</span>

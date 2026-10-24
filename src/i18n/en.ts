@@ -665,6 +665,8 @@ export const en = {
   'tunes.addFavorite': 'Add {title} to favourites',
   'tunes.removeFavorite': 'Remove {title} from favourites',
   'tunes.allTypes': 'All types',
+  'tunes.typesSelected': 'Types: {n}',
+  'tunes.anyDifficulty': 'Any difficulty',
   'tunes.type': 'Type of tune',
   'tunes.found': '{n} found',
   'tunes.resetFilters': 'Reset filters',

@@ -18,7 +18,7 @@ export function FavoriteButton({ tuneId, title, className }: { tuneId: string; t
       title={label}
       className={cn(
         'grid h-11 w-11 cursor-pointer place-items-center rounded-full transition active:scale-95',
-        favorite ? 'text-bad hover:bg-bad-soft' : 'text-ink-faint hover:bg-surface-2 hover:text-ink-soft',
+        favorite ? 'text-moss hover:bg-moss-soft' : 'text-ink-faint hover:bg-surface-2 hover:text-moss',
         className,
       )}
     >
