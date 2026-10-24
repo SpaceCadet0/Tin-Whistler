@@ -1,9 +1,10 @@
 import { fromAbc } from './abcTunes'
 
 /*
- * Folk songs and a shanty. The melodies come from the song transcriptions of the Irish Whistle Tabs
- * app, used with the owner's permission; whistle ornaments, articulation and breath marks
- * (!breath!) were added here. All five melodies are traditional and in the public domain.
+ * Folk songs and sea shanties. The melodies come from the song transcriptions of the Irish Whistle
+ * Tabs app, used with the owner's permission; whistle ornaments, articulation and breath marks
+ * (!breath!) were added here, and long ABC lines were re-cut into the songs' four-bar phrases.
+ * All of these melodies are traditional and in the public domain.
  */
 
 export const mollyMalone = fromAbc(
@@ -136,4 +137,224 @@ CFG | AF3- F !breath!CFG | AF3- F !breath!CFG | A2GF A2GF | c2c2 c
   },
 )
 
-export const FOLK_SONGS = [mollyMalone, wildRover, wellerman, dannyBoy, bellaCiao]
+export const blackVelvetBand = fromAbc(
+  'black-velvet-band',
+  `X:1
+T:Black Velvet Band
+M:3/4
+L:1/4
+Q:1/4=180
+K:G
+d/d/ d3/2 d/ | d B c | d c B- | B3 |
+!breath!A G A | B G F | E D2- | D3 |
+!breath!d/c/ B B | B D E | F !slide!G2 | A B2 |
+!breath!B/B/ A B | c F G | A G2- | G3 |
+!breath!d/d/ d3/2 d/ | d B c | d c B- | B3 |
+!breath!A G A | B G F | E D2- | D3 |
+!breath!d/c/ B B | B D E | F !slide!G2 | A B2 |
+!breath!B/B/ A B | c F G | A G2- | G3 ||
+!breath!d d2 | d B c | d c B- | B3 |
+!breath!A G A | B G F | E D2- | D3 |
+!breath!d/c/ B B | B D E | F !slide!G2 | A B2 |
+!breath!B A B | c F G | A G2- | G3 |]`,
+  {
+    difficulty: 2,
+    type: 'song',
+    composer: 'Traditional Irish',
+    sectionNames: ['Verse', 'Chorus'],
+    tags: ['song', 'irish', 'waltz time'],
+    description: {
+      en: 'A ballad of a girl with a black velvet band, in a lilting 3/4. Long tied notes at the end of every line to practise steady breath, and a cross-fingered C natural.',
+      ru: 'Баллада о девушке с чёрной бархатной лентой в плавном размере 3/4. Длинные залигованные ноты в конце каждой строки тренируют ровное дыхание, есть до-бекар вилочной аппликатурой.',
+    },
+  },
+)
+
+export const whiskeyInTheJar = fromAbc(
+  'whiskey-in-the-jar',
+  `X:1
+T:Whiskey in the Jar
+M:2/4
+L:1/8
+Q:1/4=110
+K:D
+A | A{c}A AB | A F2 A | BB Bc | B F2
+!breath!A | BB Bc | d<d cB | AA dc | B A2 F ||
+!breath!A>A AB | A F2 A | B>B Bc | B F2
+!breath!A | B2 B>c | d<d cB | AA dc | BA FA ||
+!breath!EE/E/ EE/E/ | E4 | zF F>E | FG A2 |
+z !breath!B B>A | Bc dB | AF EF | D3 |]`,
+  {
+    difficulty: 2,
+    type: 'song',
+    composer: 'Traditional Irish',
+    sectionNames: ['Verse', 'Verse', 'Chorus'],
+    tags: ['song', 'irish', 'pub'],
+    description: {
+      en: 'The highwayman\'s song: quick repeated notes in the verse, then the "Musha ring dum a doo dum a da" chorus on a run of Es. Tongue every syllable.',
+      ru: 'Песня о разбойнике: быстрые повторяющиеся ноты в куплете, затем припев «Musha ring dum a doo dum a da» на череде нот E. Каждый слог берите языком.',
+    },
+  },
+)
+
+export const johnnyIHardlyKnewYe = fromAbc(
+  'johnny-i-hardly-knew-ye',
+  `X:1
+T:Johnny I Hardly Knew Ye
+M:6/8
+L:1/8
+Q:3/8=100
+K:Em
+B, | B,2E E2F | G2F G2E | D3- D2B, | D3- D2
+!breath!B, | B,2E E2F | G2F G2A | B3- B2G | B3- B2
+!breath!B | B2B B2G | A2A A2F | GGG GFE | FFF F2
+!breath!A | B2B A2A | G2G F3 | EEE E2D | E3 E2 |]`,
+  {
+    difficulty: 2,
+    type: 'song',
+    composer: 'Traditional Irish (words J. B. Geoghegan, 1867)',
+    sectionNames: ['Verse and chorus'],
+    tags: ['song', 'irish', 'minor', 'march'],
+    description: {
+      en: 'The anti-war march in E minor, the tune of "When Johnny Comes Marching Home". A steady 6/8 stride and quick repeated notes in the "hurroo, hurroo" refrain.',
+      ru: 'Антивоенный марш в ми миноре, на мотив «When Johnny Comes Marching Home». Ровный шаг в 6/8 и быстрые повторяющиеся ноты в припеве «hurroo, hurroo».',
+    },
+  },
+)
+
+export const starOfTheCountyDown = fromAbc(
+  'star-of-the-county-down',
+  `X:1
+T:Star of the County Down
+M:2/4
+L:1/16
+Q:1/4=70
+K:D
+F/A/B{d}BB A/B/dde | d/e/fe/d/B B2<!slide!A2 | !breath!F/A/B{d}BB A/B/dde | d/e/fe/d/B B/A/B3 |
+!breath!fa{b}af e/d/eee | d/e/fe/d/B B2<!slide!A2 | !breath!F/A/B{d}BB A/B/dde | d/e/fe/d/B A2<B2 |
+!breath!fa{b}af e/d/eee | d/e/fe/d/B B2<!slide!A2 | !breath!F/A/B{d}BB A/B/dde | d/e/fe/d/B A2<B2 |]`,
+  {
+    difficulty: 3,
+    type: 'song',
+    composer: 'Traditional Irish',
+    sectionNames: ['Verse and chorus'],
+    tags: ['song', 'irish', 'modal'],
+    description: {
+      en: 'A sweeping love song with a modal, B-minor colour. Quick pick-up notes into every line, cuts on the repeated Bs and slides into the long As.',
+      ru: 'Размашистая песня о любви с модальным, си-минорным оттенком. Быстрые затакты в начале каждой строки, каты на повторяющихся B и слайды на длинные A.',
+    },
+  },
+)
+
+export const rockyRoadToDublin = fromAbc(
+  'rocky-road-to-dublin',
+  `X:1
+T:The Rocky Road to Dublin
+M:9/8
+L:1/8
+Q:3/8=110
+K:Edor
+BBB | B2B A2F E2E | B2E E2F G2A | !breath!B2B A2F E2G | F2D D2E FG
+!breath!A | B2B A2F E3 | B2E E2F G2A | !breath!B2B A2F E2G | F2D D2E FGA ||
+!breath!B2e {f}e2c d3 | B2e {f}e2c d2A | !breath!B2e {f}e2c d2B | A2F D2E FGA |
+!breath!B2e e2c d3 | B2e e2c d2A | !breath!B2e e2c d2B | A2A A2F D2E FGA ||
+!breath!B2B A2F E3 | B2E E2F G2A | !breath!B2B A2F E2G | F2D D2E FGA | B2B A2F E3 |]`,
+  {
+    difficulty: 4,
+    type: 'song',
+    composer: 'Traditional Irish (words D. K. Gavan)',
+    sectionNames: ['Verse', 'Chorus', 'Ending'],
+    tags: ['song', 'irish', 'slip jig time', 'modal'],
+    description: {
+      en: 'The tongue-twister song in 9/8, a slip jig with words, set in E dorian so every note is a plain fingering. Rolling groups of three and one long 12/8 bar at the end of the chorus.',
+      ru: 'Песня-скороговорка в размере 9/8, по сути слип-джига со словами, в ми дорийском: все ноты берутся обычной аппликатурой. Перекатывающиеся тройки и один длинный такт в 12/8 в конце припева.',
+    },
+  },
+)
+
+export const blowTheManDown = fromAbc(
+  'blow-the-man-down',
+  `X:1
+T:Blow the Man Down
+M:6/8
+L:1/8
+Q:3/8=96
+K:D
+F | ABA FDF | ABA F2 D/2F/2 | A3 B3 | G3/2 F/2 G E2
+!breath!F | GAG ECE | GFE !slide!B3 | !breath!AAA A2 G | F3/2 E/2 F D2 |]`,
+  {
+    difficulty: 3,
+    type: 'shanty',
+    composer: 'Traditional sea shanty',
+    sectionNames: ['Verse'],
+    tags: ['shanty', 'halyard'],
+    description: {
+      en: 'A halyard shanty with a rolling 6/8 swing: "Way, hey, blow the man down!" Short and catchy, played in the second octave with a leap up to high B for the hauling shout.',
+      ru: 'Морская песня для подъёма парусов с раскачивающимся ритмом 6/8: «Way, hey, blow the man down!». Короткая и цепкая, звучит во второй октаве, со скачком к верхнему B на рабочем выкрике.',
+    },
+  },
+)
+
+export const leaveHerJohnny = fromAbc(
+  'leave-her-johnny',
+  `X:1
+T:Leave Her, Johnny
+M:2/4
+L:1/16
+Q:1/4=60
+K:F
+(FG) | A2A2 (AG)(FG) | A2(AG) F4 | G2G2 G3F | A2 c4
+!breath!c2 | d2d2 c2A2 | A2(AG) F2c2 | !breath!A3F A3G | G2 F4 |]`,
+  {
+    difficulty: 2,
+    type: 'shanty',
+    composer: 'Traditional sea shanty',
+    sectionNames: ['Verse'],
+    tags: ['shanty', 'slow'],
+    description: {
+      en: 'The sailors\' farewell to a hard ship, sung slowly at the pumps on the last day of a voyage. Gentle slurred pairs and long notes to end each line.',
+      ru: 'Прощание моряков с тяжёлым кораблём, которое пели медленно у помп в последний день плавания. Мягкие легато-пары и длинные ноты в конце каждой строки.',
+    },
+  },
+)
+
+export const spanishLadies = fromAbc(
+  'spanish-ladies',
+  `X:1
+T:Spanish Ladies
+M:4/4
+L:1/4
+Q:1/4=100
+K:D
+|: FAA B/2c/2 | dd d/2e/2f | ge fd | BA!slide!A2 |
+!breath!FAA B/2c/2 | dd d/2e/2f | ge fd | BA!slide!A2 :|
+|: !breath!faaf | edef | faaf | ed e2 |
+!breath!faaf | edee/2f/2 | ge fd | BA!slide!A2 :|`,
+  {
+    difficulty: 2,
+    type: 'shanty',
+    composer: 'Traditional English sea shanty',
+    sectionNames: ['Verse', 'Chorus'],
+    tags: ['shanty'],
+    description: {
+      en: 'The Royal Navy sailors\' song of the homeward voyage up the English Channel. A bold march-like tune that climbs to high A in the chorus.',
+      ru: 'Песня моряков британского флота о возвращении домой через Ла-Манш. Смелая, маршевая мелодия, в припеве поднимается к верхнему A.',
+    },
+  },
+)
+
+export const FOLK_SONGS = [
+  mollyMalone,
+  wildRover,
+  wellerman,
+  dannyBoy,
+  bellaCiao,
+  blackVelvetBand,
+  whiskeyInTheJar,
+  johnnyIHardlyKnewYe,
+  starOfTheCountyDown,
+  rockyRoadToDublin,
+  blowTheManDown,
+  leaveHerJohnny,
+  spanishLadies,
+]

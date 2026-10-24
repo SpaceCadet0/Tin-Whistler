@@ -1,7 +1,21 @@
 import type { Tune } from '../../music/types'
 import { auldLangSyne, butterfly, cooleysReel, saints, scarboroughFair } from './abcTunes'
 import { amazingGrace, hotCrossBuns, keshJig, maryLamb, odeToJoy, strandPolka } from './beginner'
-import { bellaCiao, dannyBoy, mollyMalone, wellerman, wildRover } from './folkSongs'
+import {
+  bellaCiao,
+  blackVelvetBand,
+  blowTheManDown,
+  dannyBoy,
+  johnnyIHardlyKnewYe,
+  leaveHerJohnny,
+  mollyMalone,
+  rockyRoadToDublin,
+  spanishLadies,
+  starOfTheCountyDown,
+  wellerman,
+  whiskeyInTheJar,
+  wildRover,
+} from './folkSongs'
 import {
   deckTheHalls,
   drunkenSailor,
@@ -51,12 +65,19 @@ const CURATED: Tune[] = [
   wildRover,
   wellerman,
   bellaCiao,
+  leaveHerJohnny,
+  spanishLadies,
+  johnnyIHardlyKnewYe,
+  whiskeyInTheJar,
+  blackVelvetBand,
   strandPolka,
   amazingGrace,
   auldLangSyne,
   jingleBells,
   scarboroughFair,
   dannyBoy,
+  blowTheManDown,
+  starOfTheCountyDown,
   eineKleine,
   morningMood,
   minuetInG,
@@ -66,6 +87,7 @@ const CURATED: Tune[] = [
   cooleysReel,
   shepardsFlute,
   thePrayer,
+  rockyRoadToDublin,
   butterfly,
 ]
 
