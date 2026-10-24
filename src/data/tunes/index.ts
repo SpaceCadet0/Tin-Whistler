@@ -40,6 +40,7 @@ import {
   twinkle,
 } from './popularTunes'
 import { SESSION_TUNES } from './sessionTunes'
+import { JIGS } from './jigs'
 import { shepardsFlute } from './shepardsFlute'
 import { thePrayer } from './thePrayer'
 
@@ -93,6 +94,7 @@ const CURATED: Tune[] = [
   butterfly,
   ...AIRS_AND_MARCHES,
   ...SESSION_TUNES,
+  ...JIGS,
 ]
 
 /** Ordered from easiest to hardest. */

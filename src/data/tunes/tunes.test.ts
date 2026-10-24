@@ -5,6 +5,7 @@ import { BUILTIN_TUNES } from '.'
 import { auldLangSyne, butterfly, cooleysReel, saints, scarboroughFair } from './abcTunes'
 import { drunkenSailor, greensleeves, joyToTheWorld, POPULAR_TUNES, silentNight, twinkle } from './popularTunes'
 import { FOLK_SONGS } from './folkSongs'
+import { blackthornStick, JIGS, morrisonsJig, oldJohns } from './jigs'
 import { AIRS_AND_MARCHES, charlieHesMyDarling, lochLomond } from './airsAndMarches'
 import { musicalPriest, SESSION_TUNES, siegeOfEnnis, tamLin, windThatShakesTheBarley } from './sessionTunes'
 import { thePrayer } from './thePrayer'
@@ -47,7 +48,7 @@ describe('ABC-defined built-in tunes', () => {
   it('are unique and ordered by difficulty', () => {
     const ids = BUILTIN_TUNES.map((t) => t.id)
     expect(new Set(ids).size).toBe(ids.length)
-    expect(BUILTIN_TUNES).toHaveLength(69)
+    expect(BUILTIN_TUNES).toHaveLength(77)
     const levels = BUILTIN_TUNES.map((t) => t.difficulty)
     expect(levels).toEqual([...levels].sort((a, b) => a - b))
   })
@@ -158,5 +159,27 @@ describe('Session tunes, airs and marches from reference/abc', () => {
     expect(musicalPriest.sections).toHaveLength(3)
     expect(labels(siegeOfEnnis, 4)).toEqual(['A', 'B', 'A', 'G'])
     expect(windThatShakesTheBarley.sections.flatMap(sectionNotes).filter((n) => n.ornament?.type === 'bounce')).toHaveLength(4)
+  })
+})
+
+describe('Jigs written out from the MIDI files in reference/abc', () => {
+  it('add eight jigs in 6/8 with whole bars inside the whistle range', () => {
+    expect(JIGS).toHaveLength(8)
+    for (const t of JIGS) {
+      expect(t, t.id).toMatchObject({ type: 'jig', meter: '6/8', whistle: 'D' })
+      const notes = t.sections.flatMap(sectionNotes)
+      expect(notes.reduce((a, n) => a + n.beats, 0) % t.beatsPerBar!, t.id).toBe(0)
+      const pitches = notes.flatMap((n) => (n.pitch == null ? [] : [n.pitch - 74]))
+      expect(Math.min(...pitches), t.id).toBeGreaterThanOrEqual(0)
+      expect(Math.max(...pitches), t.id).toBeLessThanOrEqual(23)
+      expect(t.description?.en && t.description.ru, t.id).toBeTruthy()
+    }
+  })
+
+  it('keep the keys of the settings', () => {
+    expect(JIGS.map((t) => t.key)).toEqual(['Gmaj', 'Gmaj', 'Dmix', 'Ador', 'Dmaj', 'Edor', 'Dmix', 'Ador'])
+    expect(labels(morrisonsJig, 4)).toEqual(['E', 'B', 'E', 'B'])
+    expect(labels(oldJohns, 3)).toEqual(["E'", "D'", 'C'])
+    expect(blackthornStick.sections).toHaveLength(1)
   })
 })
