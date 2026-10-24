@@ -160,6 +160,14 @@ t:D*0.5 -:E^C4*0.25 | r:A+! -:C[h00000]
 
 Users can also import ABC, MIDI or images, or build a tune in the editor.
 
+#### From a tutorial video
+
+```bash
+npm run transcribe -- "https://www.youtube.com/watch?v=…" --id my-tune --title "My Tune"
+```
+
+For videos that show a dot tab while the tune is played (one tab page per chapter, or page turns): reads the tab from the frames, finds the whistle key from the recording and times every note against it (1 beat = 1 second at 60 bpm). Writes `.tmp-video/<id>/<id>.ts`, a `report.json` with the places worth checking and one image per tab page. Needs `yt-dlp` and `ffmpeg`. `--expect <tune-id>` compares the result with an existing built-in tune.
+
 ## Notes and limitations
 
 - Sheet music is read exactly from **SVG exports** (MuseScore: File → Export → SVG, one file per page). JPG/PNG scores are recognised for pitch only: every note gets the same length, so fix the rhythm in the editor. Tempo text isn't read, so set the BPM after importing.

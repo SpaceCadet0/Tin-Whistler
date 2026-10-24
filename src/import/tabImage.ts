@@ -306,6 +306,10 @@ function crossAt(mask: Mask, W: number, H: number, x: number, yFrom: number, yTo
   return false
 }
 
+/** Dash shape under a column (slur): width / height above the ratio, or height below the share of a dot. */
+const DASH_RATIO = 2.5
+const DASH_HEIGHT = 0.25
+
 /** Background channels at or above this are already "white". */
 const PAPER_WHITE = 235
 /** Flat paper: this share of pixels lies within this RGB distance of the background colour. */
@@ -344,6 +348,28 @@ function busiestSix(rows: [number, number][]): number[] | null {
   }
   return rows.slice(best, best + 6).map(([y]) => y)
 }
+
+/**
+ * Six hole rows around a system's 3–5 dot rows: step outwards by the usual row spacing, to the
+ * side where open rings (hole cells) line up, until there are six.
+ */
+function completeSystem(dotRows: number[], cellY: number[], D: number): number[] | null {
+  const rows = [...dotRows]
+  const gaps = rows.slice(1).map((y, k) => y - rows[k])
+  const step = Math.min(...gaps)
+  const ringsAt = (y: number) => cellY.filter((c) => Math.abs(c - y) < D * 0.45).length
+  while (rows.length < 6) {
+    const above = rows[0] - step
+    const below = rows[rows.length - 1] + step
+    const [up, down] = [ringsAt(above), ringsAt(below)]
+    if (Math.max(up, down) < MIN_RING_ROW) return null
+    if (up > down) rows.unshift(above)
+    else rows.push(below)
+  }
+  return rows
+}
+/** Open rings needed to accept a hole row that has no covered hole. */
+const MIN_RING_ROW = 3
 
 /** Cluster with weights: [centre, count] per group. */
 function clusterCounts(values: number[], tol: number): [number, number][] {
@@ -404,7 +430,16 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
       // only where the dots found nothing
       .filter((r) => !fromDots.some((d) => d[0] < r[5] + D && r[0] < d[5] + D))
   }
-  const valid = [...fromDots, ...fromCells].sort((a, b) => a[0] - b[0])
+  // a system whose lowest (or highest) hole row has no covered hole anywhere, e.g. a line of high
+  // notes: its 3–5 dot rows are completed with the nearest rows of open rings
+  const found = [...fromDots, ...fromCells]
+  const overlaps = (r: number[]) => found.some((d) => d[0] < r[5] + D && r[0] < d[5] + D)
+  const cellY = cells.map((c) => c.cy)
+  const completed = dotSystems
+    .filter((r) => r.length >= 3 && r.length < 6)
+    .map((r) => completeSystem(r.map(([y]) => y), cellY, D))
+    .filter((r): r is number[] => r != null && !overlaps(r))
+  const valid = [...found, ...completed].sort((a, b) => a[0] - b[0])
   if (valid.length < dotSystems.filter((r) => r.length >= 3).length) warnings.push('Some rows did not have exactly six holes and were skipped.')
 
   const redBlobs = components(redLetters, W, H, 3)
@@ -565,12 +600,19 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
       }
       return topOf(b.x1 - Math.round(w * 0.35), b.x1) - topOf(b.x0, b.x0 + Math.round(w * 0.35)) > (b.y1 - b.y0 + 1) * 0.12
     }
-    const isDot = (b: Blob) => b.y1 - b.y0 + 1 < D * 0.4 && b.x1 - b.x0 + 1 < D * 0.4
+    // a small dash is as short as a dot but clearly wider than tall
+    const isDot = (b: Blob) => {
+      const w = b.x1 - b.x0 + 1
+      const h = b.y1 - b.y0 + 1
+      return h < D * 0.4 && w < D * 0.4 && w / h < 1.3
+    }
     const dotsBelow = below.filter(isDot)
     const singles = below.filter((b) => !isDot(b))
-    // one-colour text: "t" and "u" may come out as separate shapes; join the letters under each
+    // "t" and "u" may come out as separate shapes (one-colour text, small serif type): join the letters under each
     // column so "tu" vs "ru" is judged on the whole syllable (dashes stay on their own)
-    const isDash = (b: Blob) => (b.x1 - b.x0 + 1) / (b.y1 - b.y0 + 1) > 1.6 || b.y1 - b.y0 + 1 < D * 0.42
+    // a dash is flat: much wider than tall, or barely any height (a whole word like "du" is wide too,
+    // and a lone "u" is short, but neither is that flat)
+    const isDash = (b: Blob) => (b.x1 - b.x0 + 1) / (b.y1 - b.y0 + 1) > DASH_RATIO || b.y1 - b.y0 + 1 < D * DASH_HEIGHT
     const joinUnderColumns = (shapes: Blob[]): Blob[] => {
       const groups = new Map<number, Blob[]>()
       for (const b of shapes) groups.set(colAt(b.cx), [...(groups.get(colAt(b.cx)) ?? []), b])
@@ -582,7 +624,10 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
         return { x0, x1, y0, y1, n: g.reduce((a, b) => a + b.n, 0), cx: (x0 + x1) / 2, cy: (y0 + y1) / 2 }
       })
     }
-    const letters = letterMask === redLetters ? singles : [...singles.filter(isDash), ...joinUnderColumns(singles.filter((b) => !isDash(b)))]
+    const letters = [...singles.filter(isDash), ...joinUnderColumns(singles.filter((b) => !isDash(b)))]
+    // height of the short letters ("u", "r"): the lowest fifth of the letter shapes
+    const heights = singles.filter((b) => !isDash(b)).map((b) => b.y1 - b.y0 + 1).sort((a, b) => a - b)
+    const xHeight = heights.length >= 5 ? heights[Math.floor(heights.length * 0.2)] : 0
     const dashCols = new Set<number>()
     for (const b of letters) {
       const w = b.x1 - b.x0 + 1
@@ -590,7 +635,7 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
       const ci = colAt(b.cx)
       if (ci < 0) continue
       const col = columns[ci]
-      if (w / h > 1.6 || h < D * 0.42) {
+      if (isDash(b)) {
         col.attack ??= 'slur'
         dashCols.add(ci)
         continue
@@ -599,7 +644,10 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
       if (hasDot) {
         col.stop = true
         col.attack ??= 'slur'
-      } else if (w / h > 0.9) col.attack = risesOnLeft(b) ? 'tongue' : 'ru'
+      } else if (hasCounter(b, letterMask, W, D) || (w / h > 0.9 && xHeight && h >= xHeight * D_ASCENDER)) col.attack = 'ru'
+      // "du" is the soft "ru" attack: its "d" has a closed bowl and rises well above a "t"
+      // a syllable: "tu" rises above the x-height ("t"), "ru" does not
+      else if (w / h > 0.9) col.attack = xHeight ? (h >= xHeight * T_ASCENDER ? 'tongue' : 'ru') : risesOnLeft(b) ? 'tongue' : 'ru'
       else if (h > D * 1.05) col.attack = 'tongue'
       // "tu" can split into "t" and "u": the short "u" must not turn a tongued note into "ru"
       else if (col.attack !== 'tongue') col.attack = 'ru'
@@ -638,6 +686,49 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
   if (lowConf) warnings.push(`${lowConf} column(s) were unclear, please check them in the editor.`)
   return { systems, dotSize: D, warnings }
 }
+
+/**
+ * Whether a letter shape encloses background, like the bowl of a "d": flood the background in from
+ * the box edges and see if any is left unreached.
+ */
+function hasCounter(b: Blob, mask: Mask, W: number, D: number): boolean {
+  const w = b.x1 - b.x0 + 1
+  const h = b.y1 - b.y0 + 1
+  const seen = new Uint8Array(w * h)
+  const stack: number[] = []
+  const push = (x: number, y: number) => {
+    const k = y * w + x
+    if (seen[k] || mask[(b.y0 + y) * W + b.x0 + x]) return
+    seen[k] = 1
+    stack.push(k)
+  }
+  for (let x = 0; x < w; x++) {
+    push(x, 0)
+    push(x, h - 1)
+  }
+  for (let y = 0; y < h; y++) {
+    push(0, y)
+    push(w - 1, y)
+  }
+  while (stack.length) {
+    const k = stack.pop()!
+    const x = k % w
+    const y = (k - x) / w
+    if (x > 0) push(x - 1, y)
+    if (x < w - 1) push(x + 1, y)
+    if (y > 0) push(x, y - 1)
+    if (y < h - 1) push(x, y + 1)
+  }
+  let enclosed = 0
+  for (let k = 0; k < seen.length; k++) if (!seen[k] && !mask[(b.y0 + Math.floor(k / w)) * W + b.x0 + (k % w)]) enclosed++
+  return enclosed >= D * D * COUNTER_SHARE
+}
+/** Enclosed background (share of a dot's square) that makes a bowl, not a stray gap. */
+const COUNTER_SHARE = 0.03
+/** A "d" stands this many x-heights tall; a "t" stays below it. */
+const D_ASCENDER = 1.42
+/** A "t" rises at least this many x-heights; "r" and "u" stay at one. */
+const T_ASCENDER = 1.12
 
 /** A text line with descenders (a "g" below the baseline) is note names, not t / r / - / i. */
 function isNoteNameLine(shapes: Blob[], D: number): boolean {

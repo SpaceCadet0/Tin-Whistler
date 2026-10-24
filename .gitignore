@@ -28,3 +28,4 @@ reference/
 
 # Built Android packages
 release/
+.tmp-video/

@@ -66,3 +66,12 @@ describe('tab image recognition', () => {
     expect(r.systems[0].columns.length).toBe(12 + 4)
   })
 })
+
+describe('tab panel read from a video (The Prayer, section 2)', () => {
+  it('completes a line of high notes whose lowest hole row has no covered hole', () => {
+    const png = PNG.sync.read(readFileSync(new URL('./__fixtures__/prayer-2.png', import.meta.url)))
+    const r = recognizeTab({ width: png.width, height: png.height, data: png.data })
+    expect(r.systems).toHaveLength(2)
+    expect(r.systems.reduce((n, s) => n + s.columns.length, 0)).toBe(55)
+  })
+})
