@@ -1,7 +1,6 @@
 import { isFiniteNumber, isRecord } from '../lib/validate'
-import type { Phrase, Tune, TuneNote, TuneSection, TuneType } from './types'
+import { TUNE_TYPES, type Phrase, type Tune, type TuneNote, type TuneSection, type TuneType } from './types'
 
-const TUNE_TYPES: TuneType[] = ['air', 'reel', 'jig', 'polka', 'march', 'waltz', 'hornpipe', 'song', 'exercise', 'slide']
 
 function normalizeNote(x: unknown): TuneNote | null {
   if (!isRecord(x)) return null
@@ -44,7 +43,7 @@ export function normalizeTune(x: unknown): Tune | null {
     id: x.id,
     title: typeof x.title === 'string' && x.title ? x.title : 'Untitled',
     origin: 'user',
-    type: TUNE_TYPES.includes(x.type as TuneType) ? (x.type as TuneType) : 'air',
+    type: (TUNE_TYPES as readonly string[]).includes(x.type as string) ? (x.type as TuneType) : 'air',
     whistle: typeof x.whistle === 'string' ? x.whistle : 'D',
     key: typeof x.key === 'string' ? x.key : 'D',
     bpm: isFiniteNumber(x.bpm) && x.bpm > 0 ? x.bpm : 90,

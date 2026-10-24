@@ -83,7 +83,28 @@ export interface TuneSection {
   repeat?: number
 }
 
-export type TuneType = 'air' | 'reel' | 'jig' | 'polka' | 'march' | 'waltz' | 'hornpipe' | 'song' | 'exercise' | 'slide'
+/** Kinds of tunes, in the order the library offers them: dance tunes, then songs and airs, then the rest. */
+export const TUNE_TYPES = [
+  'reel',
+  'jig',
+  'slip-jig',
+  'hornpipe',
+  'polka',
+  'slide',
+  'march',
+  'waltz',
+  'air',
+  'song',
+  'shanty',
+  'hymn',
+  'carol',
+  'children',
+  'anthem',
+  'classical',
+  'soundtrack',
+  'exercise',
+] as const
+export type TuneType = (typeof TUNE_TYPES)[number]
 
 export type TuneOrigin = 'builtin' | 'user'
 

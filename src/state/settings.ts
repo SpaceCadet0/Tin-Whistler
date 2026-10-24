@@ -25,7 +25,10 @@ export interface SettingsState {
   theme: ThemePref
   motion: MotionPref
   volume: number
-  set: (patch: Partial<Omit<SettingsState, 'set' | 'reset'>>) => void
+  /** Ids of tunes the user starred. A preference, not progress: resetting progress keeps it. */
+  favoriteTunes: string[]
+  set: (patch: Partial<Omit<SettingsState, 'set' | 'reset' | 'toggleFavorite'>>) => void
+  toggleFavorite: (tuneId: string) => void
   reset: () => void
 }
 
@@ -44,6 +47,7 @@ const DEFAULTS = {
   theme: 'system' as ThemePref,
   motion: 'system' as MotionPref,
   volume: 0.8,
+  favoriteTunes: [] as string[],
 }
 
 const inRange = (lo: number, hi: number) => (x: unknown) => typeof x === 'number' && x >= lo && x <= hi
@@ -62,6 +66,7 @@ export function sanitizeSettings(persisted: unknown): Partial<typeof DEFAULTS> {
     sensitivity: inRange(0, 1),
     latencyMs: inRange(0, 1000),
     volume: inRange(0, 1),
+    favoriteTunes: (x) => Array.isArray(x) && x.every((id) => typeof id === 'string'),
   })
 }
 
@@ -70,6 +75,8 @@ export const useSettings = create<SettingsState>()(
     (set) => ({
       ...DEFAULTS,
       set: (patch) => set(patch),
+      toggleFavorite: (tuneId) =>
+        set((s) => ({ favoriteTunes: s.favoriteTunes.includes(tuneId) ? s.favoriteTunes.filter((id) => id !== tuneId) : [...s.favoriteTunes, tuneId] })),
       reset: () => set({ ...DEFAULTS }),
     }),
     {

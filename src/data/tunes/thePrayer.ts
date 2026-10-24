@@ -31,7 +31,7 @@ export const thePrayer: Tune = {
     ru: 'Тема Болота из Heroes of Might and Magic IV. Медленная мелодия с рубато в ми: мягкие повторы «du» и «ru», cut, медленные slide и долгий подъём к верхнему B.',
   },
   origin: 'builtin',
-  type: 'air',
+  type: 'soundtrack',
   whistle: 'D',
   key: 'Em',
   bpm: 60,

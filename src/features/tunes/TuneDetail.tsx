@@ -17,7 +17,9 @@ import { Stagger } from '../../ui/motion'
 import { TabLegend } from '../../ui/Shortcuts'
 import { TabView } from '../../ui/whistle/TabView'
 import { WhistleView } from '../../ui/whistle/WhistleView'
+import { FavoriteButton } from './FavoriteButton'
 import { LEARNING_STEPS } from './learningSteps'
+import { libraryPath } from './libraryReturn'
 
 /** Step 3: walk through the fingerings note by note. */
 function FingeringWalk({ tune, onClose }: { tune: Tune; onClose: () => void }) {
@@ -108,13 +110,16 @@ export default function TuneDetail() {
   return (
     <div>
       <PageHeader
-        back="/tunes"
+        back={libraryPath()}
         title={tune.title}
         subtitle={tune.composer}
         actions={
-          <ButtonLink to={`/tunes/${tune.id}/play`} icon="play" size="lg">
-            {t('tune.practise')}
-          </ButtonLink>
+          <>
+            <FavoriteButton tuneId={tune.id} title={tune.title} />
+            <ButtonLink to={`/tunes/${tune.id}/play`} icon="play" size="lg">
+              {t('tune.practise')}
+            </ButtonLink>
+          </>
         }
       />
 

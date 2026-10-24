@@ -52,15 +52,15 @@ function parseFraction(s: string): number {
 
 function guessType(meter: string, rhythm: string): TuneType {
   const r = rhythm.toLowerCase()
+  if (r.includes('slip')) return 'slip-jig'
   const known: TuneType[] = ['reel', 'jig', 'polka', 'march', 'waltz', 'hornpipe', 'slide', 'air']
   const hit = known.find((k) => r.includes(k))
   if (hit) return hit
-  if (r.includes('slip')) return 'jig'
   if (meter === '6/8') return 'jig'
   if (meter === '2/4') return 'polka'
   if (meter === '3/4') return 'waltz'
   if (meter === '12/8') return 'slide'
-  if (meter === '9/8') return 'jig'
+  if (meter === '9/8') return 'slip-jig'
   return 'reel'
 }
 

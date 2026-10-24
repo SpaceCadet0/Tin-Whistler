@@ -35,7 +35,7 @@ z DFG|A4|z DFG|A4|z DFG|A2F2|D2F2|E4|
 z FFE|D3D|F2A2|AG3|z FGA|F2D2|E4|D4|]`,
   {
     difficulty: 1,
-    type: 'song',
+    type: 'hymn',
     sectionNames: ['Verse'],
     tags: ['song', 'first steps'],
     description: {

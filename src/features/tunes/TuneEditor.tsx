@@ -7,7 +7,7 @@ import { toast } from '../../lib/toast'
 import { changeWhistle, insertClip, insertNote, locate, moveRange, removeRange, sliceClip, togglePhraseBreak, toggleLineBreak, updateNote } from '../../music/editing'
 import { parseTabText, sectionToTabText } from '../../music/tabText'
 import { autoSection, sectionNotes } from '../../music/tune'
-import type { Tune, TuneNote, TuneSection, TuneType } from '../../music/types'
+import { TUNE_TYPES, type Tune, type TuneNote, type TuneSection, type TuneType } from '../../music/types'
 import { getWhistle, WHISTLE_KEYS } from '../../music/whistles'
 import { usePlayer } from '../../hooks/audio'
 import { useHotkeys } from '../../hooks/useHotkeys'
@@ -19,7 +19,6 @@ import { doubleBeats, editorKey, halveBeats, pitchForLetter, setRing, toggleAcci
 import { KeyboardGuide } from './editor/KeyboardGuide'
 import { NoteInspector } from './editor/NoteInspector'
 
-const TYPES: TuneType[] = ['air', 'reel', 'jig', 'polka', 'march', 'waltz', 'hornpipe', 'slide', 'song', 'exercise']
 const HISTORY_LIMIT = 100
 /** The keyboard guide opens by itself once per browser. */
 const GUIDE_SEEN_KEY = 'tw.editorGuideSeen'
@@ -382,7 +381,7 @@ export default function TuneEditor() {
         <label className="flex flex-col gap-1 text-sm font-semibold text-ink-soft">
           {t('editor.type')}
           <select value={tune.type} onChange={(e) => commit({ ...tune, type: e.target.value as TuneType })} className="h-11 rounded-xl border border-line bg-surface px-3 text-ink">
-            {TYPES.map((x) => (
+            {TUNE_TYPES.map((x) => (
               <option key={x} value={x}>
                 {t(`tuneType.${x}`)}
               </option>

@@ -19,7 +19,7 @@ K:D
 DDAA|BBA2|GGFF|EED2|AAGG|FFE2|AAGG|FFE2|DDAA|BBA2|GGFF|EED2|]`,
   {
     difficulty: 1,
-    type: 'song',
+    type: 'children',
     sectionNames: ['Melody'],
     tags: ['song', 'kids', 'first steps'],
     description: {
@@ -40,7 +40,7 @@ K:D
 D3 D3|D2E F3|F2E F2G|A6|ddd AAA|FFF DDD|A2G F2E|D6|]`,
   {
     difficulty: 1,
-    type: 'song',
+    type: 'children',
     sectionNames: ['Melody'],
     tags: ['song', 'kids', 'round'],
     description: {
@@ -61,7 +61,7 @@ K:A
 ABcA|ABcA|cde2|cde2|e/f/e/d/ cA|e/f/e/d/ cA|AEA2|AEA2|]`,
   {
     difficulty: 1,
-    type: 'song',
+    type: 'children',
     sectionNames: ['Melody'],
     tags: ['song', 'kids', 'round'],
     description: {
@@ -82,7 +82,7 @@ K:D
 DFA>F|ABA2|FAB2|A4|FAA>F|GFE2|DEF>E|DED2|]`,
   {
     difficulty: 1,
-    type: 'song',
+    type: 'hymn',
     composer: 'Traditional spiritual',
     sectionNames: ['Melody'],
     tags: ['song', 'spiritual'],
@@ -104,7 +104,7 @@ K:D
 A3B A2G2|F2G2 A4|E2F2 G4|F2G2 A4|A3B A2G2|F2G2 A4|E4 A4|F2D6|]`,
   {
     difficulty: 1,
-    type: 'song',
+    type: 'children',
     sectionNames: ['Melody'],
     tags: ['song', 'kids'],
     description: {
@@ -125,7 +125,7 @@ K:G
 GGGD|EED2|BBAA|G3D|GGGD|EED2|BBAA|G4||D/D/G G2|D/D/G G2|GG GG|G/G/G/G/ GG|GGGD|EED2|BBAA|G4|]`,
   {
     difficulty: 1,
-    type: 'song',
+    type: 'children',
     sectionNames: ['Verse', 'Chorus'],
     tags: ['song', 'kids'],
     description: {
@@ -150,7 +150,7 @@ DBAG|D3D/D/|DBAG|E3E|EcBA|F4|ddcA|B4|DBAG|D3D|DBAG|E3E|EcBA|dddd|edcA|G2d2||
 BBB2|BBB2|BdG>A|B4|ccc>c|cBBB/B/|BAAB|A2d2|BBB2|BBB2|BdG>A|B4|cccc|cBBB/B/|ddcA|G4|]`,
   {
     difficulty: 3,
-    type: 'song',
+    type: 'carol',
     composer: 'James Lord Pierpont (1857)',
     sectionNames: ['Verse', 'Chorus'],
     tags: ['song', 'christmas'],
@@ -219,7 +219,7 @@ K:D
 d2c>B|A3G|F2E2|D3A|B3B|c3c|d4-|d3d|dcBA|A>GFd|dcBA|A>GFF|FFFF/G/|A3G/F/|EEEE/F/|G3F/E/|Dd2B|A>GFG|F2E2|D4|]`,
   {
     difficulty: 2,
-    type: 'song',
+    type: 'carol',
     composer: 'Lowell Mason (1839), after Handel',
     sectionNames: ['Melody'],
     tags: ['song', 'christmas'],
@@ -242,7 +242,7 @@ d3c B2A2|G2A2 B2G2|AB cA B3A|G2F2 G4|d3c B2A2|G2A2 B2G2|AB cA B3A|G2F2 G4||
 A3B c2A2|B3c d2A2|Bc d2 ef g2|f2e2 d4|d3c B2A2|G2A2 B2G2|ee ee d3c|B2A2 G4|]`,
   {
     difficulty: 2,
-    type: 'song',
+    type: 'carol',
     composer: 'Traditional Welsh',
     sectionNames: ['Verse', 'Fa la la'],
     tags: ['song', 'christmas'],
@@ -264,7 +264,7 @@ K:D
 A|dd/e/d/c/|BBB|ee/f/e/d/|cAA|ff/g/f/e/|dBA/A/|Bec|d2||A|ddd|c2c|dcB|A2e|fed|aAA/A/|Bec|d2|]`,
   {
     difficulty: 2,
-    type: 'song',
+    type: 'carol',
     composer: 'Traditional English',
     sectionNames: ['Verse', 'Good tidings'],
     tags: ['song', 'christmas', 'waltz'],
@@ -287,7 +287,7 @@ K:D
 A3B2A|F6|A3B2A|F6|e4e2|c6|d4d2|A6|B4B2|d3c2B|A3B2A|F6|B4B2|d3c2B|A3B2A|F6|e4e2|g3e2c|d6|f6|d2A2F2|A3G2E|D6|]`,
   {
     difficulty: 2,
-    type: 'song',
+    type: 'carol',
     composer: 'Franz Xaver Gruber (1818)',
     sectionNames: ['Melody'],
     tags: ['song', 'christmas', 'air'],
@@ -310,7 +310,7 @@ B2BB B2BB|B2E2 G2B2|A2AA A2AA|A2D2 F2A2|B2BB B2BB|B2c2 d2e2|d2B2 A2F2|E4 E4||
 B4 B4|E2G2 B4|A4 A4|D2F2 A4|B4 B4|B2c2 d2e2|d2B2 A2F2|E4 E4|]`,
   {
     difficulty: 2,
-    type: 'song',
+    type: 'shanty',
     composer: 'Traditional sea shanty',
     sectionNames: ['Verse', 'Chorus'],
     tags: ['song', 'shanty', 'dorian'],
@@ -332,7 +332,7 @@ K:G
 dBd2|dBd2|edcB|ABc2|Bcd G/G/|G/G/A/B/ cd|dAAc|BAG2|]`,
   {
     difficulty: 2,
-    type: 'song',
+    type: 'children',
     sectionNames: ['Melody'],
     tags: ['song', 'kids'],
     description: {
@@ -356,7 +356,7 @@ K:G
 G2zD G2zD|GDGB d4|c2zA c2zA|cAFA D4||G2G2 GBAG|G2F2 FAdF|AGG2 GBAG|G2F2 FAdF|G4 z4|]`,
   {
     difficulty: 3,
-    type: 'air',
+    type: 'classical',
     composer: 'W. A. Mozart (1787)',
     sectionNames: ['Opening', 'Answer'],
     tags: ['classical'],
@@ -379,7 +379,7 @@ K:G
 d2B A2G|A2B d2B|A2G A2B|A2B d2B|d2e B2e|d2B A2G|G6|]`,
   {
     difficulty: 3,
-    type: 'air',
+    type: 'classical',
     composer: 'Edvard Grieg (1875)',
     sectionNames: ['Melody'],
     tags: ['classical', 'air'],
@@ -402,7 +402,7 @@ K:D
 f2e2|d2c2|B2A2|B2c2|d2c2|B2A2|G2F2|G2E2||fedc|BABc|dcBA|GFGE|fedc|BABc|dcBA|GFGE|D4|]`,
   {
     difficulty: 3,
-    type: 'air',
+    type: 'classical',
     composer: 'Johann Pachelbel (c. 1680)',
     sectionNames: ['Theme', 'Variation'],
     tags: ['classical', 'second octave'],
@@ -426,7 +426,7 @@ d2GA Bc|d2G2G2|e2cd ef|g2G2G2|c2dc BA|B2cB AG|F2GA BG|A6|
 d2GA Bc|d2G2G2|e2cd ef|g2G2G2|c2dc BA|B2cB AG|A2BA GF|G6|]`,
   {
     difficulty: 3,
-    type: 'air',
+    type: 'classical',
     composer: 'Christian Petzold (attr. J. S. Bach)',
     sectionNames: ['Minuet'],
     tags: ['classical', 'waltz'],
@@ -449,7 +449,7 @@ A|c2d e>fe|d2B G>AB|c2A A>^GA|B2^G E2A|c2d e>fe|d2B G>AB|c>BA ^G>FG|A3 A2||
 g3 g>fe|d2B G>AB|c2A A>^GA|B2^G E3|g3 g>fe|d2B G>AB|c>BA ^G>FG|A3 A2|]`,
   {
     difficulty: 4,
-    type: 'air',
+    type: 'song',
     composer: 'Traditional English (16th c.)',
     sectionNames: ['Verse', 'Refrain'],
     tags: ['air', 'chromatic', 'dorian'],

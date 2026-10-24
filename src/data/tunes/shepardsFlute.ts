@@ -37,7 +37,7 @@ export const shepardsFlute: Tune = {
     ru: 'Тема города Дион. Медленная мелодия (air) с рубато: много cut, bounce и slide, есть переход во вторую октаву.',
   },
   origin: 'builtin',
-  type: 'air',
+  type: 'soundtrack',
   whistle: 'D',
   key: 'D',
   bpm: 75,

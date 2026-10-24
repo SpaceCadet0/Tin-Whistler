@@ -1,13 +1,16 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { useT } from '../../i18n'
 import { tuneDurationSec, usedNotes } from '../../music/tune'
-import type { Tune } from '../../music/types'
+import { TUNE_TYPES, type Tune, type TuneType } from '../../music/types'
 import { getWhistle, WHISTLE_KEYS } from '../../music/whistles'
 import { useProgress } from '../../state/progress'
+import { useSettings } from '../../state/settings'
 import { useAllTunes } from '../../state/tunes'
 import { Icon } from '../../ui/Icon'
-import { ButtonLink, Chip, cn, Difficulty, EmptyState, PageHeader, ProgressBar } from '../../ui/primitives'
+import { Button, ButtonLink, Chip, cn, Difficulty, EmptyState, PageHeader, ProgressBar } from '../../ui/primitives'
+import { FavoriteButton } from './FavoriteButton'
+import { rememberLibrarySearch } from './libraryReturn'
 import { Stagger } from '../../ui/motion'
 import { stopPreview, togglePreview, usePreview } from './preview'
 
@@ -23,7 +26,7 @@ function TuneCard({ tune }: { tune: Tune }) {
     // the preview button sits beside the link, not inside it (no nested interactive elements)
     <div className="group relative grid min-w-0 grid-cols-1">
     <Link to={`/tunes/${tune.id}`} className="flex flex-col gap-3 rounded-[var(--radius-card)] border border-line/70 bg-surface p-5 shadow-soft transition group-hover:-translate-y-0.5 group-hover:shadow-lift">
-      <div className="flex items-start justify-between gap-3 pr-12">
+      <div className="flex items-start justify-between gap-3 pr-24">
         <div className="min-w-0">
           <p className="line-clamp-2 font-display text-xl leading-tight font-semibold">{tune.title}</p>
           <p className="truncate text-sm text-ink-soft">{tune.composer ?? t(`tuneType.${tune.type}`)}</p>
@@ -63,6 +66,7 @@ function TuneCard({ tune }: { tune: Tune }) {
         <ProgressBar value={(tp?.step ?? 0) / 7} height={6} label={t('tune.learning')} />
       </div>
     </Link>
+    <FavoriteButton tuneId={tune.id} title={tune.title} className="absolute top-4 right-16 transition group-hover:-translate-y-0.5" />
     <PreviewButton tune={tune} />
     </div>
   )
@@ -98,25 +102,65 @@ function PreviewButton({ tune }: { tune: Tune }) {
   )
 }
 
+type Level = 'all' | 'easy' | 'mid' | 'hard'
+const LEVELS: Level[] = ['all', 'easy', 'mid', 'hard']
+
+function matchesLevel(tune: Tune, level: Level): boolean {
+  if (level === 'easy') return tune.difficulty <= 1
+  if (level === 'mid') return tune.difficulty >= 2 && tune.difficulty <= 3
+  if (level === 'hard') return tune.difficulty >= 4
+  return true
+}
+
+/**
+ * The library's filters live in the URL (?q=&level=&whistle=&types=&fav=1), so coming back from a
+ * tune keeps them and a filtered list can be shared or bookmarked.
+ */
+function useLibraryFilters() {
+  const [params, setParams] = useSearchParams()
+  const level = (LEVELS as string[]).includes(params.get('level') ?? '') ? (params.get('level') as Level) : 'all'
+  const types = (params.get('types') ?? '').split(',').filter((x): x is TuneType => (TUNE_TYPES as readonly string[]).includes(x))
+  const filters = { query: params.get('q') ?? '', level, whistle: params.get('whistle') ?? 'all', types, favorites: params.get('fav') === '1' }
+  const update = (patch: Partial<typeof filters>) => {
+    const next = { ...filters, ...patch }
+    const p = new URLSearchParams()
+    if (next.query) p.set('q', next.query)
+    if (next.level !== 'all') p.set('level', next.level)
+    if (next.whistle !== 'all') p.set('whistle', next.whistle)
+    if (next.types.length) p.set('types', next.types.join(','))
+    if (next.favorites) p.set('fav', '1')
+    setParams(p, { replace: true })
+  }
+  const active = Boolean(filters.query || filters.level !== 'all' || filters.whistle !== 'all' || filters.types.length || filters.favorites)
+  return { ...filters, update, active, reset: () => setParams(new URLSearchParams(), { replace: true }) }
+}
+
+const pill = (on: boolean) => cn('h-10 shrink-0 cursor-pointer rounded-2xl px-4 text-sm font-semibold whitespace-nowrap transition', on ? 'bg-ink text-bg' : 'bg-surface-2 text-ink-soft hover:text-ink')
+
 export default function TuneLibrary() {
   const { t } = useT()
   const tunes = useAllTunes()
-  const [query, setQuery] = useState('')
-  const [level, setLevel] = useState<'all' | 'easy' | 'mid' | 'hard'>('all')
-  const [whistle, setWhistle] = useState('all')
+  const favoriteIds = useSettings((s) => s.favoriteTunes)
+  const f = useLibraryFilters()
+  const { search } = useLocation()
   useEffect(() => stopPreview, [])
-  // only offer keys that some tune is written for
+  useEffect(() => rememberLibrarySearch(search), [search])
+  // only offer keys and types that some tune actually has
   const whistleCounts = WHISTLE_KEYS.map((w) => ({ ...w, count: tunes.filter((x) => x.whistle === w.id).length })).filter((w) => w.count > 0)
+  const typeCounts = TUNE_TYPES.map((type) => ({ type, count: tunes.filter((x) => x.type === type).length })).filter((x) => x.count > 0)
+  const favorites = tunes.filter((x) => favoriteIds.includes(x.id)).length
+  const query = f.query.toLowerCase()
   const filtered = tunes.filter((x) => {
-    if (query && !`${x.title} ${x.composer ?? ''} ${x.type}`.toLowerCase().includes(query.toLowerCase())) return false
-    if (whistle !== 'all' && x.whistle !== whistle) return false
-    if (level === 'easy') return x.difficulty <= 1
-    if (level === 'mid') return x.difficulty >= 2 && x.difficulty <= 3
-    if (level === 'hard') return x.difficulty >= 4
-    return true
+    if (query && !`${x.title} ${x.composer ?? ''} ${t(`tuneType.${x.type}`)}`.toLowerCase().includes(query)) return false
+    if (f.whistle !== 'all' && x.whistle !== f.whistle) return false
+    if (f.types.length && !f.types.includes(x.type)) return false
+    if (f.favorites && !favoriteIds.includes(x.id)) return false
+    return matchesLevel(x, f.level)
   })
   const builtin = filtered.filter((x) => x.origin === 'builtin')
   const mine = filtered.filter((x) => x.origin === 'user')
+  const hasOwnTunes = tunes.some((x) => x.origin === 'user')
+  const toggleType = (type: TuneType) => f.update({ types: f.types.includes(type) ? f.types.filter((x) => x !== type) : [...f.types, type] })
 
   return (
     <div>
@@ -129,37 +173,29 @@ export default function TuneLibrary() {
           </ButtonLink>
         }
       />
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <label className="relative flex-1 sm:max-w-xs">
+      <div className="mb-3 flex flex-wrap items-center gap-3">
+        <label className="relative min-w-48 flex-1 sm:max-w-xs">
           <span className="sr-only">{t('tunes.search')}</span>
           <input
             type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            value={f.query}
+            onChange={(e) => f.update({ query: e.target.value })}
             placeholder={t('tunes.search')}
             className="h-11 w-full rounded-2xl border border-line bg-surface px-4 text-[15px] outline-none focus:border-moss"
           />
         </label>
-        <div className="flex gap-1.5" role="group" aria-label={t('tune.difficulty')}>
-          {(['all', 'easy', 'mid', 'hard'] as const).map((l) => (
-            <button
-              key={l}
-              type="button"
-              aria-pressed={level === l}
-              onClick={() => setLevel(l)}
-              className={cn('h-10 rounded-2xl px-4 text-sm font-semibold transition', level === l ? 'bg-ink text-bg' : 'bg-surface-2 text-ink-soft')}
-            >
-              {t(`tunes.level.${l}`)}
-            </button>
-          ))}
-        </div>
+        <button type="button" aria-pressed={f.favorites} onClick={() => f.update({ favorites: !f.favorites })} className={cn(pill(f.favorites), 'inline-flex items-center gap-1.5')}>
+          <Icon name="heart" size={16} filled={f.favorites} className={f.favorites ? undefined : 'text-bad'} />
+          {t('tunes.favorites')}
+          <span className="tabular opacity-70">{favorites}</span>
+        </button>
         <label className="relative inline-flex items-center">
           <span className="sr-only">{t('editor.whistle')}</span>
           <Icon name="whistle" size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-soft" />
           <select
-            value={whistle}
-            onChange={(e) => setWhistle(e.target.value)}
-            className={cn('h-10 cursor-pointer rounded-2xl border-0 pr-8 pl-9 text-sm font-semibold transition', whistle === 'all' ? 'bg-surface-2 text-ink-soft' : 'bg-ink text-bg')}
+            value={f.whistle}
+            onChange={(e) => f.update({ whistle: e.target.value })}
+            className={cn('h-10 cursor-pointer rounded-2xl border-0 pr-8 pl-9 text-sm font-semibold transition', f.whistle === 'all' ? 'bg-surface-2 text-ink-soft' : 'bg-ink text-bg')}
           >
             <option value="all">{t('tunes.allWhistles')}</option>
             {whistleCounts.map((w) => (
@@ -169,31 +205,78 @@ export default function TuneLibrary() {
             ))}
           </select>
         </label>
+        <div className="flex gap-1.5" role="group" aria-label={t('tune.difficulty')}>
+          {LEVELS.map((l) => (
+            <button key={l} type="button" aria-pressed={f.level === l} onClick={() => f.update({ level: l })} className={pill(f.level === l)}>
+              {t(`tunes.level.${l}`)}
+            </button>
+          ))}
+        </div>
+      </div>
+      {/* types scroll sideways on a phone instead of growing into a wall of chips */}
+      <div role="group" aria-label={t('tunes.type')} className="-mx-4 mb-4 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+        <button type="button" aria-pressed={!f.types.length} onClick={() => f.update({ types: [] })} className={pill(!f.types.length)}>
+          {t('tunes.allTypes')}
+        </button>
+        {typeCounts.map(({ type, count }) => (
+          <button key={type} type="button" aria-pressed={f.types.includes(type)} onClick={() => toggleType(type)} className={pill(f.types.includes(type))}>
+            {t(`tuneType.${type}`)} <span className="tabular opacity-60">{count}</span>
+          </button>
+        ))}
+      </div>
+      <div className="mb-5 flex min-h-6 items-center gap-3 text-sm text-ink-soft">
+        <span className="tabular">{t('tunes.found', { n: filtered.length })}</span>
+        {f.active && (
+          <button type="button" onClick={f.reset} className="cursor-pointer font-semibold text-moss hover:underline">
+            {t('tunes.resetFilters')}
+          </button>
+        )}
       </div>
 
-      <Stagger as="div" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {builtin.map((x) => (
-          <TuneCard key={x.id} tune={x} />
-        ))}
-      </Stagger>
-
-      <h2 className="mt-10 mb-4 font-display text-2xl font-semibold">{t('tunes.mine')}</h2>
-      {mine.length ? (
+      {builtin.length ? (
         <Stagger as="div" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {mine.map((x) => (
+          {builtin.map((x) => (
             <TuneCard key={x.id} tune={x} />
           ))}
         </Stagger>
       ) : (
-        <EmptyState
-          title={t('tunes.emptyTitle')}
-          body={t('tunes.emptyBody')}
-          action={
-            <ButtonLink to="/tunes/import" variant="secondary" icon="plus">
-              {t('tunes.add')}
-            </ButtonLink>
-          }
-        />
+        !mine.length && (
+          <EmptyState
+            title={f.favorites && !favorites ? t('tunes.noFavoritesTitle') : t('tunes.noMatchTitle')}
+            body={f.favorites && !favorites ? t('tunes.noFavoritesBody') : t('tunes.noMatchBody')}
+            action={
+              <Button variant="secondary" onClick={f.reset}>
+                {t('tunes.resetFilters')}
+              </Button>
+            }
+          />
+        )
+      )}
+
+      {/* with filters on, "my tunes" shows only when something of the user's matches */}
+      {(mine.length > 0 || !f.active) && (
+        <>
+          <h2 className="mt-10 mb-4 font-display text-2xl font-semibold">{t('tunes.mine')}</h2>
+          {mine.length ? (
+            <Stagger as="div" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {mine.map((x) => (
+                <TuneCard key={x.id} tune={x} />
+              ))}
+            </Stagger>
+          ) : (
+            !hasOwnTunes && (
+              <EmptyState
+                title={t('tunes.emptyTitle')}
+                body={t('tunes.emptyBody')}
+                action={
+                  <ButtonLink to="/tunes/import" variant="secondary" icon="plus">
+                    {t('tunes.add')}
+                  </ButtonLink>
+                }
+              />
+            )
+          )}
+        </>
       )}
     </div>
   )

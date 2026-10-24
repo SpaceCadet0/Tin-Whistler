@@ -35,9 +35,9 @@ describe('ABC-defined built-in tunes', () => {
 
   it('carry ornaments and compound-time settings', () => {
     expect(cooleysReel.sections[1].phrases.flat().filter((n) => n.ornament?.type === 'roll')).toHaveLength(4)
-    expect(butterfly).toMatchObject({ meter: '9/8', pulse: 1.5, beatsPerBar: 4.5, type: 'jig' })
+    expect(butterfly).toMatchObject({ meter: '9/8', pulse: 1.5, beatsPerBar: 4.5, type: 'slip-jig' })
     expect(butterfly.sections).toHaveLength(3)
-    expect([saints, auldLangSyne, scarboroughFair].map((t) => t.type)).toEqual(['song', 'song', 'song'])
+    expect([saints, auldLangSyne, scarboroughFair].map((t) => t.type)).toEqual(['hymn', 'song', 'song'])
     expect(cooleysReel.type).toBe('reel')
   })
 
