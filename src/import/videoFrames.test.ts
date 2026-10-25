@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { RGBAImage } from './tabImage'
-import { keepStill, medianFrame, paperPanel, stillMask, tabPages } from './videoFrames'
+import { keepStill, medianFrame, paperPanel, stillMask, tabPages, tabRegion } from './videoFrames'
 
 /** A 40×20 frame: light page on the left (x < 24), dark "player" on the right, an optional marker. */
 function frame(markerX: number | null, playerShade = 40): RGBAImage {
@@ -42,5 +42,24 @@ describe('reading the tab panel out of video frames', () => {
       [0, 12],
       [12, 26],
     ])
+  })
+})
+
+describe('finding the tab in a frame', () => {
+  it('boxes the grid of equal dots, not the rest of the picture', () => {
+    const W = 200
+    const H = 120
+    const data = new Uint8Array(W * H * 4).fill(250)
+    const disc = (cx: number, cy: number, r: number, v: number) => {
+      for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r; x <= cx + r; x++) if ((x - cx) ** 2 + (y - cy) ** 2 <= r * r) data.fill(v, (y * W + x) * 4, (y * W + x) * 4 + 3)
+    }
+    // a 6 × 5 grid of dots at x 40…88, y 40…80, and a big dark blob (a hand) on the right
+    for (let c = 0; c < 5; c++) for (let r = 0; r < 6; r++) disc(40 + c * 12, 40 + r * 8, 3, 30)
+    disc(170, 60, 25, 20)
+    const box = tabRegion({ width: W, height: H, data })!
+    expect(box.x).toBeLessThan(37)
+    expect(box.x + box.width).toBeGreaterThan(91)
+    expect(box.x + box.width).toBeLessThan(140)
+    expect(box.y).toBeLessThan(37)
   })
 })

@@ -1,3 +1,4 @@
+import { paperOf, roundMarks } from './palette'
 import type { RGBAImage } from './tabImage'
 
 /**
@@ -178,4 +179,35 @@ export function tabPages(thumbs: Uint8Array[], fps: number, duration: number): [
   })
   const pages: [number, number][] = cuts.map((c, i) => [c, i + 1 < cuts.length ? cuts[i + 1] : duration])
   return pages.filter(([a, b]) => b - a >= MIN_PAGE)
+}
+
+/** Dots of one size, at least this many, make a tab. */
+const MIN_TAB_DOTS = 12
+/** A dot belongs to the tab when this many others of its size lie within a few dot sizes of it. */
+const NEIGHBOURS = 3
+// margins around the dots, in dot sizes: ornament letters above, "+" marks and articulation below
+const MARGIN_TOP = 3.5
+const MARGIN_BOTTOM = 4
+const MARGIN_SIDE = 1.5
+
+/**
+ * Where the tab is: the box round the dots (round, filled marks of one size lying in a grid) with
+ * room for the letters above and below. Faces, hands and pictures don't make rows of equal dots.
+ * Works on a light page (flip a dark one first). Null when there is no tab.
+ */
+export function tabRegion(img: RGBAImage): Rect | null {
+  const dots = roundMarks(img, paperOf(img))
+  if (dots.length < MIN_TAB_DOTS) return null
+  const size = (d: { x0: number; x1: number }) => d.x1 - d.x0 + 1
+  const D = [...dots.map(size)].sort((a, b) => a - b)[dots.length >> 1]
+  const same = dots.filter((d) => Math.abs(size(d) - D) <= D * 0.35)
+  const cx = (d: { x0: number; x1: number }) => (d.x0 + d.x1) / 2
+  const cy = (d: { y0: number; y1: number }) => (d.y0 + d.y1) / 2
+  const grid = same.filter((d) => same.filter((e) => e !== d && Math.abs(cx(e) - cx(d)) < D * 3 && Math.abs(cy(e) - cy(d)) < D * 3).length >= NEIGHBOURS)
+  if (grid.length < MIN_TAB_DOTS) return null
+  const x0 = Math.max(0, Math.floor(Math.min(...grid.map((d) => d.x0)) - D * MARGIN_SIDE))
+  const x1 = Math.min(img.width - 1, Math.ceil(Math.max(...grid.map((d) => d.x1)) + D * MARGIN_SIDE))
+  const y0 = Math.max(0, Math.floor(Math.min(...grid.map((d) => d.y0)) - D * MARGIN_TOP))
+  const y1 = Math.min(img.height - 1, Math.ceil(Math.max(...grid.map((d) => d.y1)) + D * MARGIN_BOTTOM))
+  return { x: x0, y: y0, width: x1 - x0 + 1, height: y1 - y0 + 1 }
 }

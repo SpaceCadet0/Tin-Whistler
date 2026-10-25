@@ -70,11 +70,71 @@ function hueBin([r, g, b]: RGB): number {
   return Math.floor((h / 6) * HUE_BINS) % HUE_BINS
 }
 
+/** Round, filled blobs of mark pixels this many or more: the tab's covered holes. */
+const MIN_DOTS = 12
+
+export interface Dot {
+  x0: number
+  y0: number
+  x1: number
+  y1: number
+  colour: RGB
+}
+
+/** Round, filled blobs of marks (anything clearly unlike the paper): the tab's covered holes. */
+export function roundMarks(img: RGBAImage, paper: RGB): Dot[] {
+  const { width: W, height: H, data: d } = img
+  const mark = new Uint8Array(W * H)
+  for (let p = 0, i = 0; i < W * H; i++, p += 4) mark[i] = dist([d[p], d[p + 1], d[p + 2]], paper) > MARK_DISTANCE ? 1 : 0
+  const seen = new Uint8Array(W * H)
+  const dots: Dot[] = []
+  const stack: number[] = []
+  for (let start = 0; start < W * H; start++) {
+    if (!mark[start] || seen[start]) continue
+    seen[start] = 1
+    stack.push(start)
+    let n = 0
+    let x0 = W
+    let x1 = 0
+    let y0 = H
+    let y1 = 0
+    const sum = [0, 0, 0]
+    while (stack.length) {
+      const i = stack.pop()!
+      const x = i % W
+      const y = (i - x) / W
+      n++
+      x0 = Math.min(x0, x)
+      x1 = Math.max(x1, x)
+      y0 = Math.min(y0, y)
+      y1 = Math.max(y1, y)
+      for (let k = 0; k < 3; k++) sum[k] += d[i * 4 + k]
+      for (const j of [i - 1, i + 1, i - W, i + W]) {
+        if (j < 0 || j >= W * H || seen[j] || !mark[j] || Math.abs((j % W) - x) > 1) continue
+        seen[j] = 1
+        stack.push(j)
+      }
+    }
+    const w = x1 - x0 + 1
+    const h = y1 - y0 + 1
+    if (w >= 6 && h >= 6 && w / h > 0.75 && w / h < 1.33 && n / (w * h) > 0.55 && w < W / 20) dots.push({ x0, y0, x1, y1, colour: sum.map((v) => v / n) as RGB })
+  }
+  return dots
+}
+
+function dotColour(img: RGBAImage, paper: RGB): RGB | null {
+  const colours = roundMarks(img, paper).map((d) => d.colour)
+  if (colours.length < MIN_DOTS) return null
+  return [0, 1, 2].map((k) => colours.map((c) => c[k]).sort((a, b) => a - b)[colours.length >> 1]) as RGB
+}
+
 export function findPalette(img: RGBAImage): Palette {
   const paper = busiest(img, () => true)[0].color
   const marks = busiest(img, (c) => dist(c, paper) > MARK_DISTANCE)
   if (!marks.length) return { paper, ink: [0, 0, 0], accent: null }
-  const ink = marks[0].color
+  // the dots: the median colour of the round, filled marks (pictures behind the page can outweigh
+  // a short tab by area, but not by number of dots); the busiest mark colour if there are none
+  const ink = dotColour(img, paper) ?? marks[0].color
   const total = marks.reduce((a, m) => a + m.count, 0)
   // accent candidates: saturated, clearly off the paper–ink line; one hue wins (its shades spread
   // over many histogram bins, so they are pooled by hue)
@@ -121,10 +181,12 @@ const reddish = ([r, g, b]: RGB) => r > g && r > b
 /** As dark as the recogniser's ink, whatever the tint. */
 const inkDark = (c: RGB) => luminance(c) < 90 && Math.max(...c) < 160
 
+export const paperOf = (img: RGBAImage): RGB => busiest(img, () => true)[0].color
+
 const luminance = (c: RGB) => 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]
 
 /** Light marks on a dark page (a dark theme): flip it to dark marks on light paper. */
-function lightPaper(img: RGBAImage): RGBAImage {
+export function lightPaper(img: RGBAImage): RGBAImage {
   if (luminance(busiest(img, () => true)[0].color) >= 128) return img
   const out = new Uint8Array(img.data.length)
   for (let p = 0; p < out.length; p += 4) {

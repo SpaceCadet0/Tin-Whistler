@@ -7,8 +7,8 @@
  *
  *  1. download the video (cached in .tmp-video/<id>/), take its chapters as sections, or find
  *     where the tab page changes when there are none;
- *  2. per section: median of frames across it (drops the moving "current note" highlight), keep
- *     the still pixels, crop to the light page, read it with the app's tab recogniser;
+ *  2. per section: median of frames across it (drops the moving "current note" highlight), cut the
+ *     tab out round its grid of dots at full resolution, read it with the app's tab recogniser;
  *  3. find the whistle key from the recording (the tab gives fingerings, the sound gives pitch);
  *  4. align the notes to the pitch track (src/import/align.ts): onsets, rests, octave, tuning;
  *  5. write <id>.ts (a Tune in the app's tab notation, 1 beat = 1 second at 60 bpm), report.json
@@ -20,8 +20,8 @@ import { parseArgs } from 'node:util'
 import { PNG } from 'pngjs'
 import { alignNotes, attackAt, correctTuning, HOP, pitchTrack, timedNotes, type PitchFrame } from '../src/import/align'
 import { recognizeTab, sectionFromRecognition, type RGBAImage } from '../src/import/tabImage'
-import { toHouseColours } from '../src/import/palette'
-import { cropImage, keepStill, medianFrame, paperPanel, stillMask, tabPages } from '../src/import/videoFrames'
+import { lightPaper, toHouseColours } from '../src/import/palette'
+import { cropImage, medianFrame, tabPages, tabRegion } from '../src/import/videoFrames'
 import { builtinTune } from '../src/data/tunes'
 import { sectionToTabText } from '../src/music/tabText'
 import { sectionNotes } from '../src/music/tune'
@@ -96,9 +96,15 @@ const parts: Part[] = []
 for (const [i, page] of pages.entries()) {
   const frames: RGBAImage[] = []
   for (let k = 0; k < FRAMES_PER_SECTION; k++) frames.push(frameAt(video, page.start + (page.end - page.start) * (SAMPLE_FROM + (SAMPLE_SPAN * k) / (FRAMES_PER_SECTION - 1)), size))
-  const median = medianFrame(frames)
-  // any colours, light or dark page: redrawn in the recogniser's house style (src/import/palette.ts)
-  const panel = toHouseColours(cropImage(keepStill(median, stillMask(frames)), paperPanel(median)))
+  // the median frame drops the moving "current note" highlight; a dark page is flipped to light; the
+  // tab is cut out at full resolution round its dots, then redrawn in the recogniser's house colours
+  const light = lightPaper(medianFrame(frames))
+  const region = tabRegion(light)
+  if (!region) {
+    console.log(`· ${page.title}: no tab found, skipped`)
+    continue
+  }
+  const panel = toHouseColours(cropImage(light, region))
   const png = new PNG({ width: panel.width, height: panel.height })
   png.data = Buffer.from(panel.data)
   writeFileSync(join(outDir, 'panels', `s${i + 1}.png`), PNG.sync.write(png))
