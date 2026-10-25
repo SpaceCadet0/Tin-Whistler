@@ -3,7 +3,7 @@
  * video and times every note against the recording.
  *
  *   npm run transcribe -- <youtube-url | video.mp4> [--id my-tune] [--title "My Tune"]
- *                         [--whistle D|C|Bb|G|lowD] [--expect builtin-tune-id]
+ *                         [--whistle D|C|Bb|G|lowD] [--expect builtin-tune-id] [--check builtin-tune-id]
  *
  *  1. download the video (cached in .tmp-video/<id>/), take its chapters as sections, or find
  *     where the tab page changes when there are none;
@@ -26,7 +26,7 @@ import { builtinTune } from '../src/data/tunes'
 import { sectionToTabText } from '../src/music/tabText'
 import { sectionNotes } from '../src/music/tune'
 import type { Phrase, TuneNote, TuneSection } from '../src/music/types'
-import { getWhistle, WHISTLE_KEYS } from '../src/music/whistles'
+import { getWhistle, WHISTLE_KEYS, whistleLabel } from '../src/music/whistles'
 import { audioSamples, download, fetchInfo, frameAt, probeSize, thumbnails, type VideoInfo } from './video/media'
 
 const SAMPLE_RATE = 22050
@@ -39,6 +39,9 @@ const BPM = 60
 const MISFIT = 1
 const WEAK_REPEAT = 0.3
 const SHORT_NOTE = 0.08
+/** --check lists a note when its length differs from the recording by more than both of these. */
+const CHECK_MIN_DIFF = 0.15
+const CHECK_SHARE = 0.25
 /** Below this attack strength a note with no articulation mark is taken as slurred. */
 const SLUR_ATTACK = 0.25
 /** Attack strength that clearly means a tongued note. */
@@ -51,7 +54,7 @@ const RIVAL_GAP = 0.1
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
-  options: { id: { type: 'string' }, title: { type: 'string' }, whistle: { type: 'string' }, expect: { type: 'string' }, out: { type: 'string' } },
+  options: { id: { type: 'string' }, title: { type: 'string' }, whistle: { type: 'string' }, expect: { type: 'string' }, check: { type: 'string' }, out: { type: 'string' } },
 })
 const source = positionals[0]
 if (!source) {
@@ -120,6 +123,7 @@ const samples = audioSamples(video, SAMPLE_RATE)
 const from = parts[0].start
 const until = parts[parts.length - 1].end
 const track: PitchFrame[] = pitchTrack(samples.subarray(Math.round(from * SAMPLE_RATE), Math.round(until * SAMPLE_RATE)), SAMPLE_RATE)
+if (values.check) checkTune(values.check)
 const tabNotes = parts.map((p) => sectionNotes(p.section).filter((n) => n.pitch != null))
 const allTab = tabNotes.flat()
 const fit = (keyShift: number) => {
@@ -287,4 +291,65 @@ if (values.expect) {
     const orn = g.filter((n, k) => n.ornament?.type === w[k].ornament?.type && n.ornament?.hole === w[k].ornament?.hole).length / w.length
     console.log(`  vs ${values.expect} S${i + 1}: ${g.length}/${w.length} notes, pitch ${Math.round(pitch * 100)}%, attack ${Math.round(attack * 100)}%, ornaments ${Math.round(orn * 100)}%, onset error median ${Math.round(err[err.length >> 1] * 1000)} ms, p90 ${Math.round(err[Math.floor(err.length * 0.9)] * 1000)} ms`)
   })
+}
+
+/**
+ * --check <tune-id>: time an existing built-in tune against the video. Its own notes (not the tab
+ * read from the frames) are aligned to the recording, one overall tempo is fitted (the video may be
+ * played a little faster or slower), and every note whose length differs clearly from the
+ * recording is listed. Writes check.json next to the other outputs and exits.
+ */
+function checkTune(tuneId: string): never {
+  const tune = builtinTune(tuneId)
+  if (!tune) throw new Error(`No built-in tune "${tuneId}"`)
+  const secPerBeat = 60 / tune.bpm
+  const notes: { section: number; index: number; pitch: number; at: number }[] = []
+  let t = 0
+  tune.sections.forEach((s, si) => {
+    let index = 0
+    for (const n of sectionNotes(s)) {
+      if (n.pitch != null) notes.push({ section: si + 1, index: ++index, pitch: n.pitch, at: t })
+      t += n.beats * secPerBeat
+    }
+  })
+  const end = t
+  // the video may use another whistle: try every transposition, keep the best-fitting alignment
+  const tries = Array.from({ length: 12 }, (_, k) => k - 5).map((shift) => {
+    const pitches = notes.map((n) => n.pitch + shift)
+    const tuning = correctTuning(track, pitches, getWhistle(tune.whistle).baseMidi + shift + 11.5)
+    const al = alignNotes(tuning.frames, pitches)
+    return { shift, al, misfit: al.misfit.reduce((x, y) => x + y, 0) / pitches.length }
+  })
+  tries.sort((x, y) => x.misfit - y.misfit)
+  const { al, shift } = tries[0]
+  const heardAt = notes.map((_, k) => from + al.onsets[k] * HOP)
+  const heardEnd = from + al.ends[notes.length - 1] * HOP
+  // one overall tempo: heard = a + s · written (least squares)
+  const xs = [...notes.map((n) => n.at), end]
+  const ys = [...heardAt, heardEnd]
+  const mx = xs.reduce((a, b) => a + b, 0) / xs.length
+  const my = ys.reduce((a, b) => a + b, 0) / ys.length
+  const s = xs.reduce((a, x, i) => a + (x - mx) * (ys[i] - my), 0) / xs.reduce((a, x) => a + (x - mx) ** 2, 0)
+  const rows = notes.map((n, k) => {
+    const written = ((k + 1 < notes.length ? notes[k + 1].at : end) - n.at) * s
+    const heardLen = (k + 1 < notes.length ? heardAt[k + 1] : heardEnd) - heardAt[k]
+    return { section: n.section, note: n.index, name: whistleLabel(n.pitch, tune.whistle), at: clockOf(heardAt[k]), written: round2(written), heard: round2(heardLen), diff: round2(heardLen - written), unsure: al.misfit[k] > MISFIT }
+  })
+  const off = rows.filter((r) => Math.abs(r.diff) > Math.max(CHECK_MIN_DIFF, Math.abs(r.written) * CHECK_SHARE))
+  const absDiff = rows.map((r) => Math.abs(r.diff)).sort((a, b) => a - b)
+  writeFileSync(join(outDir, 'check.json'), JSON.stringify({ tune: tuneId, video: info.url ?? source, tempoFactor: round2(s), equivalentBpm: Math.round(tune.bpm / s), transposed: shift, rows }, null, 2))
+  console.log(`${tune.title} vs ${info.title}`)
+  console.log(`written ${end.toFixed(1)} s at ${tune.bpm} bpm; played ${(heardEnd - heardAt[0]).toFixed(1)} s, i.e. the recording runs at ×${(1 / s).toFixed(2)} (≈ ${Math.round(tune.bpm / s)} bpm)${shift ? `, ${shift > 0 ? '+' : ''}${shift} semitones` : ''}`)
+  console.log(`note length difference after matching the tempo: median ${Math.round(absDiff[absDiff.length >> 1] * 1000)} ms, 90% under ${Math.round(absDiff[Math.floor(absDiff.length * 0.9)] * 1000)} ms`)
+  console.log(`${off.length} of ${rows.length} notes differ clearly (> ${CHECK_MIN_DIFF * 1000} ms and > ${CHECK_SHARE * 100}% of their length):`)
+  for (const r of off) console.log(`  S${r.section} #${r.note} ${r.name} at ${r.at}: tune ${r.written.toFixed(2)} s, video ${r.heard.toFixed(2)} s (${r.diff > 0 ? '+' : ''}${r.diff.toFixed(2)})${r.unsure ? ' — alignment unsure here' : ''}`)
+  console.log(`→ ${join(outDir, 'check.json')}`)
+  process.exit(0)
+}
+
+function round2(x: number): number {
+  return Math.round(x * 100) / 100
+}
+function clockOf(sec: number): string {
+  return `${Math.floor(sec / 60)}:${(sec % 60).toFixed(1).padStart(4, '0')}`
 }
