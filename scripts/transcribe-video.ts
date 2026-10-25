@@ -20,6 +20,7 @@ import { parseArgs } from 'node:util'
 import { PNG } from 'pngjs'
 import { alignNotes, attackAt, correctTuning, HOP, pitchTrack, timedNotes, type PitchFrame } from '../src/import/align'
 import { recognizeTab, sectionFromRecognition, type RGBAImage } from '../src/import/tabImage'
+import { toHouseColours } from '../src/import/palette'
 import { cropImage, keepStill, medianFrame, paperPanel, stillMask, tabPages } from '../src/import/videoFrames'
 import { builtinTune } from '../src/data/tunes'
 import { sectionToTabText } from '../src/music/tabText'
@@ -93,7 +94,8 @@ for (const [i, page] of pages.entries()) {
   const frames: RGBAImage[] = []
   for (let k = 0; k < FRAMES_PER_SECTION; k++) frames.push(frameAt(video, page.start + (page.end - page.start) * (SAMPLE_FROM + (SAMPLE_SPAN * k) / (FRAMES_PER_SECTION - 1)), size))
   const median = medianFrame(frames)
-  const panel = cropImage(keepStill(median, stillMask(frames)), paperPanel(median))
+  // any colours, light or dark page: redrawn in the recogniser's house style (src/import/palette.ts)
+  const panel = toHouseColours(cropImage(keepStill(median, stillMask(frames)), paperPanel(median)))
   const png = new PNG({ width: panel.width, height: panel.height })
   png.data = Buffer.from(panel.data)
   writeFileSync(join(outDir, 'panels', `s${i + 1}.png`), PNG.sync.write(png))

@@ -187,21 +187,27 @@ function fraction(mask: Mask, W: number, H: number, cx: number, cy: number, r: n
 function classifyOrnament(b: Blob, mask: Mask, W: number): OrnamentType {
   const w = b.x1 - b.x0 + 1
   const h = b.y1 - b.y0 + 1
-  const at = (x: number, y: number) => mask[y * W + x]
-  // C is open on the right: nothing in the middle of the right third
-  let rightMid = 0
-  for (let y = b.y0 + Math.floor(h * 0.38); y <= b.y0 + Math.floor(h * 0.62); y++)
-    for (let x = b.x0 + Math.floor(w * 0.7); x <= b.x1; x++) rightMid += at(x, y)
-  if (rightMid === 0) return 'cut'
-  // B has a continuous stem on the left; S does not (its left side is open low down)
-  const stemW = Math.max(2, Math.round(w * 0.3))
-  let stemRows = 0
-  for (let y = b.y0; y <= b.y1; y++) {
-    let any = 0
-    for (let x = b.x0; x < b.x0 + stemW; x++) any |= at(x, y)
-    stemRows += any
+  /** Ink inside a part of the letter's box (fractions of its width and height). */
+  const ink = (fx0: number, fx1: number, fy0: number, fy1: number) => {
+    let n = 0
+    for (let y = b.y0 + Math.floor(h * fy0); y <= b.y0 + Math.floor(h * fy1); y++)
+      for (let x = b.x0 + Math.floor(w * fx0); x <= b.x0 + Math.floor(w * fx1); x++) n += mask[y * W + x]
+    return n
   }
-  return stemRows / h > 0.85 ? 'bounce' : 'slide'
+  // C is hollow in the middle; B has its middle bar there and S its spine (in any typeface)
+  if (ink(0.35, 0.65, 0.4, 0.6) === 0) return 'cut'
+  // B has a stem: one column in its left part inked nearly top to bottom (serifs or not); an S's
+  // left curve and tail leave a gap down the side
+  let stem = 0
+  for (let x = b.x0; x <= b.x0 + Math.floor(w * 0.45); x++) {
+    // the longest unbroken run down this column: an S's curve and its tail leave a gap between them
+    let run = 0
+    for (let y = b.y0; y <= b.y1; y++) {
+      run = mask[y * W + x] ? run + 1 : 0
+      stem = Math.max(stem, run / h)
+    }
+  }
+  return stem >= STEM_SHARE ? 'bounce' : 'slide'
 }
 
 /**
@@ -574,21 +580,28 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
     for (const b of redBlobs) {
       const h = b.y1 - b.y0 + 1
       const w = b.x1 - b.x0 + 1
-      if (b.cy < holeY[0] - D * 0.7 && b.cy > holeY[0] - D * 3.2 && h > D * 0.5 && h < D * 1.6 && w < D * 1.4) {
+      if (b.cy < holeY[0] - D * 0.7 && b.cy > holeY[0] - D * 3.2 && h > D * 0.5 && h < D * LETTER_MAX && w < D * LETTER_MAX) {
         const ci = colAt(b.cx)
         if (ci >= 0) columns[ci].ornament = classifyOrnament(b, redLetters, W)
       }
     }
     const inArticulationZone = (b: Blob) => b.cy > holeY[5] + D * 1.2 && b.cy < holeY[5] + D * 3.3 && b.y1 - b.y0 < D * 1.8
     // articulation is usually red; one-colour tabs (e.g. dark theme) write it in the dot colour
-    let below = redBlobs.filter(inArticulationZone)
+    // red specks (a few reddish pixels at the edge of dark text) are not red articulation
+    // a red ring round the lowest hole can touch the text under it: what reaches up into the holes is no text
+    const clearOfHoles = (b: Blob) => b.y0 > holeY[5] + D * RING_REACH
+    const redMarks = redBlobs.filter((b) => inArticulationZone(b) && clearOfHoles(b) && b.n >= D * D * RED_MARK_AREA)
+    // ...but the dot of a red "i" is small too: it stays when the "i" stands right under it
+    const iDots = redBlobs.filter((b) => inArticulationZone(b) && b.n < D * D * RED_MARK_AREA && redMarks.some((m) => m.y0 > b.y1 - 1 && m.y0 - b.y1 < D * 0.9 && Math.abs(m.cx - b.cx) < D * 0.45))
+    // a stray red shape or two (a bit of a ring) is no red articulation line
+    let below = redMarks.length >= Math.max(3, columns.length * RED_LINE_SHARE) ? [...redMarks, ...iDots] : []
     let letterMask = redLetters
     if (!below.length) {
       inkLetterMask ??= dilate(ink, W, H)
       inkLetters ??= components(inkLetterMask, W, H, 3)
       // "+" octave marks can sit right against the articulation line: they are read elsewhere, and their
       // bottoms would pass for the text's baseline
-      below = inkLetters.filter((b) => inArticulationZone(b) && !isPlusMark(b))
+      below = inkLetters.filter((b) => inArticulationZone(b) && !isPlusMark(b, inkLetterMask!, W))
       // what ends well above the text line (the strokes of "+" marks whose arms are too faint) is not text
       const textBottom = Math.max(...below.map((b) => b.y1))
       below = below.filter((b) => textBottom - b.y1 <= D * ABOVE_TEXT || isSmallDot(b, D))
@@ -749,17 +762,41 @@ const D_ASCENDER = 1.42
 /** A "t" rises at least this many x-heights; "r" and "u" stay at one. */
 const T_ASCENDER = 1.12
 
-/** A "+" octave mark: about square, and mostly empty (two thin strokes crossing). */
-function isPlusMark(b: Blob): boolean {
+/** A "+" octave mark: about square, two strokes crossing, so all four corners of its box are empty. */
+function isPlusMark(b: Blob, mask: Mask, W: number): boolean {
   const w = b.x1 - b.x0 + 1
   const h = b.y1 - b.y0 + 1
-  return w / h > 0.7 && w / h < 1.4 && b.n / (w * h) < PLUS_FILL
+  if (w / h <= 0.7 || w / h >= 1.4 || b.n / (w * h) >= PLUS_FILL) return false
+  let corner = 0
+  let area = 0
+  for (let y = b.y0; y <= b.y1; y++)
+    for (let x = b.x0; x <= b.x1; x++) {
+      const fx = (x - b.x0) / w
+      const fy = (y - b.y0) / h
+      if ((fx < 0.3 || fx > 0.7) && (fy < 0.3 || fy > 0.7)) {
+        area++
+        corner += mask[y * W + x]
+      }
+    }
+  return corner / Math.max(1, area) < PLUS_CORNERS
 }
+/** Smallest red articulation mark (a dash), as a share of a dot's square. */
+const RED_MARK_AREA = 0.06
+/** Share of a letter's height a B's stem covers. */
+const STEM_SHARE = 0.8
+/** Largest ornament letter, in dot sizes (serif capitals can stand well above a dot). */
+const LETTER_MAX = 2.2
+/** How far below the lowest hole's centre a ring round it reaches, in dot sizes. */
+const RING_REACH = 0.75
+/** Red articulation is read when there are marks under at least this share of the columns. */
+const RED_LINE_SHARE = 0.2
 /** A shape whose bottom sits this many dot sizes above the text's bottom is not part of the text. */
 const ABOVE_TEXT = 0.6
 /** The dot of an "i" (a staccato mark) sits above the line: small and round, it stays. */
 const isSmallDot = (b: Blob, D: number) => b.y1 - b.y0 + 1 < D * 0.4 && b.x1 - b.x0 + 1 < D * 0.4
 
+/** Ink allowed in the corners of a "+" (anti-aliasing); letters fill theirs. */
+const PLUS_CORNERS = 0.08
 /** Ink share of a "+" mark's box; letters like "u", "o" fill more of theirs. */
 const PLUS_FILL = 0.45
 
@@ -767,10 +804,17 @@ const PLUS_FILL = 0.45
 function isNoteNameLine(shapes: Blob[], D: number): boolean {
   const tall = shapes.filter((b) => b.y1 - b.y0 + 1 > D * 0.42)
   if (tall.length < 3) return false
-  const baseline = median(tall.map((b) => b.y1))
-  const xHeight = median(tall.map((b) => b.y1 - b.y0 + 1))
-  return tall.some((b) => b.y1 - baseline > xHeight * 0.3)
+  // letters sitting on the line and letters hanging below it ("g"): the bottoms part ways (when most
+  // names are "g", the hanging bottom is even the common one)
+  const bottoms = tall.map((b) => b.y1).sort((x, y) => x - y)
+  const height = median(tall.map((b) => b.y1 - b.y0 + 1))
+  const low = bottoms[Math.floor(bottoms.length * 0.1)]
+  const high = bottoms[Math.ceil(bottoms.length * 0.9) - 1]
+  return high - low >= Math.max(DESCENDER_MIN_PX, height * DESCENDER_SHARE)
 }
+/** A descender drops the bottom of a letter by at least this share of the letter height (and pixels). */
+const DESCENDER_SHARE = 0.15
+const DESCENDER_MIN_PX = 3
 
 /** Convert a recognition result into an editable section (1 beat per column by default). */
 export function sectionFromRecognition(r: RecognitionResult, id: string, name: string, whistleId = 'D', beats = 1): TuneSection {
