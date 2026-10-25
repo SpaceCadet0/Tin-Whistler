@@ -48,7 +48,7 @@ describe('ABC-defined built-in tunes', () => {
   it('are unique and ordered by difficulty', () => {
     const ids = BUILTIN_TUNES.map((t) => t.id)
     expect(new Set(ids).size).toBe(ids.length)
-    expect(BUILTIN_TUNES).toHaveLength(78)
+    expect(BUILTIN_TUNES).toHaveLength(79)
     const levels = BUILTIN_TUNES.map((t) => t.difficulty)
     expect(levels).toEqual([...levels].sort((a, b) => a - b))
   })
