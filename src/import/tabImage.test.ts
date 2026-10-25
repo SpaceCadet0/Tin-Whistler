@@ -87,3 +87,15 @@ describe('tab panel read from a video (The Prayer, section 2)', () => {
     expect(attacks).toBeGreaterThanOrEqual(0.65)
   })
 })
+
+describe('tab panel read from a video (Kaer Morhen, section 2)', () => {
+  it('reads "tu" and dashes even with "+" marks right against them, not as note names', () => {
+    const png = PNG.sync.read(readFileSync(new URL('./__fixtures__/kaer-morhen-2.png', import.meta.url)))
+    const r = recognizeTab({ width: png.width, height: png.height, data: png.data })
+    const notes = sectionNotes(sectionFromRecognition(r, 's', 'S'))
+    expect(notes).toHaveLength(30)
+    expect(r.warnings.join(' ')).not.toMatch(/Note names/)
+    expect(notes.filter((n) => n.attack === 'tongue').length).toBe(2)
+    expect(notes.filter((n) => n.attack === 'slur').length).toBeGreaterThanOrEqual(24)
+  })
+})

@@ -586,7 +586,12 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
     if (!below.length) {
       inkLetterMask ??= dilate(ink, W, H)
       inkLetters ??= components(inkLetterMask, W, H, 3)
-      below = inkLetters.filter(inArticulationZone)
+      // "+" octave marks can sit right against the articulation line: they are read elsewhere, and their
+      // bottoms would pass for the text's baseline
+      below = inkLetters.filter((b) => inArticulationZone(b) && !isPlusMark(b))
+      // what ends well above the text line (the strokes of "+" marks whose arms are too faint) is not text
+      const textBottom = Math.max(...below.map((b) => b.y1))
+      below = below.filter((b) => textBottom - b.y1 <= D * ABOVE_TEXT || isSmallDot(b, D))
       // measure letter tops on the lighter mask: the thin tip of a small "t" falls below the ink threshold
       letterMask = inkLight
       // note names (g, a, b, f#…) instead of articulation: "g" hangs below the line, "t r - i" never do
@@ -743,6 +748,20 @@ const COUNTER_SHARE = 0.03
 const D_ASCENDER = 1.42
 /** A "t" rises at least this many x-heights; "r" and "u" stay at one. */
 const T_ASCENDER = 1.12
+
+/** A "+" octave mark: about square, and mostly empty (two thin strokes crossing). */
+function isPlusMark(b: Blob): boolean {
+  const w = b.x1 - b.x0 + 1
+  const h = b.y1 - b.y0 + 1
+  return w / h > 0.7 && w / h < 1.4 && b.n / (w * h) < PLUS_FILL
+}
+/** A shape whose bottom sits this many dot sizes above the text's bottom is not part of the text. */
+const ABOVE_TEXT = 0.6
+/** The dot of an "i" (a staccato mark) sits above the line: small and round, it stays. */
+const isSmallDot = (b: Blob, D: number) => b.y1 - b.y0 + 1 < D * 0.4 && b.x1 - b.x0 + 1 < D * 0.4
+
+/** Ink share of a "+" mark's box; letters like "u", "o" fill more of theirs. */
+const PLUS_FILL = 0.45
 
 /** A text line with descenders (a "g" below the baseline) is note names, not t / r / - / i. */
 function isNoteNameLine(shapes: Blob[], D: number): boolean {
