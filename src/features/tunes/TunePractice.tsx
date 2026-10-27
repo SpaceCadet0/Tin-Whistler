@@ -6,6 +6,7 @@ import { matchNote } from '../../engine/scoring/noteMatch'
 import { usePitch, usePlayer } from '../../hooks/audio'
 import { useHotkeys } from '../../hooks/useHotkeys'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
+import { scrollRowMask, useScrollRow } from '../../hooks/useScrollRow'
 import { sectionName, useT } from '../../i18n'
 import { noteFingering } from '../../music/ornaments'
 import { flattenTune } from '../../music/tune'
@@ -205,6 +206,8 @@ export function TunePractice({ tune, initialSection = 0, preset, compact, leadAc
   // while the stage is on screen the player watches it (and its strip): the tab must not pull the
   // page away; once scrolled down to the tab, the page follows the playhead line by line
   const stageRef = useRef<HTMLDivElement>(null)
+  const { ref: sectionRowRef, edges: sectionEdges } = useScrollRow<HTMLDivElement>(section)
+  const sectionMask = scrollRowMask(sectionEdges)
   const [stageInView, setStageInView] = useState(true)
   useEffect(() => {
     const el = stageRef.current
@@ -218,7 +221,13 @@ export function TunePractice({ tune, initialSection = 0, preset, compact, leadAc
     <div className={cn('flex flex-col gap-3 sm:gap-5', !compact && 'max-sm:pb-[calc(5.5rem+var(--safe-bottom))] short:pb-[calc(5.5rem+var(--safe-bottom))]')}>
       {/* section picker */}
       {tune.sections.length > 1 && (
-        <div className="scrollbar-none -mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="tablist" aria-label={t('tune.sections')}>
+        <div
+          ref={sectionRowRef}
+          className="scrollbar-none -mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
+          style={{ maskImage: sectionMask, WebkitMaskImage: sectionMask }}
+          role="tablist"
+          aria-label={t('tune.sections')}
+        >
           {tune.sections.map((s, i) => (
             <button
               key={s.id}
