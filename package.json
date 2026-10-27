@@ -9,7 +9,8 @@
     "lint": "oxlint",
     "test": "vitest run",
     "preview": "vite preview",
-    "transcribe": "node --import ./scripts/ts-resolve.mjs scripts/transcribe-video.ts"
+    "transcribe": "node --import ./scripts/ts-resolve.mjs scripts/transcribe-video.ts",
+    "transcribe-duet": "node --import ./scripts/ts-resolve.mjs scripts/transcribe-duet.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",

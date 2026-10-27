@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { useT } from '../../i18n'
+import { isDuet, partName } from '../../music/duet'
 import { tuneDurationSec, usedNotes } from '../../music/tune'
 import { TUNE_TYPES, type Tune, type TuneType } from '../../music/types'
 import { getWhistle, WHISTLE_KEYS } from '../../music/whistles'
@@ -18,6 +19,10 @@ import { stopPreview, togglePreview, usePreview } from './preview'
 
 /** "D whistle" → "D", "Low D whistle" → "Low D". */
 const whistleShort = (id: string) => getWhistle(id).label.replace(/\s*whistle$/i, '')
+/** Whistle filter value for "duets only". */
+const DUET_FILTER = 'duet'
+/** A tune for this whistle: its own, or one of a duet's parts. */
+const playsOn = (tune: Tune, whistle: string) => tune.whistle === whistle || !!tune.duet?.parts.some((p) => p.whistle === whistle)
 
 function TuneCard({ tune }: { tune: Tune }) {
   const { t } = useT()
@@ -46,8 +51,9 @@ function TuneCard({ tune }: { tune: Tune }) {
         <span>{t(`tuneType.${tune.type}`)}</span>
         <span className="inline-flex items-center gap-1" title={t('editor.whistle')}>
           <Icon name="whistle" size={14} />
-          {whistleShort(tune.whistle)}
+          {isDuet(tune) ? tune.duet!.parts.map((p) => partName(p.whistle)).join(' + ') : whistleShort(tune.whistle)}
         </span>
+        {isDuet(tune) && <Chip tone="moss">{t('duet.badge')}</Chip>}
         <span className="tabular">{tune.bpm} BPM</span>
         <span>
           {tune.sections.length} {t('tune.sectionsShort')} · ~{mins} {t('common.min')}
@@ -148,14 +154,15 @@ export default function TuneLibrary() {
   useEffect(() => stopPreview, [])
   useEffect(() => rememberLibrarySearch(search), [search])
   // only offer keys and types that some tune actually has
-  const whistleCounts = WHISTLE_KEYS.map((w) => ({ ...w, count: tunes.filter((x) => x.whistle === w.id).length })).filter((w) => w.count > 0)
+  const whistleCounts = WHISTLE_KEYS.map((w) => ({ ...w, count: tunes.filter((x) => playsOn(x, w.id)).length })).filter((w) => w.count > 0)
+  const duets = tunes.filter(isDuet).length
   const typeCounts = TUNE_TYPES.map((type) => ({ type, count: tunes.filter((x) => x.type === type).length })).filter((x) => x.count > 0)
   const levelCounts = LEVELS.filter((l) => l !== 'all').map((l) => ({ value: l, label: t(`tunes.level.${l}`), count: tunes.filter((x) => matchesLevel(x, l)).length }))
   const favorites = tunes.filter((x) => favoriteIds.includes(x.id)).length
   const query = f.query.toLowerCase()
   const filtered = tunes.filter((x) => {
     if (query && !`${x.title} ${x.composer ?? ''} ${t(`tuneType.${x.type}`)}`.toLowerCase().includes(query)) return false
-    if (f.whistle !== 'all' && x.whistle !== f.whistle) return false
+    if (f.whistle === DUET_FILTER ? !isDuet(x) : f.whistle !== 'all' && !playsOn(x, f.whistle)) return false
     if (f.types.length && !f.types.includes(x.type)) return false
     if (f.favorites && !favoriteIds.includes(x.id)) return false
     return matchesLevel(x, f.level)
@@ -212,7 +219,10 @@ export default function TuneLibrary() {
           allValue="all"
           allLabel={t('tunes.allWhistles')}
           value={f.whistle}
-          options={whistleCounts.map((w) => ({ value: w.id, label: whistleShort(w.id), count: w.count }))}
+          options={[
+            ...whistleCounts.map((w) => ({ value: w.id, label: whistleShort(w.id), count: w.count })),
+            ...(duets ? [{ value: DUET_FILTER, label: t('duet.badge'), count: duets }] : []),
+          ]}
           onChange={(whistle) => f.update({ whistle })}
         />
       </div>

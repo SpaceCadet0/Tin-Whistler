@@ -87,6 +87,19 @@ export function flattenSecondVoice(tune: Tune, sectionIndex: number, tempo = 1):
   })
 }
 
+/** A duet partner's notes of a section laid out in time, relative to the section's start. */
+export function flattenPartner(tune: Tune, sectionIndex: number, tempo = 1): TimedNote[] {
+  const partner = tune.sections[sectionIndex]?.partner
+  if (!partner) return []
+  const secPerBeat = 60 / (tune.bpm * tempo)
+  let beat = 0
+  return partner.notes.map((note, i) => {
+    const t: TimedNote = { index: i, sectionIndex, phraseIndex: -1, noteInSection: i, note, start: beat * secPerBeat, duration: note.beats * secPerBeat, startBeat: beat }
+    beat += note.beats
+    return t
+  })
+}
+
 /**
  * Split a flat note list into learnable sections of roughly `targetBeats`,
  * cutting at phrase ends or long notes/rests so musical phrases stay together.

@@ -42,6 +42,7 @@ import {
 import { SESSION_TUNES } from './sessionTunes'
 import { JIGS } from './jigs'
 import { aStoryYouWontBelieve } from './aStoryYouWontBelieve'
+import { hope } from './hope'
 import { kaerMorhen } from './kaerMorhen'
 import { shepardsFlute } from './shepardsFlute'
 import { thePrayer } from './thePrayer'
@@ -94,6 +95,7 @@ const CURATED: Tune[] = [
   thePrayer,
   kaerMorhen,
   aStoryYouWontBelieve,
+  hope,
   rockyRoadToDublin,
   butterfly,
   ...AIRS_AND_MARCHES,

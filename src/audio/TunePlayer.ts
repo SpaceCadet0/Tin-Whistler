@@ -1,5 +1,5 @@
 import { Emitter } from '../lib/emitter'
-import { flattenSecondVoice, flattenTune } from '../music/tune'
+import { flattenPartner, flattenSecondVoice, flattenTune } from '../music/tune'
 import type { TimedNote, Tune, TuneNote } from '../music/types'
 import { audioEngine } from './AudioEngine'
 import { scheduleClick } from './click'
@@ -15,6 +15,8 @@ export interface PlayerOptions {
   /** Hear the melody (off = "play alone" with only the visual guide / clicks). */
   melody: boolean
   secondVoice: boolean
+  /** Duets: play the other part along, on its own whistle (also when the melody is off). */
+  partner: boolean
   /** Count-in clicks before the first note (in metronome pulses). */
   countIn: number
   a4: number
@@ -37,12 +39,14 @@ export interface PlayerPosition {
 interface PlayEvent {
   /** Seconds from the start of the pass. */
   at: number
-  kind: 'note' | 'voice2' | 'click'
+  kind: 'note' | 'voice2' | 'partner' | 'click'
   note?: TimedNote
   accent?: boolean
 }
 
 const SCHEDULE_AHEAD = 0.15
+/** A duet partner a little behind the learner's part, so the part being learnt stays in front. */
+const PARTNER_LEVEL = 0.8
 
 /**
  * Plays a tune with a look-ahead scheduler: loops, tempo, count-in, metronome, optional second
@@ -57,6 +61,7 @@ export class TunePlayer {
     metronome: false,
     melody: true,
     secondVoice: false,
+    partner: true,
     countIn: 0,
     a4: 440,
   }
@@ -72,6 +77,7 @@ export class TunePlayer {
   private timer: number | null = null
   private voice: WhistleVoice | null = null
   private voice2: WhistleVoice | null = null
+  private partnerVoice: WhistleVoice | null = null
   private endTime = Infinity
   private unwatchHide: (() => void) | null = null
 
@@ -88,7 +94,7 @@ export class TunePlayer {
 
   setOptions(patch: Partial<PlayerOptions>): void {
     const changed = (k: keyof PlayerOptions) => k in patch && patch[k] !== this.options[k]
-    const needsRestart = this.state !== 'stopped' && (changed('tempo') || changed('secondVoice'))
+    const needsRestart = this.state !== 'stopped' && (changed('tempo') || changed('secondVoice') || changed('partner'))
     const resumeAt = this.positionAt(audioEngine.now).index
     const [, to] = this.range
     this.options = { ...this.options, ...patch }
@@ -134,6 +140,18 @@ export class TunePlayer {
       }
     }
 
+    if (this.options.partner) {
+      const sections = new Set(tl.slice(from, to + 1).map((n) => n.sectionIndex))
+      for (const si of sections) {
+        const first = tl.find((n) => n.sectionIndex === si && n.noteInSection === 0)
+        if (!first) continue
+        for (const p of flattenPartner(tune, si, this.options.tempo)) {
+          const at = first.start + p.start - t0
+          if (at >= 0 && at < end - t0) events.push({ at, kind: 'partner', note: p })
+        }
+      }
+    }
+
     const pulse = tune.pulse ?? 1
     const bar = tune.beatsPerBar ?? 4
     const secPerBeat = 60 / (tune.bpm * this.options.tempo)
@@ -161,6 +179,7 @@ export class TunePlayer {
     // build the voice before reading the clock, so its setup can't make the first notes late
     this.voice = new WhistleVoice(audioEngine.output, this.options.a4, this.tune.whistle)
     this.voice2 = null
+    this.partnerVoice = null
     const now = audioEngine.now
     const lead = countIn ? this.options.countIn * this.secPerPulse() : 0
     this.passStart = now + 0.12 + lead
@@ -209,6 +228,12 @@ export class TunePlayer {
         this.voice2 ??= new WhistleVoice(audioEngine.output, this.options.a4, this.tune!.whistle)
         const n = ev.note.note
         this.voice2.schedule({ time, duration: ev.note.duration, midi: n.pitch, attack: n.attack, velocity: 0.7 })
+      } else if (ev.kind === 'partner' && ev.note) {
+        // the duet partner plays on its own whistle, with "play alone" too: it accompanies the learner
+        const partner = this.tune!.sections[ev.note.sectionIndex].partner!
+        this.partnerVoice ??= new WhistleVoice(audioEngine.output, this.options.a4, partner.whistle)
+        const n = ev.note.note
+        this.partnerVoice.schedule({ time, duration: ev.note.duration, midi: n.pitch, attack: n.attack, stop: n.stop, ornament: n.ornament, fingering: n.fingering, velocity: PARTNER_LEVEL })
       }
       this.cursor++
       if (this.cursor >= this.events.length) {
@@ -221,6 +246,7 @@ export class TunePlayer {
         } else {
           this.voice?.schedule({ time: passEnd, duration: 0.1, midi: null })
           this.voice2?.schedule({ time: passEnd, duration: 0.1, midi: null })
+          this.partnerVoice?.schedule({ time: passEnd, duration: 0.1, midi: null })
           this.endTime = passEnd + 0.05
           break
         }
@@ -254,8 +280,10 @@ export class TunePlayer {
     this.unwatchHide = null
     this.voice?.stop()
     this.voice2?.stop()
+    this.partnerVoice?.stop()
     this.voice = null
     this.voice2 = null
+    this.partnerVoice = null
   }
 
   stop(): void {

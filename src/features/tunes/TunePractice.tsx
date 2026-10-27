@@ -8,6 +8,7 @@ import { useHotkeys } from '../../hooks/useHotkeys'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { scrollRowMask, useScrollRow } from '../../hooks/useScrollRow'
 import { sectionName, useT } from '../../i18n'
+import { isDuet, partName, tuneForPart } from '../../music/duet'
 import { noteFingering } from '../../music/ornaments'
 import { flattenTune } from '../../music/tune'
 import type { Tune } from '../../music/types'
@@ -65,10 +66,14 @@ const ART_KEY = { tongue: 'art.tongue', ru: 'art.ru', slur: 'art.slur', trru: 'a
 /** Share of the stage that must be on screen for it to count as "being watched". */
 const STAGE_VISIBLE_SHARE = 0.3
 
-export function TunePractice({ tune, initialSection = 0, preset, compact, leadAction, afterAction, playPrimary = true, onScored }: Props) {
+export function TunePractice({ tune: source, initialSection = 0, preset, compact, leadAction, afterAction, playPrimary = true, onScored }: Props) {
   const { t, lang } = useT()
   const latencyMs = useSettings((s) => s.latencyMs)
   const { micWanted, setMicWanted } = useSession()
+  // duets: the learner plays one part, the other plays along (and shows as a shadow over the tab)
+  const [part, setPart] = useState(0)
+  const [partnerOn, setPartnerOn] = useState(true)
+  const tune = useMemo(() => tuneForPart(source, part), [source, part])
   const { player, state, position } = usePlayer(tune)
   const [section, setSection] = useState<number | 'all'>(initialSection)
   const [tempo, setTempo] = useState(preset?.tempo ?? 0.8)
@@ -105,8 +110,8 @@ export function TunePractice({ tune, initialSection = 0, preset, compact, leadAc
   const start = marker != null && marker >= rangeFrom && marker <= rangeTo ? marker : rangeFrom
 
   useEffect(() => {
-    player.setOptions({ metronome: metro, melody, secondVoice, repeat, countIn: countIn ? (tune.beatsPerBar ?? 4) / (tune.pulse ?? 1) : 0, tempo })
-  }, [player, metro, melody, secondVoice, repeat, countIn, tempo, tune])
+    player.setOptions({ metronome: metro, melody, secondVoice, partner: partnerOn, repeat, countIn: countIn ? (tune.beatsPerBar ?? 4) / (tune.pulse ?? 1) : 0, tempo })
+  }, [player, metro, melody, secondVoice, partnerOn, repeat, countIn, tempo, tune])
 
   const scorePass = useCallback(
     (p: { start: number; from: number; to: number }, until: number) => {
@@ -219,6 +224,23 @@ export function TunePractice({ tune, initialSection = 0, preset, compact, leadAc
 
   return (
     <div className={cn('flex flex-col gap-3 sm:gap-5', !compact && 'max-sm:pb-[calc(5.5rem+var(--safe-bottom))] short:pb-[calc(5.5rem+var(--safe-bottom))]')}>
+      {/* duets: which whistle's part I play */}
+      {isDuet(source) && (
+        <Segmented<number>
+          label={t('duet.myPart')}
+          value={part}
+          onChange={(p) => {
+            player.stop()
+            setPart(p)
+            setMarker(null)
+            setPhraseLoop(null)
+            setVerdicts({})
+            setReport(null)
+          }}
+          options={source.duet!.parts.map((p, i) => ({ value: i, label: partName(p.whistle) }))}
+        />
+      )}
+
       {/* section picker */}
       {tune.sections.length > 1 && (
         <div
@@ -452,6 +474,14 @@ export function TunePractice({ tune, initialSection = 0, preset, compact, leadAc
             </section>
           )
         })}
+        {isDuet(source) && (
+          <Toggle
+            label={t('duet.partner', { part: partName(source.duet!.parts[(part + 1) % source.duet!.parts.length].whistle) })}
+            description={t('duet.partnerHint')}
+            checked={partnerOn}
+            onChange={setPartnerOn}
+          />
+        )}
         {tune.sections.some((s) => s.secondVoice) && (
           <Toggle label={t('tune.secondVoice')} description={t('tune.secondVoiceHint')} checked={secondVoice} onChange={setSecondVoice} />
         )}

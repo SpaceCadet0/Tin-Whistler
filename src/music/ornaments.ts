@@ -71,6 +71,22 @@ export function ornamentSegments(
   whistleId = 'D',
   slideTo?: number | null,
 ): PitchSegment[] {
+  const segments = ownSegments(midi, duration, ornament, fingering, whistleId, slideTo)
+  if (!ornament?.cut || ornament.type === 'cut') return segments
+  // "C+S" and the like: a cut grace first, then the note goes on into its own ornament
+  const grace = Math.min(GRACE_SEC, duration * 0.3)
+  const cut = gracePitch(midi, { type: 'cut', hole: ornament.cut }, fingering, whistleId)
+  return [{ at: 0, midi: cut }, { ...segments[0], at: grace }, ...segments.slice(1).filter((s) => s.at > grace)]
+}
+
+function ownSegments(
+  midi: number,
+  duration: number,
+  ornament: Ornament | undefined,
+  fingering: Fingering | undefined,
+  whistleId: string,
+  slideTo?: number | null,
+): PitchSegment[] {
   if (!ornament) return [{ at: 0, midi }]
   const grace = Math.min(GRACE_SEC, duration * 0.3)
   switch (ornament.type) {

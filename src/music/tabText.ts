@@ -6,7 +6,7 @@ import { getWhistle } from './whistles'
 /**
  * Compact text notation for whistle tabs, used for built-in tune data and text export.
  *
- *   token   = [art ":"] pitch ["+"] ["!"] ["^" orn [hole] ["~" span]] ["[" fingering "]"] ["*" beats]
+ *   token   = [art ":"] pitch ["+"] ["!"] ["^" orn [hole] ["~" span] ["+C" hole]] ["[" fingering "]"] ["*" beats]
  *   art     = "t" (tongue) | "r" ("ru") | "-" (slur) | "f" (rolled "trru", a flutter)
  *   pitch   = "z" (rest) | A-G with optional "#" / "b"
  *   "+"     = second register,  "!" = sharp stop ("i")
@@ -17,7 +17,7 @@ import { getWhistle } from './whistles'
  */
 
 const TOKEN =
-  /^(?:([trf-]):)?(z|[A-G](?:#|b)?)(\+)?(!)?(?:\^([CBSRT])(\d)?(?:~(\d+))?)?(?:\[([01h]{6})\])?(?:\*([\d./]+))?(!)?$/
+  /^(?:([trf-]):)?(z|[A-G](?:#|b)?)(\+)?(!)?(?:\^([CBSRT])(\d)?(?:~(\d+))?(?:\+C(\d))?)?(?:\[([01h]{6})\])?(?:\*([\d./]+))?(!)?$/
 
 const ATTACKS: Record<string, Attack> = { t: 'tongue', r: 'ru', '-': 'slur', f: 'trru' }
 const ATTACK_CODES: Record<Attack, string> = { tongue: 't', ru: 'r', slur: '-', trru: 'f' }
@@ -48,7 +48,7 @@ export function pitchFromName(name: string, upper: boolean, whistleId = 'D'): nu
 export function parseTabToken(token: string, whistleId = 'D'): TuneNote {
   const m = TOKEN.exec(token)
   if (!m) throw new Error(`Invalid tab token: "${token}"`)
-  const [, art, pitch, plus, stop1, orn, hole, span, fg, beats, stop2] = m
+  const [, art, pitch, plus, stop1, orn, hole, span, cut, fg, beats, stop2] = m
   const note: TuneNote = {
     pitch: pitch === 'z' ? null : pitchFromName(pitch, !!plus, whistleId),
     beats: parseBeats(beats),
@@ -59,6 +59,7 @@ export function parseTabToken(token: string, whistleId = 'D'): TuneNote {
     note.ornament = { type: ORNAMENTS[orn] }
     if (hole) note.ornament.hole = Number(hole)
     if (span) note.ornament.span = Number(span)
+    if (cut) note.ornament.cut = Number(cut)
   }
   if (fg) note.fingering = parseFingering(fg) ?? undefined
   return note
@@ -109,6 +110,7 @@ export function noteToTabToken(note: TuneNote, whistleId = 'D'): string {
   if (note.ornament) {
     s += `^${ORNAMENT_CODES[note.ornament.type]}${note.ornament.hole ?? ''}`
     if (note.ornament.span && note.ornament.span > 1) s += `~${note.ornament.span}`
+    if (note.ornament.cut) s += `+C${note.ornament.cut}`
   }
   if (note.fingering) s += `[${fingeringToString(note.fingering)}]`
   if (note.beats !== 1) s += `*${trimNum(note.beats)}`

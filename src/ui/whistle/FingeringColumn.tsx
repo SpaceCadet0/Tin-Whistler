@@ -8,6 +8,8 @@ interface Props {
   register?: 1 | 2
   /** 0-based hole ringed for an ornament. */
   ringHole?: number
+  /** 0-based hole of a cut that comes before the ornament ("C+S"): a second ring. */
+  cutHole?: number
   /** Dot diameter in px. */
   dot?: number
   state?: ColumnState
@@ -35,7 +37,8 @@ function Dot({ h, size, ring }: { h: HoleState; size: number; ring?: boolean }) 
 }
 
 /** One tab column: six dots (gap between the hands), optional ornament ring and "+" for the high octave. */
-export function FingeringColumn({ fingering, register = 1, ringHole, dot = 16, state = 'idle', label }: Props) {
+export function FingeringColumn({ fingering, register = 1, ringHole, cutHole, dot = 16, state = 'idle', label }: Props) {
+  const ringed = (i: number) => ringHole === i || cutHole === i
   const color = {
     idle: 'text-ink',
     current: 'text-moss',
@@ -48,13 +51,13 @@ export function FingeringColumn({ fingering, register = 1, ringHole, dot = 16, s
     <span className={cn('inline-flex flex-col items-center', color)} role="img" aria-label={label}>
       <span className="flex flex-col" style={{ gap: dot * 0.22 }}>
         {fingering.slice(0, 3).map((h, i) => (
-          <Dot key={i} h={h} size={dot} ring={ringHole === i} />
+          <Dot key={i} h={h} size={dot} ring={ringed(i)} />
         ))}
       </span>
       <span style={{ height: dot * 0.55 }} />
       <span className="flex flex-col" style={{ gap: dot * 0.22 }}>
         {fingering.slice(3).map((h, i) => (
-          <Dot key={i} h={h} size={dot} ring={ringHole === i + 3} />
+          <Dot key={i} h={h} size={dot} ring={ringed(i + 3)} />
         ))}
       </span>
       <span className="mt-0.5 h-3 text-[11px] leading-3 font-bold text-ink-soft" aria-hidden="true">

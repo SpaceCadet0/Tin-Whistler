@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react'
 import { useT } from '../../i18n'
+import { partnerUnder } from '../../music/duet'
 import { noteFingering } from '../../music/ornaments'
 import type { Attack, Tune, TuneNote, TuneSection } from '../../music/types'
 import { whistleLabel } from '../../music/whistles'
@@ -11,6 +12,35 @@ const ORN_LETTER = { cut: 'C', bounce: 'B', slide: 'S', roll: 'R', trill: 'tr' }
 
 export function articulationLabel(n: TuneNote): string {
   return (n.attack ? ATTACK_LABEL[n.attack] : '') + (n.stop ? 'i' : '')
+}
+
+/** Shadow dots: small enough that six of them stay well below the ornament letters. */
+const SHADOW_DOT = 4
+const SHADOW_GAP = 1.5
+/** Height of the shadow strip: six dots, their gaps and the gap between the hands. */
+const SHADOW_HEIGHT = SHADOW_DOT * 6 + SHADOW_GAP * 4 + SHADOW_DOT
+
+/** The duet partner's notes over one of mine: tiny faint fingerings, nothing else. */
+function PartnerShadow({ notes, whistle }: { notes: TuneNote[]; whistle: string }) {
+  return (
+    <span className="mb-1 flex items-end gap-[3px] text-ink-faint" style={{ height: SHADOW_HEIGHT }} aria-hidden="true">
+      {notes.map((n, i) => {
+        const fg = noteFingering(n.pitch!, n.fingering, whistle)
+        if (!fg) return null
+        return (
+          <span key={i} className="flex flex-col" style={{ gap: SHADOW_GAP }}>
+            {fg.fingering.map((h, k) => (
+              <span
+                key={k}
+                className={cn('rounded-full border border-current', h === 1 && 'bg-current', h === 0.5 && 'bg-gradient-to-r from-current to-transparent')}
+                style={{ width: SHADOW_DOT, height: SHADOW_DOT, marginTop: k === 3 ? SHADOW_DOT - SHADOW_GAP : 0 }}
+              />
+            ))}
+          </span>
+        )
+      })}
+    </span>
+  )
 }
 
 interface TabViewProps {
@@ -104,6 +134,10 @@ export const TabView = memo(function TabView({
     if (n.ornament?.hole && span > 1) for (let k = 1; k < span; k++) carriedRing.set(i + k, n.ornament.hole - 1)
   })
 
+  // duets: the partner's notes over each of mine, small and faint
+  const partner = section.partner
+  const shadow = partner ? partnerUnder(section.phrases.flat(), partner.notes) : null
+
   const renderNote = (n: TuneNote, idx: number) => {
     const fg = n.pitch != null ? noteFingering(n.pitch, n.fingering, tune.whistle) : undefined
     const inLoop = loop && idx >= loop.from && idx <= loop.to
@@ -111,7 +145,7 @@ export const TabView = memo(function TabView({
     const v = verdicts?.[idx]
     const state: ColumnState = v ? v : isCurrent ? 'current' : current != null && idx < current ? 'past' : 'idle'
     const name = n.pitch != null ? whistleLabel(n.pitch, tune.whistle) : t('tab.rest')
-    const orn = n.ornament ? ORN_LETTER[n.ornament.type] : ''
+    const orn = n.ornament ? (n.ornament.cut && n.ornament.type !== 'cut' ? 'C+' : '') + ORN_LETTER[n.ornament.type] : ''
     const ring = n.ornament?.hole ? n.ornament.hole - 1 : carriedRing.get(idx)
     const aria = [name, orn && t(`orn.${n.ornament!.type}`), n.attack && t(`art.${n.attack}`), n.stop && t('art.stop')].filter(Boolean).join(', ')
     const Tag = onSelect ? 'button' : 'span'
@@ -167,11 +201,12 @@ export const TabView = memo(function TabView({
           onSelect && 'hover:bg-surface-2 focus-visible:bg-surface-2',
         )}
       >
+        {shadow && partner && <PartnerShadow notes={shadow[idx]} whistle={partner.whistle} />}
         <span className="h-4 text-[13px] leading-4 font-bold text-bad" aria-hidden="true">
           {orn}
         </span>
         {fg ? (
-          <FingeringColumn fingering={fg.fingering} register={fg.register} ringHole={ring} dot={dot} state={state} label={onSelect ? undefined : aria} />
+          <FingeringColumn fingering={fg.fingering} register={fg.register} ringHole={ring} cutHole={n.ornament?.cut ? n.ornament.cut - 1 : undefined} dot={dot} state={state} label={onSelect ? undefined : aria} />
         ) : (
           <span className="grid w-5 place-items-center text-ink-faint" style={{ height: dot * 7.3 }} aria-label={t('tab.rest')}>
             𝄽

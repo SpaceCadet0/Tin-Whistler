@@ -399,6 +399,10 @@ export const ru: Record<MessageKey, string> = {
   'tune.loopingPhrase': 'Повторяем трудную фразу',
   'tune.clearLoop': 'Убрать повтор',
   'tune.secondVoice': 'Партия второй флейты',
+  'duet.badge': 'Дуэт',
+  'duet.myPart': 'Моя партия',
+  'duet.partner': 'Вместе со мной играет {part}',
+  'duet.partnerHint': 'Второй вистл звучит вместе с вами, и когда вы играете сами. Его ноты — бледные точки над табом.',
   'tune.secondVoiceHint': 'Показывать и играть второй голос (в скобках в табах)',
 
   'steps.title': 'Учим по шагам',

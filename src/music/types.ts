@@ -49,6 +49,8 @@ export interface Ornament {
   hole?: number
   /** Number of notes covered by a slide oval (default 1). */
   span?: number
+  /** A cut on this hole (1-6) at the start of the note, before the ornament: "C+S" is a cut, then a slide. */
+  cut?: number
 }
 
 export interface TuneNote {
@@ -73,10 +75,33 @@ export interface SecondVoice {
   notes: TuneNote[]
 }
 
+/** One whistle's part in a duet: two whistles, often in different keys (low D and high D). */
+export interface DuetPart {
+  id: string
+  /** Whistle the part is written for: its fingerings, key and sound. */
+  whistle: string
+}
+
+/** One part's music in a duet section, on the same beats as the other part. */
+export interface SectionPart {
+  phrases: Phrase[]
+  lineBreaks?: number[]
+}
+
+/** The other part of a duet, sounding with the one being played: its notes from the section's start. */
+export interface Partner {
+  whistle: string
+  notes: TuneNote[]
+}
+
 export interface TuneSection {
   id: string
   name: string
   phrases: Phrase[]
+  /** Duet tunes: every part's music, in the order of `Tune.duet.parts` (`phrases` is the first's). */
+  parts?: SectionPart[]
+  /** On a tune made for one part of a duet: the other part, played along and shown as a shadow. */
+  partner?: Partner
   /** Phrase indexes that start a new display line. */
   lineBreaks?: number[]
   secondVoice?: SecondVoice
@@ -130,6 +155,8 @@ export interface Tune {
   /** 1 (very easy) … 5 (advanced). */
   difficulty: number
   sections: TuneSection[]
+  /** A duet for two whistles: its parts (`whistle` is the first part's). */
+  duet?: { parts: DuetPart[] }
   tags?: string[]
   createdAt?: number
   updatedAt?: number

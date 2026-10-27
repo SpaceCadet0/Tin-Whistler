@@ -397,6 +397,10 @@ export const en = {
   'tune.loopingPhrase': 'Looping a tricky phrase',
   'tune.clearLoop': 'Clear loop',
   'tune.secondVoice': 'Second whistle part',
+  'duet.badge': 'Duet',
+  'duet.myPart': 'My part',
+  'duet.partner': '{part} plays along',
+  'duet.partnerHint': 'The other whistle sounds with you, also when you play alone. Its notes are the faint dots over the tab.',
   'tune.secondVoiceHint': 'Show and play the harmony line (bracketed in the tab)',
 
   'steps.title': 'Learn it step by step',

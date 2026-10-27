@@ -341,7 +341,8 @@ export class WhistleVoice {
       this.setPitch(seg.midi, t + seg.at, mode)
     })
     if (n.ornament?.type === 'slide') {
-      const from = segments[1].at
+      // the slide is the last three segments: holding, then the two ramps (a cut may come before them)
+      const from = segments[segments.length - 3].at
       const to = segments[segments.length - 1].at
       amp.setTargetAtTime(level * 0.72, t + from, (to - from) * 0.3)
       if (slideTo != null && to > duration) this.glide = { until: t + to, midi: slideTo }
@@ -350,7 +351,7 @@ export class WhistleVoice {
 
     // no vibrato over a trill: the finger is busy flicking
     if (duration > 0.65 && n.ornament?.type !== 'trill') this.vibrato.gain.setTargetAtTime(VIBRATO_CENTS, t + 0.35, 0.18)
-    if (n.ornament?.type === 'slide') this.vibrato.gain.setTargetAtTime(0, t + segments[1].at - 0.05, 0.03)
+    if (n.ornament?.type === 'slide') this.vibrato.gain.setTargetAtTime(0, t + segments[segments.length - 3].at - 0.05, 0.03)
 
     if (n.stop) {
       amp.setTargetAtTime(0, t + duration * 0.82, 0.006)
