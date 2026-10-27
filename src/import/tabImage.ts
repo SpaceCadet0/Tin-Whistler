@@ -613,14 +613,15 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
         warnings.push('Note names under the tab were ignored (only articulation marks t, r, - and i are read).')
       }
     }
+    /** Top row of the letter ink in columns xa…xb of a shape. */
+    const topOf = (b: Blob, xa: number, xb: number) => {
+      for (let y = b.y0; y <= b.y1; y++) for (let x = xa; x <= xb; x++) if (letterMask[y * W + x]) return y
+      return b.y1
+    }
     /** "tu" and "ru" written as one shape: the "t" rises above the x-height, the "r" doesn't. */
     const risesOnLeft = (b: Blob) => {
       const w = b.x1 - b.x0 + 1
-      const topOf = (xa: number, xb: number) => {
-        for (let y = b.y0; y <= b.y1; y++) for (let x = xa; x <= xb; x++) if (letterMask[y * W + x]) return y
-        return b.y1
-      }
-      return topOf(b.x1 - Math.round(w * 0.35), b.x1) - topOf(b.x0, b.x0 + Math.round(w * 0.35)) > (b.y1 - b.y0 + 1) * 0.12
+      return topOf(b, b.x1 - Math.round(w * 0.35), b.x1) - topOf(b, b.x0, b.x0 + Math.round(w * 0.35)) > (b.y1 - b.y0 + 1) * 0.12
     }
     const joinUnderColumns = (shapes: Blob[]): Blob[] => {
       const groups = new Map<number, Blob[]>()
@@ -655,9 +656,13 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
     // one-colour text or syllables: "t" and "u" may come out as separate shapes; join the letters under
     // each column so "tu" vs "ru" is judged on the whole syllable (dashes stay on their own)
     const letters = letterMask === redLetters && !syllables ? singles : [...singles.filter(isDash), ...joinUnderColumns(singles.filter((b) => !isDash(b)))]
-    // with syllables, the height of the short letters ("u", "r"): the lowest fifth of the letter shapes
+    // with syllables, the height of the short letters ("u", "r"): every syllable ends in a "u", so the
+    // ink in the right part of each joined syllable. (The lowest fifth of the letter shapes only works
+    // where "t" and "u" come apart: on a page of joined "tu" it is the height of a "tu".)
+    const syllableShapes = letters.filter((b) => !isDash(b) && (b.x1 - b.x0 + 1) / (b.y1 - b.y0 + 1) > 0.9)
+    const uHeights = syllableShapes.map((b) => b.y1 - topOf(b, b.x1 - Math.round((b.x1 - b.x0 + 1) * U_SHARE), b.x1) + 1).sort((a, b) => a - b)
     const heights = singles.filter((b) => !isDash(b)).map((b) => b.y1 - b.y0 + 1).sort((a, b) => a - b)
-    const xHeight = syllables && heights.length >= 5 ? heights[Math.floor(heights.length * 0.2)] : 0
+    const xHeight = !syllables ? 0 : uHeights.length >= 5 ? median(uHeights) : heights.length >= 5 ? heights[Math.floor(heights.length * 0.2)] : 0
     const dashCols = new Set<number>()
     for (const b of letters) {
       const w = b.x1 - b.x0 + 1
@@ -675,15 +680,15 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
         col.stop = true
         col.attack ??= 'slur'
       }
-      // "du" is the soft "ru" attack: its "d" has a closed bowl and rises well above a "t"
-      else if (xHeight && w / h > 0.9 && (hasCounter(b, letterMask, W, D) || h >= xHeight * D_ASCENDER)) col.attack = 'ru'
+      // "du" is the soft "ru" attack: its "d" rises well above a "t". (A closed bowl is no sign of
+      // its own: in serif type a "tu" often closes a loop where the "t" meets the "u".)
+      else if (xHeight && w / h > 0.9 && h >= xHeight * D_ASCENDER) col.attack = 'ru'
       // "tu" rises above the x-height ("t"), "ru" does not
       else if (xHeight && w / h > 0.9) col.attack = h >= xHeight * T_ASCENDER ? 'tongue' : 'ru'
       else if (w / h > 0.9) col.attack = risesOnLeft(b) ? 'tongue' : 'ru'
       else if (h > D * 1.05) col.attack = 'tongue'
       // "tu" can split into "t" and "u": the short "u" must not turn a tongued note into "ru"
-      else if (col.attack !== 'tongue') col.attack = 'ru'
-    }
+      else if (col.attack !== 'tongue') col.attack = 'ru'    }
     // "-i" whose dot got lost reads as "- r": a short letter next to a dash is the "i"
     for (const ci of dashCols) {
       if (columns[ci].attack === 'ru') {
@@ -719,48 +724,12 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
   return { systems, dotSize: D, warnings }
 }
 
-/**
- * Whether a letter shape encloses background, like the bowl of a "d": flood the background in from
- * the box edges and see if any is left unreached.
- */
-function hasCounter(b: Blob, mask: Mask, W: number, D: number): boolean {
-  const w = b.x1 - b.x0 + 1
-  const h = b.y1 - b.y0 + 1
-  const seen = new Uint8Array(w * h)
-  const stack: number[] = []
-  const push = (x: number, y: number) => {
-    const k = y * w + x
-    if (seen[k] || mask[(b.y0 + y) * W + b.x0 + x]) return
-    seen[k] = 1
-    stack.push(k)
-  }
-  for (let x = 0; x < w; x++) {
-    push(x, 0)
-    push(x, h - 1)
-  }
-  for (let y = 0; y < h; y++) {
-    push(0, y)
-    push(w - 1, y)
-  }
-  while (stack.length) {
-    const k = stack.pop()!
-    const x = k % w
-    const y = (k - x) / w
-    if (x > 0) push(x - 1, y)
-    if (x < w - 1) push(x + 1, y)
-    if (y > 0) push(x, y - 1)
-    if (y < h - 1) push(x, y + 1)
-  }
-  let enclosed = 0
-  for (let k = 0; k < seen.length; k++) if (!seen[k] && !mask[(b.y0 + Math.floor(k / w)) * W + b.x0 + (k % w)]) enclosed++
-  return enclosed >= D * D * COUNTER_SHARE
-}
-/** Enclosed background (share of a dot's square) that makes a bowl, not a stray gap. */
-const COUNTER_SHARE = 0.03
 /** A "d" stands this many x-heights tall; a "t" stays below it. */
 const D_ASCENDER = 1.42
 /** A "t" rises at least this many x-heights; "r" and "u" stay at one. */
 const T_ASCENDER = 1.12
+/** The right share of a joined syllable that holds just its closing "u" (the x-height). */
+const U_SHARE = 0.3
 
 /** A "+" octave mark: about square, two strokes crossing, so all four corners of its box are empty. */
 function isPlusMark(b: Blob, mask: Mask, W: number): boolean {
