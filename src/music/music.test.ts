@@ -80,6 +80,12 @@ describe('tab text', () => {
     expect(phrases[2][0].pitch).toBeNull()
   })
 
+  it('reads and writes the rolled "trru" attack as "f"', () => {
+    const { phrases } = parseTabText('f:D+^T5*0.43 -:C+^S6*0.1')
+    expect(phrases[0][0]).toMatchObject({ pitch: 86, attack: 'trru', ornament: { type: 'trill', hole: 5 } })
+    expect(sectionToTabText({ id: 's', name: 'S', phrases })).toBe('f:D+^T5*0.43 -:C+^S6*0.1')
+  })
+
   it('round-trips a section', () => {
     const s = shepardsFlute.sections[0]
     const text = sectionToTabText(s)

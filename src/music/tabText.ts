@@ -7,7 +7,7 @@ import { getWhistle } from './whistles'
  * Compact text notation for whistle tabs, used for built-in tune data and text export.
  *
  *   token   = [art ":"] pitch ["+"] ["!"] ["^" orn [hole] ["~" span]] ["[" fingering "]"] ["*" beats]
- *   art     = "t" (tongue) | "r" ("ru") | "-" (slur)
+ *   art     = "t" (tongue) | "r" ("ru") | "-" (slur) | "f" (rolled "trru", a flutter)
  *   pitch   = "z" (rest) | A-G with optional "#" / "b"
  *   "+"     = second register,  "!" = sharp stop ("i")
  *   orn     = C (cut) | B (bounce) | S (slide) | R (roll) | T (trill)
@@ -17,10 +17,10 @@ import { getWhistle } from './whistles'
  */
 
 const TOKEN =
-  /^(?:([tr-]):)?(z|[A-G](?:#|b)?)(\+)?(!)?(?:\^([CBSRT])(\d)?(?:~(\d+))?)?(?:\[([01h]{6})\])?(?:\*([\d./]+))?(!)?$/
+  /^(?:([trf-]):)?(z|[A-G](?:#|b)?)(\+)?(!)?(?:\^([CBSRT])(\d)?(?:~(\d+))?)?(?:\[([01h]{6})\])?(?:\*([\d./]+))?(!)?$/
 
-const ATTACKS: Record<string, Attack> = { t: 'tongue', r: 'ru', '-': 'slur' }
-const ATTACK_CODES: Record<Attack, string> = { tongue: 't', ru: 'r', slur: '-' }
+const ATTACKS: Record<string, Attack> = { t: 'tongue', r: 'ru', '-': 'slur', f: 'trru' }
+const ATTACK_CODES: Record<Attack, string> = { tongue: 't', ru: 'r', slur: '-', trru: 'f' }
 const ORNAMENTS: Record<string, OrnamentType> = { C: 'cut', B: 'bounce', S: 'slide', R: 'roll', T: 'trill' }
 const ORNAMENT_CODES: Record<OrnamentType, string> = { cut: 'C', bounce: 'B', slide: 'S', roll: 'R', trill: 'T' }
 const PITCH_CLASS: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }

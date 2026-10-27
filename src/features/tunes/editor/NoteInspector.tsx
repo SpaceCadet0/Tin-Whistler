@@ -133,6 +133,7 @@ export function NoteInspector({ note, whistleId, onChange, onInsert, onDelete, s
           options={[
             { value: 'tongue', label: 't' },
             { value: 'ru', label: 'r' },
+            { value: 'trru', label: 'trr' },
             { value: 'slur', label: '-' },
           ]}
         />

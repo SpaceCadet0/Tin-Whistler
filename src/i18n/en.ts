@@ -115,6 +115,7 @@ export const en = {
   'orn.trill': 'Trill',
   'art.tongue': 'Tongue "to"',
   'art.ru': 'Soft "ru"',
+  'art.trru': 'Rolled "trru"',
   'art.slur': 'No tongue',
   'art.stop': 'Sharp stop',
 
@@ -626,6 +627,7 @@ export const en = {
   'lg.ring': 'finger that plays the ornament',
   'lg.t': 'tongue "to"',
   'lg.r': 'soft "ru"',
+  'lg.trru': 'rolled "trru": tongue, then roll the "r" on the breath',
   'lg.slur': 'no tongue',
   'lg.stop': 'sharp stop',
   'lg.trill': 'trill: flick the ringed hole open and shut, fast',

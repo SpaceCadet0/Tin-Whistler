@@ -34,6 +34,22 @@ describe('aligning tab notes to a recording', () => {
     expect(notes.map((n) => n.beats)).toEqual([0.5, 0.3, 0.5])
   })
 
+  it('puts a rest only where the tab allows one: a silence inside a group stays in the note', () => {
+    const frames = track([[74, 0.4], [null, 0.2], [76, 0.4], [null, 0.2], [78, 0.4]])
+    const al = alignNotes(frames, [74, 76, 78])
+    const notes = timedNotes([74, 76, 78].map((pitch) => ({ pitch, beats: 1 })), frames, al, 60, [false, true, true])
+    expect(notes.map((n) => n.pitch)).toEqual([74, 76, null, 78])
+    expect(notes[0].beats).toBeCloseTo(0.6, 1)
+  })
+
+  it("keeps the tab's octave when only a short attack jumps an octave, follows a note heard in another", () => {
+    // a high F whose attack reads an octave low for a few frames; then a low D written with "+"
+    const frames = track([[77, 0.04], [89, 0.16], [null, 0.2], [74, 0.5]])
+    const al = alignNotes(frames, [89, 86])
+    const notes = timedNotes([{ pitch: 89, beats: 1 }, { pitch: 86, beats: 1 }], frames, al, 60)
+    expect(notes.filter((n) => n.pitch != null).map((n) => n.pitch)).toEqual([89, 74])
+  })
+
   it('fits a whole performance of many notes (every note at least the minimum length)', () => {
     const segments: [number, number][] = Array.from({ length: 200 }, (_, k) => [k % 3 ? 76 : 74, 0.4 + (k % 4) * 0.1])
     const frames = track(segments)

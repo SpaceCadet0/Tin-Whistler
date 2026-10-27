@@ -55,7 +55,7 @@ interface Props {
 }
 
 const ORN_KEY = { cut: 'orn.cut', bounce: 'orn.bounce', slide: 'orn.slide', roll: 'orn.roll', trill: 'orn.trill' } as const
-const ART_KEY = { tongue: 'art.tongue', ru: 'art.ru', slur: 'art.slur' } as const
+const ART_KEY = { tongue: 'art.tongue', ru: 'art.ru', slur: 'art.slur', trru: 'art.trru' } as const
 
 /**
  * The tune learning player: big "now / next" stage, tab with markers, sections, loop, tempo,

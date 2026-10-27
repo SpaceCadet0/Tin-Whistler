@@ -312,6 +312,9 @@ function crossAt(mask: Mask, W: number, H: number, x: number, yFrom: number, yTo
   return false
 }
 
+/** The gap at this share of a line's gaps, narrowest first, is the spacing of notes within a group. */
+const GROUP_GAP_SHARE = 0.2
+
 /** Dash shape under a column (slur): width / height above the ratio, or height below the share of a dot. */
 const DASH_RATIO = 2.5
 /** Joined letters under a column this much wider than tall: articulation written as syllables. */
@@ -662,6 +665,7 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
     const syllableShapes = letters.filter((b) => !isDash(b) && (b.x1 - b.x0 + 1) / (b.y1 - b.y0 + 1) > 0.9)
     const uHeights = syllableShapes.map((b) => b.y1 - topOf(b, b.x1 - Math.round((b.x1 - b.x0 + 1) * U_SHARE), b.x1) + 1).sort((a, b) => a - b)
     const heights = singles.filter((b) => !isDash(b)).map((b) => b.y1 - b.y0 + 1).sort((a, b) => a - b)
+    const syllableWidth = syllableShapes.length >= 5 ? median(syllableShapes.map((b) => b.x1 - b.x0 + 1)) : 0
     const xHeight = !syllables ? 0 : uHeights.length >= 5 ? median(uHeights) : heights.length >= 5 ? heights[Math.floor(heights.length * 0.2)] : 0
     const dashCols = new Set<number>()
     for (const b of letters) {
@@ -680,6 +684,8 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
         col.stop = true
         col.attack ??= 'slur'
       }
+      // "trru" (a rolled "r") is a syllable of four letters: far wider than "tu" or "du"
+      else if (xHeight && syllableWidth && w >= syllableWidth * TRRU_WIDTH) col.attack = 'trru'
       // "du" is the soft "ru" attack: its "d" rises well above a "t". (A closed bowl is no sign of
       // its own: in serif type a "tu" often closes a loop where the "t" meets the "u".)
       else if (xHeight && w / h > 0.9 && h >= xHeight * D_ASCENDER) col.attack = 'ru'
@@ -688,7 +694,8 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
       else if (w / h > 0.9) col.attack = risesOnLeft(b) ? 'tongue' : 'ru'
       else if (h > D * 1.05) col.attack = 'tongue'
       // "tu" can split into "t" and "u": the short "u" must not turn a tongued note into "ru"
-      else if (col.attack !== 'tongue') col.attack = 'ru'    }
+      else if (col.attack !== 'tongue') col.attack = 'ru'
+    }
     // "-i" whose dot got lost reads as "- r": a short letter next to a dash is the "i"
     for (const ci of dashCols) {
       if (columns[ci].attack === 'ru') {
@@ -699,7 +706,9 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
 
     // 5) phrases by spacing
     const gaps = columns.slice(1).map((c, i) => c.x - columns[i].x)
-    const unit = median(gaps)
+    // the spacing inside a group: the narrow gaps. (Not the median: in a line of pairs half the gaps
+    // are between groups, and the median lands on a wide one.)
+    const unit = [...gaps].sort((a, b) => a - b)[Math.floor(gaps.length * GROUP_GAP_SHARE)] ?? 0
     const phraseBreaks = gaps.map((g, i) => (g > unit * 1.5 ? i + 1 : -1)).filter((i) => i > 0)
     // on busy photo backgrounds "+" marks are easy to miss: take a majority vote per phrase so one
     // missed mark doesn't flip a note. On flat paper the marks are read reliably, note by note.
@@ -728,6 +737,8 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
 const D_ASCENDER = 1.42
 /** A "t" rises at least this many x-heights; "r" and "u" stay at one. */
 const T_ASCENDER = 1.12
+/** "trru" is at least this many times as wide as the line's typical syllable ("tu" ≈ 1, "du" ≈ 1.5). */
+const TRRU_WIDTH = 1.75
 /** The right share of a joined syllable that holds just its closing "u" (the x-height). */
 const U_SHARE = 0.3
 

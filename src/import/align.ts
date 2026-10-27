@@ -234,17 +234,25 @@ export function alignNotes(frames: PitchFrame[], pitches: number[], opts: AlignO
   return { onsets, ends, misfit }
 }
 
-/** The octave actually played: the tab's pitch moved by whole octaves to the median heard pitch. */
+/**
+ * The octave actually played: the tab's pitch moved by whole octaves when the recording clearly says
+ * so, i.e. most of the note's frames sound in that other octave. A short note's attack often jumps
+ * an octave for a few frames, which must not outvote the tab.
+ */
 export function heardOctave(frames: PitchFrame[], from: number, to: number, pitch: number): number {
-  const heard = frames
+  const shifts = frames
     .slice(from, Math.max(from + 1, to))
     .map((f) => f.midi)
     .filter((m): m is number => m != null && pcDistance(m, pitch) < 1.5)
-    .sort((x, y) => x - y)
-  if (!heard.length) return pitch
-  const med = heard[heard.length >> 1]
-  return pitch + 12 * Math.round((med - pitch) / 12)
+    .map((m) => Math.round((m - pitch) / 12))
+  if (!shifts.length) return pitch
+  const count = new Map<number, number>()
+  for (const s of shifts) count.set(s, (count.get(s) ?? 0) + 1)
+  const [shift, n] = [...count].sort((a, b) => b[1] - a[1])[0]
+  return shift !== 0 && n >= shifts.length * OTHER_OCTAVE_SHARE ? pitch + 12 * shift : pitch
 }
+/** Share of a note's frames that must sound in another octave to overrule the tab. */
+const OTHER_OCTAVE_SHARE = 2 / 3
 
 /** Silence longer than this between notes becomes a rest (a breath). */
 export const REST_MIN = 0.12
@@ -252,10 +260,11 @@ const round2 = (x: number) => Math.round(x * 100) / 100
 
 /**
  * Notes with their measured timing, in beats at `bpm` (60 → 1 beat = 1 second of the recording).
- * Each note lasts until the next one starts; a long enough silence after it becomes a rest. The last
- * note lasts until its sound ends.
+ * Each note lasts until the next one starts; a long enough silence after it becomes a rest, but only
+ * where `restAfter` allows one (a gap between groups in the tab): elsewhere the silence stays part of
+ * the note. The last note lasts until its sound ends.
  */
-export function timedNotes(notes: TuneNote[], frames: PitchFrame[], al: Alignment, bpm = 60): TuneNote[] {
+export function timedNotes(notes: TuneNote[], frames: PitchFrame[], al: Alignment, bpm = 60, restAfter?: boolean[]): TuneNote[] {
   const beat = 60 / bpm
   // round the moments, not the lengths, so rounding never adds up along the section
   const at = (frame: number) => round2((frame * HOP) / beat)
@@ -265,7 +274,7 @@ export function timedNotes(notes: TuneNote[], frames: PitchFrame[], al: Alignmen
     const next = k + 1 < notes.length ? al.onsets[k + 1] : al.ends[k]
     const soundEnd = Math.min(al.ends[k], next)
     const pitch = n.pitch == null ? null : heardOctave(frames, on, soundEnd, n.pitch)
-    if ((next - soundEnd) * HOP >= REST_MIN) {
+    if ((restAfter?.[k] ?? true) && (next - soundEnd) * HOP >= REST_MIN) {
       out.push({ ...n, pitch, beats: round2(at(soundEnd) - at(on)) })
       out.push({ pitch: null, beats: round2(at(next) - at(soundEnd)) })
     } else out.push({ ...n, pitch, beats: round2(at(next) - at(on)) })

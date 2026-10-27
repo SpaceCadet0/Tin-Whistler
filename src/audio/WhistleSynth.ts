@@ -40,6 +40,18 @@ const REVERB_WET = 0.16
 const CHIFF_HZ = 1100
 const CHIFF_TONGUE = 0.03
 const CHIFF_RU = 0.014
+/**
+ * Rolled "trru": after the "t", the tongue flaps against the breath like a rolled "r", a fast
+ * flicker of the air (no finger moves) that dies away into the held note. Rolls per second, how
+ * many, how deep the first one dips the level, and how much shallower each next one gets.
+ */
+const FLUTTER_HZ = 26
+const FLUTTER_ROLLS = 4
+const FLUTTER_DEPTH = 0.6
+const FLUTTER_FADE = 0.75
+/** The rolls start this long after the "t" and take at most this share of the note. */
+const FLUTTER_AFTER = 0.03
+const FLUTTER_SHARE = 0.6
 
 /**
  * Buffers every voice needs, built once per context. Generating them takes tens of milliseconds
@@ -262,6 +274,22 @@ export class WhistleVoice {
     this.chiff.gain.setTargetAtTime(0, at + 0.02, 0.025)
   }
 
+  /** The rolled "r" of a "trru": quick dips of the air level, each with a little puff of breath. */
+  private flutter(at: number, level: number, duration: number): void {
+    const amp = this.amp.gain
+    const period = 1 / FLUTTER_HZ
+    const rolls = Math.min(FLUTTER_ROLLS, Math.floor((duration * FLUTTER_SHARE - FLUTTER_AFTER) / period))
+    let depth = FLUTTER_DEPTH
+    for (let i = 0; i < rolls; i++) {
+      const dip = at + FLUTTER_AFTER + i * period
+      amp.setTargetAtTime(level * (1 - depth), dip, period * 0.12)
+      amp.setTargetAtTime(level, dip + period * 0.45, period * 0.15)
+      this.chiff.gain.setTargetAtTime(CHIFF_RU * depth, dip, 0.003)
+      this.chiff.gain.setTargetAtTime(0, dip + period * 0.4, 0.006)
+      depth *= FLUTTER_FADE
+    }
+  }
+
   schedule(n: VoiceNote): void {
     if (this.stopped) return
     const { time: t, duration } = n
@@ -285,10 +313,12 @@ export class WhistleVoice {
     if (!this.sounding) {
       amp.setTargetAtTime(level, t, attack === 'slur' ? 0.025 : 0.013)
       if (attack !== 'slur') this.burst(t, CHIFF_TONGUE)
-    } else if (attack === 'tongue') {
+      if (attack === 'trru') this.flutter(t, level, duration)
+    } else if (attack === 'tongue' || attack === 'trru') {
       amp.setTargetAtTime(level * 0.06, Math.max(0, t - 0.045), 0.007)
       amp.setTargetAtTime(level, t, 0.012)
       this.burst(t, CHIFF_TONGUE)
+      if (attack === 'trru') this.flutter(t, level, duration)
     } else if (attack === 'ru') {
       amp.setTargetAtTime(level * 0.35, Math.max(0, t - 0.03), 0.007)
       amp.setTargetAtTime(level, t, 0.012)

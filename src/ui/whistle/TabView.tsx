@@ -6,7 +6,7 @@ import { whistleLabel } from '../../music/whistles'
 import { cn } from '../primitives'
 import { FingeringColumn, type ColumnState } from './FingeringColumn'
 
-const ATTACK_LABEL: Record<Attack, string> = { tongue: 't', ru: 'r', slur: '-' }
+const ATTACK_LABEL: Record<Attack, string> = { tongue: 't', ru: 'r', slur: '-', trru: 'trr' }
 const ORN_LETTER = { cut: 'C', bounce: 'B', slide: 'S', roll: 'R', trill: 'tr' } as const
 
 export function articulationLabel(n: TuneNote): string {

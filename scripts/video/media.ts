@@ -37,6 +37,13 @@ export function frameAt(video: string, time: number, size: { width: number; heig
   return { width: size.width, height: size.height, data: new Uint8Array(data.buffer, data.byteOffset, size.width * size.height * 4) }
 }
 
+/** A picture (PNG, JPG, WebP…) as RGBA pixels. */
+export function imageFile(file: string): RGBAImage {
+  const { width, height } = probeSize(file)
+  const data = execFileSync('ffmpeg', ['-v', 'error', '-i', file, '-frames:v', '1', '-f', 'rawvideo', '-pix_fmt', 'rgba', '-'], { maxBuffer: MAX_BUFFER })
+  return { width, height, data: new Uint8Array(data.buffer, data.byteOffset, width * height * 4) }
+}
+
 /** The soundtrack as mono float samples. */
 export function audioSamples(video: string, sampleRate: number): Float32Array {
   const data = execFileSync('ffmpeg', ['-v', 'error', '-i', video, '-vn', '-ac', '1', '-ar', String(sampleRate), '-f', 'f32le', '-'], { maxBuffer: MAX_BUFFER })

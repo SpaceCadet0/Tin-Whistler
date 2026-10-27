@@ -38,7 +38,8 @@ export interface WhistleKey {
 }
 
 /** How a note starts (tab articulation). */
-export type Attack = 'tongue' | 'ru' | 'slur'
+/** "trru": a tongued start that rolls the "r" on the breath, a flutter between "tu" and a trill. */
+export type Attack = 'tongue' | 'ru' | 'slur' | 'trru'
 
 export type OrnamentType = 'cut' | 'bounce' | 'slide' | 'roll' | 'trill'
 

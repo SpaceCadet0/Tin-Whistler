@@ -4,6 +4,7 @@
  *
  *   npm run transcribe -- <youtube-url | video.mp4> [--id my-tune] [--title "My Tune"]
  *                         [--whistle D|C|Bb|G|lowD] [--expect builtin-tune-id] [--check builtin-tune-id]
+ *                         [--pages page1.png,page2.png,…]
  *
  *  1. download the video (cached in .tmp-video/<id>/), take its chapters as sections, or find
  *     where the tab page changes when there are none;
@@ -11,14 +12,23 @@
  *     tab out round its grid of dots at full resolution, read it with the app's tab recogniser;
  *  3. find the whistle key from the recording (the tab gives fingerings, the sound gives pitch);
  *  4. align the notes to the pitch track (src/import/align.ts): onsets, rests, octave, tuning;
- *  5. write <id>.ts (a Tune in the app's tab notation, 1 beat = 1 second at 60 bpm), report.json
+ *     A rest goes only where the tab leaves a gap between groups, and only where the recording falls
+ *     silent there; a silence inside a group stays part of its note;
+ *  5. put the lengths on a grid of sixteenths at one tempo (src/import/quantize.ts): lengths that
+ *     repeat, groups of the same size sharing a rhythm and a rest after them or none;
+ *  6. write <id>.ts (a Tune in the app's tab notation), report.json
  *     and one panel image per section, and print a short summary with the places worth checking.
+ *
+ * --pages: screenshots of the tab pages, in the order they are played, are read instead of the video
+ * frames (one section per page). The video then only gives the sound: use it when the frames lose
+ * notes (a highlight over them) or a chapter shows more than one page.
  */
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parseArgs } from 'node:util'
 import { PNG } from 'pngjs'
 import { alignNotes, attackAt, correctTuning, HOP, pitchTrack, timedNotes, type PitchFrame } from '../src/import/align'
+import { quantizeSections } from '../src/import/quantize'
 import { recognizeTab, sectionFromRecognition, type RGBAImage } from '../src/import/tabImage'
 import { lightPaper, toHouseColours } from '../src/import/palette'
 import { cropImage, medianFrame, tabPages, tabRegion } from '../src/import/videoFrames'
@@ -26,8 +36,9 @@ import { builtinTune } from '../src/data/tunes'
 import { sectionToTabText } from '../src/music/tabText'
 import { sectionNotes } from '../src/music/tune'
 import type { Phrase, TuneNote, TuneSection } from '../src/music/types'
-import { getWhistle, WHISTLE_KEYS, whistleLabel } from '../src/music/whistles'
-import { audioSamples, download, fetchInfo, frameAt, probeSize, thumbnails, type VideoInfo } from './video/media'
+import { fingeringsEqual } from '../src/music/fingerings'
+import { fingeringForMidi, getWhistle, WHISTLE_KEYS, whistleLabel } from '../src/music/whistles'
+import { audioSamples, download, fetchInfo, frameAt, imageFile, probeSize, thumbnails, type VideoInfo } from './video/media'
 
 const SAMPLE_RATE = 22050
 const FRAMES_PER_SECTION = 15
@@ -54,11 +65,11 @@ const RIVAL_GAP = 0.1
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
-  options: { id: { type: 'string' }, title: { type: 'string' }, whistle: { type: 'string' }, expect: { type: 'string' }, check: { type: 'string' }, out: { type: 'string' } },
+  options: { id: { type: 'string' }, title: { type: 'string' }, whistle: { type: 'string' }, expect: { type: 'string' }, check: { type: 'string' }, out: { type: 'string' }, pages: { type: 'string', multiple: true } },
 })
 const source = positionals[0]
 if (!source) {
-  console.error('Usage: npm run transcribe -- <youtube-url | video.mp4> [--id id] [--title title] [--whistle D|C|Bb|G|lowD] [--expect tune-id]')
+  console.error('Usage: npm run transcribe -- <youtube-url | video.mp4> [--id id] [--title title] [--whistle D|C|Bb|G|lowD] [--expect tune-id] [--pages page1.png,page2.png,…]')
   process.exit(1)
 }
 
@@ -91,8 +102,10 @@ interface Part {
   end: number
   section: TuneSection
   warnings: string[]
+  /** --pages: the screenshot the section was read from. */
+  file?: string
 }
-const parts: Part[] = []
+const videoParts: Part[] = []
 for (const [i, page] of pages.entries()) {
   const frames: RGBAImage[] = []
   for (let k = 0; k < FRAMES_PER_SECTION; k++) frames.push(frameAt(video, page.start + (page.end - page.start) * (SAMPLE_FROM + (SAMPLE_SPAN * k) / (FRAMES_PER_SECTION - 1)), size))
@@ -113,12 +126,22 @@ for (const [i, page] of pages.entries()) {
     console.log(`· ${page.title}: no tab found, skipped`)
     continue
   }
-  parts.push({ title: page.title, start: page.start, end: page.end, section: sectionFromRecognition(r, `s${parts.length + 1}`, page.title, 'D'), warnings: r.warnings })
+  videoParts.push({ title: page.title, start: page.start, end: page.end, section: sectionFromRecognition(r, `s${videoParts.length + 1}`, page.title, 'D'), warnings: r.warnings })
 }
-if (!parts.length) {
+if (!videoParts.length) {
   console.error('No dot tab found in the video.')
   process.exit(1)
 }
+// --pages: the notes come from the page screenshots, the video still says when the tab is played
+const pageFiles = values.pages?.flatMap((p) => p.split(',').filter(Boolean))
+const parts: Part[] = pageFiles
+  ? pageFiles.map((file, i) => {
+      const r = recognizeTab(imageFile(file), 'D')
+      if (!r.systems.length) throw new Error(`No dot tab found in ${file}`)
+      const title = `Section ${i + 1}`
+      return { title, start: videoParts[0].start, end: videoParts[videoParts.length - 1].end, section: sectionFromRecognition(r, `s${i + 1}`, title, 'D'), warnings: r.warnings, file }
+    })
+  : videoParts
 
 // 3) whistle key, then timing. The whole performance is aligned at once, from the first section's
 // start to the last one's end: a tab page often stays on screen a little before or after it is
@@ -126,8 +149,8 @@ if (!parts.length) {
 // D whistle) and the recording gives pitches: each key is tried, the best-fitting alignment wins.
 // (Matching pitch classes alone can't tell D from G: their scales share six notes.)
 const samples = audioSamples(video, SAMPLE_RATE)
-const from = parts[0].start
-const until = parts[parts.length - 1].end
+const from = videoParts[0].start
+const until = videoParts[videoParts.length - 1].end
 const track: PitchFrame[] = pitchTrack(samples.subarray(Math.round(from * SAMPLE_RATE), Math.round(until * SAMPLE_RATE)), SAMPLE_RATE)
 if (values.check) checkTune(values.check)
 const tabNotes = parts.map((p) => sectionNotes(p.section).filter((n) => n.pitch != null))
@@ -166,7 +189,17 @@ const loud = [...tuning.frames.map((f) => f.rms)].sort((x, y) => x - y)[Math.flo
 const sounding = allTab.map((n): TuneNote => ({ ...n, pitch: n.pitch! + shift }))
 // no articulation read under a note: the recording decides, a smooth change of pitch is a slur
 const articulated = sounding.map((n, k): TuneNote => (n.attack || k === 0 || attackAt(tuning.frames, al.onsets[k], loud, true) >= SLUR_ATTACK ? n : { ...n, attack: 'slur' }))
-const timedAll = timedNotes(articulated, tuning.frames, al, BPM)
+// a rest only after the last note of a group: where the tab leaves a gap
+const groupEnds = parts.flatMap((p) => p.section.phrases.flatMap((ph) => ph.filter((n) => n.pitch != null).map((_, k, a) => k === a.length - 1)))
+// a fingering kept only because the tab's "+" was misread: the heard octave makes it the standard one
+const plain = (n: TuneNote): TuneNote => {
+  if (!n.fingering || n.pitch == null) return n
+  const std = fingeringForMidi(Math.round(n.pitch), whistle)
+  if (!std || !fingeringsEqual(std.fingering, n.fingering)) return n
+  const { fingering: _, ...rest } = n
+  return rest
+}
+const timedAll = timedNotes(articulated, tuning.frames, al, BPM, groupEnds).map(plain)
 const timedSounding = timedAll.filter((n) => n.pitch != null)
 const sectionOf: number[] = tabNotes.flatMap((ns, si) => ns.map(() => si))
 const firstOf = tabNotes.map((_, si) => sectionOf.indexOf(si))
@@ -212,14 +245,15 @@ const played = parts.map((_, si) => [from + al.onsets[firstOf[si]] * HOP, from +
 // 5) write the tune, the report and the summary
 const camel = id.replace(/-(\w)/g, (_, c: string) => c.toUpperCase()).replace(/^\d/, '_$&')
 const title = values.title ?? info.title
-const texts = tuned.map((s, i) => `const S${i + 1} = \`${sectionToTabText(s, whistle)}\``)
+const written = quantizeSections(tuned)
+const texts = written.sections.map((s, i) => `const S${i + 1} = \`${sectionToTabText(s, whistle)}\``)
 const file = `import { sectionFromTabText } from '../../music/tabText'
 import type { Tune } from '../../music/types'
 
 /*
  * ${title}${info.url ? `\n * Read from ${info.url}${info.uploader ? ` (${info.uploader})` : ''}` : ''}, played on a ${getWhistle(whistle).label}.
  * Tab read from the video frames, timing measured from the recording (scripts/transcribe-video.ts):
- * 1 beat = 1 second of the performance at ${BPM} bpm.
+ * Lengths on a grid of sixteenths at ${written.bpm} bpm (src/import/quantize.ts).
  */
 ${texts.join('\n\n')}
 
@@ -231,10 +265,10 @@ export const ${camel}: Tune = {
   type: 'air',
   whistle: '${whistle}',
   key: '',
-  bpm: ${BPM},
+  bpm: ${written.bpm},
   difficulty: 3,
   sections: [
-${tuned.map((s, i) => `    sectionFromTabText('s${i + 1}', ${JSON.stringify(parts[i].title)}, S${i + 1}, '${whistle}'),`).join('\n')}
+${written.sections.map((s, i) => `    sectionFromTabText('s${i + 1}', ${JSON.stringify(parts[i].title)}, S${i + 1}, '${whistle}'),`).join('\n')}
   ],
 }
 `
@@ -251,14 +285,14 @@ const report = {
     played: played[i].map((x) => Math.round(x * 10) / 10),
     notes: sectionNotes(p.section).length,
     warnings: p.warnings,
-    panel: join(outDir, 'panels', `s${i + 1}.png`),
+    panel: p.file ?? join(outDir, 'panels', `s${i + 1}.png`),
   })),
   flags,
 }
 writeFileSync(join(outDir, 'report.json'), JSON.stringify(report, null, 2))
 
 console.log(`${title}\n${getWhistle(whistle).label} (fit ${keyFits.map((k) => `${k.id} ${k.misfit.toFixed(2)}`).join(', ')}), tuning ${tuningText} st (low/high register)`)
-parts.forEach((p, i) => console.log(`· ${p.title}: shown ${clock(p.start)}–${clock(p.end)}, played ${clock(played[i][0])}–${clock(played[i][1])}, ${report.sections[i].notes} notes${p.warnings.length ? `, ${p.warnings.join(' ')}` : ''}`))
+parts.forEach((p, i) => console.log(`· ${p.title}: ${p.file ? p.file.replace(/^.*\//, '') : `shown ${clock(p.start)}–${clock(p.end)}`}, played ${clock(played[i][0])}–${clock(played[i][1])}, ${report.sections[i].notes} notes${p.warnings.length ? `, ${p.warnings.join(' ')}` : ''}`))
 const toCheck = flags.filter((f) => f.kind === 'check')
 const fixed = flags.length - toCheck.length
 console.log(`${toCheck.length ? `${toCheck.length} place(s) to check` : 'Nothing to check'}${fixed ? `; ${fixed} octave(s) taken from the recording` : ''}`)

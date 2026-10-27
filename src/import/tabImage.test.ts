@@ -90,15 +90,22 @@ describe('tab panel read from a video (The Prayer, section 2)', () => {
 
 describe('syllables "tu", "du", "ru" in a serif typeface (A Story You Won\'t Believe screenshots)', () => {
   const answers = JSON.parse(readFileSync(new URL('./__fixtures__/story-attacks.json', import.meta.url), 'utf8')) as Record<string, string>
-  const code = { tongue: 't', ru: 'r', slur: '-' } as const
+  const code = { tongue: 't', ru: 'r', slur: '-', trru: 'f' } as const
   it.each(Object.keys(answers).filter((k) => k.startsWith('story-')))('reads every attack on %s', (name) => {
     const png = PNG.sync.read(readFileSync(new URL(`./__fixtures__/${name}.png`, import.meta.url)))
     const r = recognizeTab({ width: png.width, height: png.height, data: png.data }, 'C')
     const got = r.systems.flatMap((s) => s.columns.map((c) => (c.attack ? code[c.attack] : '·')))
     const want = answers[name].replace(/[\s/]+/g, '')
     expect(got).toHaveLength(want.length)
-    // a page of joined "tu" must not read as "ru"; "?" (trru) is not scored
-    expect(got.map((g, i) => (want[i] === '?' ? '?' : g)).join('')).toBe(want)
+    // a page of joined "tu" must not read as "ru"; the wide "trru" is a rolled attack of its own
+    expect(got.join('')).toBe(want)
+  })
+  it.each(Object.keys(answers).filter((k) => k.startsWith('story-')))('groups the notes of %s as the page does', (name) => {
+    const png = PNG.sync.read(readFileSync(new URL(`./__fixtures__/${name}.png`, import.meta.url)))
+    const s = sectionFromRecognition(recognizeTab({ width: png.width, height: png.height, data: png.data }, 'C'), 's', 'S', 'C')
+    // a line of pairs ("tu tu  tu du  …") too: half its gaps are between groups
+    const got = s.phrases.map((p, i) => ((s.lineBreaks ?? []).includes(i) ? '/ ' : '') + p.length).join(' ')
+    expect(got).toBe(answers[name].split(' ').map((g) => (g === '/' ? '/' : String(g.length))).join(' '))
   })
 })
 

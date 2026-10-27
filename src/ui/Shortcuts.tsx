@@ -69,6 +69,7 @@ export function TabLegend() {
       {sym('tr', 'lg.trill')}
       {sym('t', 'lg.t')}
       {sym('r', 'lg.r')}
+      {sym('trr', 'lg.trru')}
       {sym('-', 'lg.slur')}
       {sym('i', 'lg.stop')}
     </div>
