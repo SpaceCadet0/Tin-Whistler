@@ -1,8 +1,9 @@
 import type { TuneNote, TuneSection } from '../music/types'
 import { getWhistle, WHISTLE_KEYS } from '../music/whistles'
 import { alignNotes, attackAt, correctTuning, HOP, pitchTrack, timedNotes, type Alignment, type PitchFrame } from './align'
-import { lightPaper, paperOf, roundMarks, toHouseColours } from './palette'
+import { lightPaper, toHouseColours } from './palette'
 import { quantizeSections } from './quantize'
+import { cleanTab } from './tabClean'
 import { recognizeTab, type RecognitionResult, type RGBAImage } from './tabImage'
 import { cropImage, medianFrame, tabRegion } from './videoFrames'
 
@@ -76,93 +77,6 @@ export function pageFrameTimes(levels: Float32Array, start: number, end: number)
   const quiet = quietWindow(levels, start, end)
   const len = end - start
   return [...(quiet ? spread(quiet[0], quiet[1], QUIET_FRAMES) : []), ...spread(start + len * SPREAD_FROM, start + len * SPREAD_TO, SPREAD_FRAMES)]
-}
-
-/** What counts as a mark: this far (RGB distance) from the paper. Bold tab marks are, faded pictures behind them aren't. */
-const STRONG_MARK = 120
-/** A mark's anti-aliased edge: fainter, kept when it touches a kept mark. */
-const EDGE_MARK = 30
-/** A blob of marks this many dot sizes both wide and tall is no tab mark (hands, pictures, logos)... */
-const BLOB = 2.5
-/** ...nor one this many dot sizes tall (frame lines) or wide (rules across the page). */
-const TALL = 8
-const WIDE = 30
-/** Edge pixels this far from a kept mark still belong to it. */
-const EDGE_REACH = 2
-/** A blob this grey (channel spread) and this light (luminance) is a speck of the picture behind the tab. */
-const SPECK_TINT = 25
-const SPECK_LIGHT = 120
-
-/**
- * Keep only the tab on its page: dots and rings, ornament letters, "+" marks and articulation, all
- * of them small marks. Anything bigger (a hand that stayed still, a picture or logo behind the tab,
- * the lines of a frame) and the faded background turn to white paper. The marks keep their colours.
- */
-export function cleanTab(img: RGBAImage): RGBAImage {
-  const { width: W, height: H, data: d } = img
-  const paper = paperOf(img)
-  const dots = roundMarks(img, paper)
-  if (!dots.length) return img
-  const D = [...dots.map((t) => t.x1 - t.x0 + 1)].sort((a, b) => a - b)[dots.length >> 1]
-  const away = (i: number) => Math.hypot(d[i * 4] - paper[0], d[i * 4 + 1] - paper[1], d[i * 4 + 2] - paper[2])
-  const strong = new Uint8Array(W * H)
-  for (let i = 0; i < W * H; i++) strong[i] = away(i) > STRONG_MARK ? 1 : 0
-  // connected blobs of strong marks: the small ones are the tab
-  const keep = new Uint8Array(W * H)
-  const seen = new Uint8Array(W * H)
-  const stack: number[] = []
-  const blob: number[] = []
-  for (let s = 0; s < W * H; s++) {
-    if (!strong[s] || seen[s]) continue
-    seen[s] = 1
-    stack.push(s)
-    blob.length = 0
-    let [x0, x1, y0, y1] = [W, 0, H, 0]
-    while (stack.length) {
-      const i = stack.pop()!
-      blob.push(i)
-      const x = i % W
-      const y = (i - x) / W
-      x0 = Math.min(x0, x)
-      x1 = Math.max(x1, x)
-      y0 = Math.min(y0, y)
-      y1 = Math.max(y1, y)
-      for (const j of [i - 1, i + 1, i - W, i + W]) {
-        if (j < 0 || j >= W * H || seen[j] || !strong[j] || Math.abs((j % W) - x) > 1) continue
-        seen[j] = 1
-        stack.push(j)
-      }
-    }
-    const w = x1 - x0 + 1
-    const h = y1 - y0 + 1
-    if ((w > D * BLOB && h > D * BLOB) || h > D * TALL || w > D * WIDE) continue
-    // the tab is cut out with margins round its marks: what reaches the edge is the picture behind it
-    if (x0 === 0 || y0 === 0 || x1 === W - 1 || y1 === H - 1) continue
-    // tab marks are dark at their core (dots, text, even a thin dash) or clearly coloured (ornaments);
-    // a speck of a faded picture is light grey all through
-    const lum = (i: number) => 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2]
-    const core = blob.reduce((a, i) => (lum(i) < lum(a) ? i : a), blob[0])
-    const tint = Math.max(d[core * 4], d[core * 4 + 1], d[core * 4 + 2]) - Math.min(d[core * 4], d[core * 4 + 1], d[core * 4 + 2])
-    if (tint < SPECK_TINT && lum(core) > SPECK_LIGHT) continue
-    for (const i of blob) keep[i] = 1
-  }
-  // the kept marks' soft edges come along; everything else becomes white paper
-  const out = new Uint8Array(W * H * 4).fill(255)
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      const i = y * W + x
-      let near = keep[i] === 1
-      for (let dy = -EDGE_REACH; !near && dy <= EDGE_REACH; dy++) {
-        for (let dx = -EDGE_REACH; !near && dx <= EDGE_REACH; dx++) {
-          const xx = x + dx
-          const yy = y + dy
-          if (xx >= 0 && xx < W && yy >= 0 && yy < H && keep[yy * W + xx] && away(i) > EDGE_MARK) near = true
-        }
-      }
-      if (near) for (let k = 0; k < 3; k++) out[i * 4 + k] = d[i * 4 + k]
-    }
-  }
-  return { width: W, height: H, data: out }
 }
 
 /**
