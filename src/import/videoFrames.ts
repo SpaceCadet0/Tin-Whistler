@@ -154,8 +154,14 @@ export function cropImage(img: RGBAImage, r: Rect): RGBAImage {
 /** A thumbnail pixel changed when its grey level moved this much. */
 const THUMB_CHANGE = 30
 /** A page turn changes at least this share of the picture at once, well above the player's motion. */
-const PAGE_TURN = 0.12
+const PAGE_TURN = 0.03
 const PAGE_TURN_OVER_MOTION = 3
+/** A pixel is part of the still page when it changes between at most this share of the thumbnails... */
+const STILL_RATE = 0.1
+/** ...and such pixels must cover this share of the picture, or all of it is watched. */
+const MIN_STILL_AREA = 0.1
+/** Thumbnails apart that are compared for a page turn (a fade takes up to one step). */
+const TURN_SPAN = 2
 /** Shortest stretch one tab page stays on screen, seconds. */
 const MIN_PAGE = 5
 
@@ -165,17 +171,24 @@ const MIN_PAGE = 5
  * Returns [start, end] seconds of each page.
  */
 export function tabPages(thumbs: Uint8Array[], fps: number, duration: number): [number, number][] {
-  const changed = thumbs.map((th, k) => {
-    if (!k) return 0
-    const prev = thumbs[k - 1]
-    let n = 0
-    for (let p = 0; p < th.length; p++) if (Math.abs(th[p] - prev[p]) > THUMB_CHANGE) n++
-    return n / th.length
-  })
+  const size = thumbs[0]?.length ?? 0
+  const moved = (k: number, p: number) => Math.abs(thumbs[k][p] - thumbs[k - 1][p]) > THUMB_CHANGE
+  // the page is the part of the picture that rarely changes: the player's hands keep moving, a page
+  // only turns now and then. Page turns are counted there, where the hands can't drown them out
+  const changes = new Uint16Array(size)
+  for (let k = 1; k < thumbs.length; k++) for (let p = 0; p < size; p++) if (moved(k, p)) changes[p]++
+  const still: number[] = []
+  for (let p = 0; p < size; p++) if (changes[p] <= (thumbs.length - 1) * STILL_RATE) still.push(p)
+  const area = still.length >= size * MIN_STILL_AREA ? still : Array.from({ length: size }, (_, p) => p)
+  // a page fading over may spread across two thumbnails: each is compared with the one before last
+  const span = (k: number, p: number) => Math.abs(thumbs[k][p] - thumbs[k - TURN_SPAN][p]) > THUMB_CHANGE
+  const changed = thumbs.map((_, k) => (k >= TURN_SPAN ? area.filter((p) => span(k, p)).length / area.length : 0))
   const motion = [...changed].sort((a, b) => a - b)[changed.length >> 1]
   const cuts = [0]
   changed.forEach((c, k) => {
-    if (c >= Math.max(PAGE_TURN, motion * PAGE_TURN_OVER_MOTION) && k / fps - cuts[cuts.length - 1] >= MIN_PAGE) cuts.push(k / fps)
+    // dated by the later thumbnail: the new page is fully there, no frame of the old one comes after
+    const at = k / fps
+    if (c >= Math.max(PAGE_TURN, motion * PAGE_TURN_OVER_MOTION) && at - cuts[cuts.length - 1] >= MIN_PAGE) cuts.push(at)
   })
   const pages: [number, number][] = cuts.map((c, i) => [c, i + 1 < cuts.length ? cuts[i + 1] : duration])
   return pages.filter(([a, b]) => b - a >= MIN_PAGE)

@@ -141,7 +141,7 @@ export interface Tune {
   description?: LocalizedText
   origin: TuneOrigin
   /** Import format when origin = user. */
-  source?: 'abc' | 'midi' | 'image' | 'notation' | 'editor'
+  source?: 'abc' | 'midi' | 'image' | 'notation' | 'video' | 'editor'
   type: TuneType
   whistle: string
   key: string

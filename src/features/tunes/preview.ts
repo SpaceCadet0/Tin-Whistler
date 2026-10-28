@@ -34,8 +34,8 @@ export function previewEnd(timeline: TimedNote[]): number {
   return to
 }
 
-/** Start the preview of `tune`, or stop it if it is the one playing. */
-export function togglePreview(tune: Tune): void {
+/** Start the preview of `tune` (its opening, or with `whole` all of it), or stop it if it is the one playing. */
+export function togglePreview(tune: Tune, whole = false): void {
   if (current?.id === tune.id) {
     player.stop()
     return
@@ -45,7 +45,7 @@ export function togglePreview(tune: Tune): void {
   player.options.a4 = useSettings.getState().a4
   const timeline = player.timeline
   if (!timeline.length) return
-  const to = previewEnd(timeline)
+  const to = whole ? timeline.length - 1 : previewEnd(timeline)
   current = { id: tune.id, duration: timeline[to].start + timeline[to].duration - timeline[0].start }
   player.play(0, to, false)
   changed.emit(tune.id)
@@ -59,7 +59,15 @@ export function stopPreview(): void {
 export function usePreview(id: string): { playing: boolean; progress: number } {
   const [playing, setPlaying] = useState(() => current?.id === id)
   const [progress, setProgress] = useState(0)
-  useEffect(() => changed.on((playingId) => setPlaying(playingId === id)), [id])
+  useEffect(
+    () =>
+      changed.on((playingId) => {
+        // a new run starts from the beginning, not where the last one stopped
+        setProgress(0)
+        setPlaying(playingId === id)
+      }),
+    [id],
+  )
   useRaf(() => {
     if (!current) return
     const { passTime } = player.positionAt(audioEngine.now)

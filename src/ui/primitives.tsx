@@ -123,7 +123,8 @@ export function Chip({ children, tone = 'neutral', className }: { children: Reac
   return <span className={cn('inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold', tones[tone], className)}>{children}</span>
 }
 
-export function ProgressBar({ value, label, tone = 'moss', className, height = 8 }: { value: number; label?: string; tone?: 'moss' | 'brass' | 'good'; className?: string; height?: number }) {
+/** `live`: follows playback frame by frame, so no easing (it would trail behind the sound). */
+export function ProgressBar({ value, label, tone = 'moss', className, height = 8, live }: { value: number; label?: string; tone?: 'moss' | 'brass' | 'good'; className?: string; height?: number; live?: boolean }) {
   const v = Math.max(0, Math.min(1, value))
   const tones = { moss: 'bg-moss', brass: 'bg-brass', good: 'bg-good' }
   return (
@@ -136,7 +137,7 @@ export function ProgressBar({ value, label, tone = 'moss', className, height = 8
       className={cn('w-full overflow-hidden rounded-full bg-surface-2', className)}
       style={{ height }}
     >
-      <div className={cn('h-full rounded-full transition-[width] duration-500', tones[tone])} style={{ width: `${v * 100}%` }} />
+      <div className={cn('h-full rounded-full', !live && 'transition-[width] duration-500', tones[tone])} style={{ width: `${v * 100}%` }} />
     </div>
   )
 }

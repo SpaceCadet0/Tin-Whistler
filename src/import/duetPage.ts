@@ -125,6 +125,12 @@ function inHouseColours(band: RGBAImage, paper: RGB, partColours: RGB[], accent:
   return { width: band.width, height: band.height, data: out }
 }
 
+/** How many parts (dot colours) a tab page shows: 2 on a duet page. */
+export function partCount(source: RGBAImage): number {
+  const img = lightPaper(source)
+  return partsByColour(roundMarks(img, paperOf(img))).length
+}
+
 /** Every tab line of a duet page, top to bottom, read on its own with its dot colour. */
 export function readDuetPage(source: RGBAImage): DuetLine[] {
   const img = lightPaper(source)

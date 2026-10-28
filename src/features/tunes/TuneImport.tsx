@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { parseAbc } from '../../import/abc'
 import { readMidi, type MidiImport } from '../../import/midi'
@@ -14,10 +14,12 @@ import { useProgress } from '../../state/progress'
 import { useSettings } from '../../state/settings'
 import { useTune, useTuneLibrary } from '../../state/tunes'
 import { Icon } from '../../ui/Icon'
-import { Button, Card, Chip, cn, PageHeader, Segmented } from '../../ui/primitives'
+import { Button, Card, Chip, cn, PageHeader, ProgressBar, Segmented } from '../../ui/primitives'
 import { TabView } from '../../ui/whistle/TabView'
+import { stopPreview, togglePreview, usePreview } from './preview'
+import { VideoImport } from './VideoImport'
 
-type Mode = 'abc' | 'midi' | 'notation' | 'image' | 'blank'
+type Mode = 'abc' | 'midi' | 'notation' | 'image' | 'video' | 'blank'
 
 const SAMPLE_ABC = `X:1
 T:The Kesh
@@ -53,6 +55,21 @@ function FileDrop({ accept, multiple, onFiles, label, icon }: { accept: string; 
       <span className="font-semibold">{label}</span>
       <input type="file" accept={accept} multiple={multiple} className="sr-only" onChange={(e) => onFiles([...(e.target.files ?? [])])} />
     </label>
+  )
+}
+
+/** Hear the whole imported tune before saving it; stops when the result changes or the page is left. */
+function ListenButton({ tune }: { tune: Tune }) {
+  const { t } = useT()
+  const { playing, progress } = usePreview(tune.id)
+  useEffect(() => stopPreview, [tune])
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Button variant={playing ? 'secondary' : 'primary'} icon={playing ? 'stop' : 'play'} onClick={() => togglePreview(tune, true)} className="self-start">
+        {playing ? t('import.listenStop') : t('import.listen')}
+      </Button>
+      {playing && <ProgressBar value={progress} height={4} label={t('import.listen')} live />}
+    </div>
   )
 }
 
@@ -258,6 +275,7 @@ export default function TuneImport() {
             { value: 'midi', label: 'MIDI' },
             { value: 'notation', label: t('import.notation') },
             { value: 'image', label: t('import.image') },
+            { value: 'video', label: t('import.video') },
             // an empty section is one click in the editor itself
             ...(target ? [] : [{ value: 'blank' as const, label: t('import.blank') }]),
           ]}
@@ -361,6 +379,15 @@ export default function TuneImport() {
               )}
             </div>
           )}
+          {mode === 'video' && (
+            <VideoImport
+              onResult={(tn, w) => {
+                setTune(tn)
+                setWarnings(w)
+              }}
+              onReset={reset}
+            />
+          )}
           {mode === 'blank' && (
             <div className="flex flex-col items-start gap-4">
               <p className="text-ink-soft">{t('import.blankHelp')}</p>
@@ -396,6 +423,7 @@ export default function TuneImport() {
                   <Chip key={n}>{n}</Chip>
                 ))}
               </div>
+              <ListenButton tune={tune} />
               {warnings.length > 0 && (
                 <ul className="flex flex-col gap-1 rounded-2xl bg-warn-soft p-3 text-sm text-warn">
                   {warnings.map((w, i) => (
