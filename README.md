@@ -59,7 +59,7 @@ Runs in the browser or as an Android app. Your progress stays on your device.
     <td><img src="docs/screenshots/progress.webp" alt="Progress: level, streak, practice calendar, note mastery" /></td>
   </tr>
   <tr>
-    <td><b>77 built-in tunes.</b> Search them, filter by difficulty or whistle key, and preview any tune right from its card.</td>
+    <td><b>80 built-in tunes.</b> Search them, filter by difficulty or whistle key, and preview any tune right from its card.</td>
     <td><b>See yourself improve.</b> XP and levels, streaks, a 12-week calendar, mastery for every note, and Smart Practice, which drills the note you miss most.</td>
   </tr>
 </table>
