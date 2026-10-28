@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cleanTab } from './tabClean'
+import { cleanTab, holesOf } from './tabClean'
 import { levelsOf, pageFrameTimes, quietWindow } from './videoTune'
 
 const W = 240
@@ -57,6 +57,17 @@ describe('a clean page out of the video', () => {
     const [x, y] = holeAt(1, 4)
     expect(at(out, x, y)).toEqual([250, 250, 250])
     expect(at(out, x + 5, y)).toEqual(NAVY)
+  })
+
+  it('keeps a covered hole that a ring cuts into: it stands where its row crosses its column', () => {
+    const cut = page((set) => {
+      // a ring round the hole above cuts a red band through this one
+      const [x, y] = holeAt(2, 2)
+      for (let xx = x - 6; xx <= x + 6; xx++) for (let yy = y - 1; yy <= y + 1; yy++) set(xx, yy, [170, 30, 40])
+    })
+    const [x, y] = holeAt(2, 2)
+    expect(holesOf(cut)!.centres.some(([u, v]) => Math.abs(u - x) < 2 && Math.abs(v - y) < 2)).toBe(true)
+    expect(at(cleanTab(cut), x, y + 3)).toEqual(NAVY)
   })
 
   it('turns the picture between the holes to paper', () => {

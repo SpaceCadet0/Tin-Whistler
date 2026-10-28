@@ -42,7 +42,7 @@ const BLOB = 2.5
 /** ...nor one this many dot sizes tall (frame lines) or wide (rules across the page). */
 const TALL = 8
 const WIDE = 30
-/** Anti-aliased edge pixels of a kept mark: this far from it, and this much off what lies round them. */
+/** Anti-aliased edge pixels of a kept mark: this far from it, and this much off what lies round them (in brightness or colour). */
 const EDGE_REACH = 2
 const EDGE_MARK = 30
 /** A thin dark mark this grey (channel spread) and this light at its core is a speck of the picture behind. */
@@ -142,7 +142,46 @@ export function holesOf(img: RGBAImage): { centres: [number, number][]; D: numbe
   const all = [...covered, ...open].map(centre)
   // a hole stands in a column of holes; a round speck of the picture stands alone
   const centres = all.filter(([x, y]) => all.some(([u, v]) => Math.abs(u - x) < D * 0.4 && v !== y && Math.abs(v - y) < D * COLUMN_REACH))
-  return { centres, D }
+  return { centres: completeGrid(centres, D), D }
+}
+
+/** Holes in a tab system: six rows. */
+const SYSTEM_ROWS = 6
+/** Rows this many dot sizes apart or less belong to one system (the gap between the hands included). */
+const SYSTEM_GAP = 2.5
+/** A column is trusted when this many of its holes were found. */
+const COLUMN_FOUND = 3
+
+/** Runs of sorted values, each closer than `gap` to the one before: their means. */
+function clusters(values: number[], gap: number): number[][] {
+  const out: number[][] = []
+  for (const v of [...values].sort((a, b) => a - b)) {
+    const last = out[out.length - 1]
+    if (last && v - last[last.length - 1] < gap) last.push(v)
+    else out.push([v])
+  }
+  return out
+}
+const mean = (a: number[]) => a.reduce((s, v) => s + v, 0) / a.length
+
+/**
+ * The holes stand in a grid, six rows by the columns of notes: a hole missed (a ring round its
+ * neighbour cuts into it, the highlight sits on it) is where its row crosses its column.
+ */
+function completeGrid(centres: [number, number][], D: number): [number, number][] {
+  const near = D * 0.4
+  const rows = clusters(centres.map(([, y]) => y), near).map(mean)
+  const systems = clusters(rows, D * SYSTEM_GAP).filter((s) => s.length === SYSTEM_ROWS)
+  const added: [number, number][] = []
+  for (const ys of systems) {
+    const inside = centres.filter(([, y]) => y > ys[0] - near && y < ys[SYSTEM_ROWS - 1] + near)
+    for (const col of clusters(inside.map(([x]) => x), near)) {
+      if (col.length < COLUMN_FOUND) continue
+      const x = mean(col)
+      for (const y of ys) if (!inside.some(([u, v]) => Math.abs(u - x) < near && Math.abs(v - y) < near)) added.push([x, y])
+    }
+  }
+  return [...centres, ...added]
 }
 
 export function cleanTab(img: RGBAImage): RGBAImage {
@@ -228,7 +267,8 @@ export function cleanTab(img: RGBAImage): RGBAImage {
     for (let x = 0; x < W; x++) {
       const i = y * W + x
       if (near[i] === 2) continue
-      const darker = closed[i] - L[i]
+      // a reddish rim is barely darker than the paper, but clearly off its colour
+      const darker = Math.max(closed[i] - L[i], Math.hypot(d[i * 4] - closed[i], d[i * 4 + 1] - closed[i], d[i * 4 + 2] - closed[i]))
       const lighter = L[i] - opened[i]
       if (keepDark[i] || (darker > EDGE_MARK && touching(keepDark, x, y))) copy(i)
       else if (keepLight[i] || (lighter > EDGE_MARK && touching(keepLight, x, y))) {
