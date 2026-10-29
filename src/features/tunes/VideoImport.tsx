@@ -1,10 +1,11 @@
 import { useRef, useState } from 'react'
 import { useT } from '../../i18n'
 import { buildFromVideo, pageFromScreenshot, readVideo, type ImportedPage, type VideoStage } from '../../import/videoImport'
+import { midiToName } from '../../music/pitch'
 import type { Tune } from '../../music/types'
 import { getWhistle, WHISTLE_KEYS } from '../../music/whistles'
 import { Icon } from '../../ui/Icon'
-import { Button, Chip, cn, IconButton, ProgressBar, Segmented } from '../../ui/primitives'
+import { Button, Chip, cn, IconButton, ProgressBar, Segmented, Toggle } from '../../ui/primitives'
 
 /**
  * The "Video" import: a tab tutorial (mp4) read on the device. Its pages are cut out and shown for
@@ -28,6 +29,7 @@ export function VideoImport({ onResult, onReset }: Props) {
   const [progress, setProgress] = useState<{ stage: VideoStage; share: number }>({ stage: 'audio', share: 0 })
   const [pages, setPages] = useState<ImportedPage[]>([])
   const [whistle, setWhistle] = useState<string | null>(null)
+  const [bySound, setBySound] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const source = useRef<{ samples: Float32Array; title: string } | null>(null)
 
@@ -54,12 +56,12 @@ export function VideoImport({ onResult, onReset }: Props) {
     }
   }
 
-  const build = async (key?: string) => {
+  const build = async (key?: string, fix = bySound) => {
     if (!source.current) return
     setError(null)
     setPhase('building')
     try {
-      const r = await buildFromVideo(pages, source.current.samples, key)
+      const r = await buildFromVideo(pages, source.current.samples, { whistle: key, fixBySound: fix })
       setWhistle(r.whistle)
       const tune: Tune = {
         id: `user-${Date.now().toString(36)}`,
@@ -77,6 +79,7 @@ export function VideoImport({ onResult, onReset }: Props) {
       const warnings = [
         t('import.videoNote'),
         ...pages.flatMap((p, i) => (p.twoColours ? [t('import.videoTwoColoursAt', { n: i + 1 })] : [])),
+        ...r.fixed.map((f) => t('import.videoFixed', { s: f.section, n: f.note, from: midiToName(f.from), to: midiToName(f.to) })),
         ...r.doubtful.map((d) => t('import.videoDoubtful', { s: d.section, n: d.note })),
       ]
       onResult(tune, warnings)
@@ -140,6 +143,17 @@ export function VideoImport({ onResult, onReset }: Props) {
               </li>
             ))}
           </ol>
+          {(phase === 'review' || phase === 'done') && (
+            <Toggle
+              label={t('import.videoBySound')}
+              description={t('import.videoBySoundHint')}
+              checked={bySound}
+              onChange={(v) => {
+                setBySound(v)
+                if (phase === 'done') void build(whistle ?? undefined, v)
+              }}
+            />
+          )}
           {phase === 'review' && (
             <Button icon="wand" disabled={!pages.length} onClick={() => void build()}>
               {t('import.videoBuild')}

@@ -4,14 +4,14 @@ import { partCount } from './duetPage'
 import { lightPaper } from './palette'
 import { sectionFromRecognition, type RGBAImage } from './tabImage'
 import { tabRegion, type Rect } from './videoFrames'
-import { buildVideoTune, pagePanel, type VideoPage } from './videoTune'
+import { buildVideoTune, pagePanel, type BuildOptions, type VideoPage } from './videoTune'
 
 /** Video import, off the main thread: where a page's tab is, the clean page, the tune in time. */
 
 export type VideoWorkRequest =
   | { kind: 'region'; frame: RGBAImage }
   | { kind: 'page'; frames: RGBAImage[] }
-  | { kind: 'build'; pages: VideoPage[]; samples: Float32Array; sampleRate: number; whistle?: string }
+  | { kind: 'build'; pages: VideoPage[]; samples: Float32Array; sampleRate: number; options: BuildOptions }
 
 export interface VideoPageRead {
   panel: RGBAImage
@@ -41,7 +41,7 @@ self.onmessage = (e: MessageEvent<{ id: number; request: VideoWorkRequest }>) =>
     else if (request.kind === 'page') {
       const page = pagePanel(request.frames)
       result = page && ({ panel: page.panel, section: sectionFromRecognition(page.result, 's', 'S', 'D'), warnings: page.result.warnings, twoColours: partCount(page.panel) > 1 } satisfies VideoPageRead)
-    } else result = buildVideoTune(request.pages, request.samples, request.sampleRate, request.whistle)
+    } else result = buildVideoTune(request.pages, request.samples, request.sampleRate, request.options)
     self.postMessage({ id, result })
   } catch (err) {
     self.postMessage({ id, error: err instanceof Error ? err.message : String(err) })

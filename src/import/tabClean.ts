@@ -11,11 +11,15 @@ import type { RGBAImage } from './tabImage'
  */
 
 type Px = Uint8Array | Uint8ClampedArray
+type RGB = [number, number, number]
 
-/** Covered holes: within this colour distance of a dot seen on the paper. */
+/** Covered holes: within this colour distance of a dot seen on the paper... */
 const INK_NEAR = 50
-/** An open hole's light centre: this light, and this many dot sizes across. */
+/** ...in a colour at least this share of the dots have. */
+const INK_SHARE = 0.1
+/** An open hole's light centre: this light (or this close to the paper's colour: a coloured page shows through), and this many dot sizes across. */
 const HOLE_LIGHT = 190
+const PAPER_NEAR = 40
 const HOLE_MIN = 0.4
 const HOLE_MAX = 1.0
 /** Round enough for a hole: width to height, and the share of its box it fills. */
@@ -119,19 +123,26 @@ const round = (b: Blob) => {
 const touchesEdge = (b: Blob, W: number, H: number) => b.x0 === 0 || b.y0 === 0 || b.x1 === W - 1 || b.y1 === H - 1
 
 /** Centres of the holes, covered and open, and the dot size: over a picture too. */
-export function holesOf(img: RGBAImage): { centres: [number, number][]; D: number } | null {
+export function holesOf(img: RGBAImage): { centres: [number, number][]; D: number; paper: RGB; inks: RGB[] } | null {
   const { width: W, height: H, data: d } = img
-  const dots = roundMarks(img, paperOf(img))
+  const paper = paperOf(img)
+  const dots = roundMarks(img, paper)
   if (!dots.length) return null
   const D = [...dots.map((t) => t.x1 - t.x0 + 1)].sort((a, b) => a - b)[dots.length >> 1]
   // the dots' colours, as seen where they lie on the paper; over a picture they keep them
-  const inks = [...new Map(dots.map((t) => [t.colour.map((c) => Math.round(c / 16)).join(), t.colour])).values()]
+  // (only colours many dots share: a round letter "o" in the words is no dot)
+  const byColour = new Map<string, RGB[]>()
+  for (const t of dots) {
+    const key = t.colour.map((c) => Math.round(c / 16)).join()
+    byColour.set(key, [...(byColour.get(key) ?? []), t.colour])
+  }
+  const inks = [...byColour.values()].filter((g) => g.length >= dots.length * INK_SHARE).map((g) => g[0])
   const ink = new Uint8Array(W * H)
   const light = new Uint8Array(W * H)
   for (let i = 0; i < W * H; i++) {
     const [r, g, b] = [d[i * 4], d[i * 4 + 1], d[i * 4 + 2]]
     ink[i] = inks.some((c) => Math.hypot(r - c[0], g - c[1], b - c[2]) < INK_NEAR) ? 1 : 0
-    light[i] = lum(d, i) > HOLE_LIGHT ? 1 : 0
+    light[i] = lum(d, i) > HOLE_LIGHT || Math.hypot(r - paper[0], g - paper[1], b - paper[2]) < PAPER_NEAR ? 1 : 0
   }
   const centre = (b: Blob): [number, number] => [(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2]
   const covered = blobsOf(ink, W, H).filter((b) => round(b) && Math.abs(b.x1 - b.x0 + 1 - D) <= D * DOT_SIZE)
@@ -142,7 +153,52 @@ export function holesOf(img: RGBAImage): { centres: [number, number][]; D: numbe
   const all = [...covered, ...open].map(centre)
   // a hole stands in a column of holes; a round speck of the picture stands alone
   const centres = all.filter(([x, y]) => all.some(([u, v]) => Math.abs(u - x) < D * 0.4 && v !== y && Math.abs(v - y) < D * COLUMN_REACH))
-  return { centres: completeGrid(centres, D), D }
+  return { centres: completeGrid(centres, D), D, paper, inks }
+}
+
+/** A pixel this close (colour distance) to the line from the paper to a mark colour is a mix of the two (video blurs colour more than brightness). */
+const ON_RIM = 80
+
+/** Where `c` lies between the paper and the nearest dot colour it mixes (0 paper … 1 ink), if it does. */
+function rimOn(c: number[], paper: RGB, inks: RGB[]): { ink: RGB; t: number } | null {
+  let best: { ink: RGB; t: number; off: number } | null = null
+  for (const ink of inks) {
+    const v = [0, 1, 2].map((k) => ink[k] - paper[k])
+    const len = v[0] * v[0] + v[1] * v[1] + v[2] * v[2] || 1
+    const t = Math.min(1, Math.max(0, ((c[0] - paper[0]) * v[0] + (c[1] - paper[1]) * v[1] + (c[2] - paper[2]) * v[2]) / len))
+    const off = Math.hypot(...[0, 1, 2].map((k) => c[k] - paper[k] - v[k] * t))
+    if (off < ON_RIM && (!best || off < best.off)) best = { ink, t, off }
+  }
+  return best
+}
+
+/** A line of text with more separate letters than this per note column under it is words (lyrics, titles)... */
+const LYRICS_PER_COLUMN = 2.5
+/** ...when it runs over at least this many columns ("C+S" over one note is three marks too). */
+const LYRICS_COLUMNS = 3
+
+/**
+ * Marks without the lines of words: tab marks come one or two to a note ("t", "du", "C", "-"), the
+ * words of a song three or more. Words between two systems would pass for the articulation of one
+ * and the ornaments of the next.
+ */
+function withoutLyrics(marks: Blob[], holes: [number, number][], D: number): Blob[] {
+  const columns = clusters(holes.map(([x]) => x), D * 0.4).map(mean)
+  const cy = (b: Blob) => (b.y0 + b.y1) / 2
+  const lines: Blob[][] = []
+  for (const b of [...marks].sort((a, c) => cy(a) - cy(c))) {
+    const line = lines[lines.length - 1]
+    if (line && cy(b) - cy(line[line.length - 1]) < D * 0.6) line.push(b)
+    else lines.push([b])
+  }
+  const words = new Set<Blob>()
+  for (const line of lines) {
+    const x0 = Math.min(...line.map((b) => b.x0)) - D / 2
+    const x1 = Math.max(...line.map((b) => b.x1)) + D / 2
+    const under = columns.filter((x) => x >= x0 && x <= x1).length
+    if (under >= LYRICS_COLUMNS && line.length > under * LYRICS_PER_COLUMN) line.forEach((b) => words.add(b))
+  }
+  return marks.filter((b) => !words.has(b))
 }
 
 /** Holes in a tab system: six rows. */
@@ -188,10 +244,17 @@ export function cleanTab(img: RGBAImage): RGBAImage {
   const { width: W, height: H, data: d } = img
   const holes = holesOf(img)
   if (!holes) return img
-  const { centres, D } = holes
+  const { centres, D, paper, inks } = holes
+  // the colours marks are drawn in: the dots', then the other marks' (their darkest pixel)
+  const rimInks: RGB[] = [...inks]
   const out = new Uint8Array(W * H * 4).fill(255)
+  // a mark keeps its colour; the paper inside a hole or between strokes turns white, whatever its own colour
   const copy = (i: number) => {
-    for (let k = 0; k < 3; k++) out[i * 4 + k] = d[i * 4 + k]
+    const c = [d[i * 4], d[i * 4 + 1], d[i * 4 + 2]]
+    if (Math.hypot(c[0] - paper[0], c[1] - paper[1], c[2] - paper[2]) < PAPER_NEAR) return
+    // the anti-aliased rim of a dot is the dot's colour mixed with the paper: mixed with white instead
+    const rim = rimOn(c, paper, rimInks)
+    for (let k = 0; k < 3; k++) out[i * 4 + k] = rim ? Math.round(255 + (rim.ink[k] - 255) * rim.t) : c[k]
   }
   // the holes, copied whole; `near` marks the room round them
   const R = D / 2 + DISC_PAD
@@ -212,6 +275,12 @@ export function cleanTab(img: RGBAImage): RGBAImage {
   for (let i = 0; i < W * H; i++) L[i] = lum(d, i)
   const r = Math.max(1, Math.round(D * STROKE))
   const closed = extreme(extreme(L, W, H, r, true), W, H, r, false)
+  // the colour round each pixel with thin marks closed over: the paper (white, salmon...) or the picture
+  const around = [0, 1, 2].map((k) => {
+    const ch = new Uint8Array(W * H)
+    for (let i = 0; i < W * H; i++) ch[i] = d[i * 4 + k]
+    return extreme(extreme(ch, W, H, r, true), W, H, r, false)
+  })
   const opened = extreme(extreme(L, W, H, r, false), W, H, r, true)
   const dark = new Uint8Array(W * H)
   const lightText = new Uint8Array(W * H)
@@ -225,15 +294,25 @@ export function cleanTab(img: RGBAImage): RGBAImage {
     const h = b.y1 - b.y0 + 1
     return !((w > D * BLOB && h > D * BLOB) || h > D * TALL || w > D * WIDE) && !touchesEdge(b, W, H)
   }
-  const keepDark = new Uint8Array(W * H)
+  const marks: Blob[] = []
   for (const b of blobsOf(dark, W, H)) {
     if (!markLike(b)) continue
     // tab marks are dark at their core or clearly coloured; a speck of a faded picture is light grey all through
     const core = b.pixels.reduce((a, i) => (L[i] < L[a] ? i : a), b.pixels[0])
     const tint = Math.max(d[core * 4], d[core * 4 + 1], d[core * 4 + 2]) - Math.min(d[core * 4], d[core * 4 + 1], d[core * 4 + 2])
     if (tint < SPECK_TINT && L[core] > SPECK_LIGHT) continue
-    for (const i of b.pixels) keepDark[i] = 1
+    marks.push(b)
   }
+  const keepDark = new Uint8Array(W * H)
+  const kept = withoutLyrics(marks, centres, D)
+  for (const b of kept) for (const i of b.pixels) keepDark[i] = 1
+  const markInks = new Map<string, RGB>()
+  for (const b of kept) {
+    const core = b.pixels.reduce((a, i) => (L[i] < L[a] ? i : a), b.pixels[0])
+    const c: RGB = [d[core * 4], d[core * 4 + 1], d[core * 4 + 2]]
+    markInks.set(c.map((v) => Math.round(v / 24)).join(), c)
+  }
+  rimInks.push(...markInks.values())
   // the paper between dark letters is light and thin too, but paper lies round it
   const onDark = (b: Blob) => {
     const own = new Set(b.pixels)
@@ -268,7 +347,7 @@ export function cleanTab(img: RGBAImage): RGBAImage {
       const i = y * W + x
       if (near[i] === 2) continue
       // a reddish rim is barely darker than the paper, but clearly off its colour
-      const darker = Math.max(closed[i] - L[i], Math.hypot(d[i * 4] - closed[i], d[i * 4 + 1] - closed[i], d[i * 4 + 2] - closed[i]))
+      const darker = Math.max(closed[i] - L[i], Math.hypot(d[i * 4] - around[0][i], d[i * 4 + 1] - around[1][i], d[i * 4 + 2] - around[2][i]))
       const lighter = L[i] - opened[i]
       if (keepDark[i] || (darker > EDGE_MARK && touching(keepDark, x, y))) copy(i)
       else if (keepLight[i] || (lighter > EDGE_MARK && touching(keepLight, x, y))) {

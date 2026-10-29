@@ -4,7 +4,7 @@ import { sectionFromRecognition, type RGBAImage } from './tabImage'
 import { cropImage, tabPages, type Rect } from './videoFrames'
 import { closeVideo, decodeAudio, frameAt, openVideo, thumbnails } from './videoMedia'
 import type { VideoPageRead, VideoWorkRequest } from './videoTune.worker'
-import { levelsOf, pageFrameTimes, type VideoTune } from './videoTune'
+import { levelsOf, pageFrameTimes, type BuildOptions, type VideoTune } from './videoTune'
 
 /**
  * Import a tune from a tab tutorial video (mp4), on the device: the pages found where the tab
@@ -120,14 +120,14 @@ export async function pageFromScreenshot(file: File, start: number, end: number)
   return { start, end, preview, section: sectionFromRecognition(result, 's', 'S', 'D'), warnings: result.warnings, twoColours: false }
 }
 
-/** The checked pages timed against the soundtrack, in the key heard (or `whistle`). */
-export async function buildFromVideo(pages: ImportedPage[], samples: Float32Array, whistle?: string): Promise<VideoTune> {
+/** The checked pages timed against the soundtrack, in the key heard (or the one chosen). */
+export async function buildFromVideo(pages: ImportedPage[], samples: Float32Array, options: BuildOptions = {}): Promise<VideoTune> {
   const worker = new VideoWorker()
   try {
     const input = pages.map((p, i) => ({ section: { ...p.section, id: `s${i + 1}` }, start: p.start, end: p.end }))
     // a copy goes to the worker: the samples stay here for building again in another key
     const copy = samples.slice()
-    return await worker.run<VideoTune>({ kind: 'build', pages: input, samples: copy, sampleRate: AUDIO_RATE, whistle }, [copy.buffer])
+    return await worker.run<VideoTune>({ kind: 'build', pages: input, samples: copy, sampleRate: AUDIO_RATE, options }, [copy.buffer])
   } finally {
     worker.close()
   }

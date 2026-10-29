@@ -51,11 +51,12 @@ describe('a clean page out of the video', () => {
 
   it('keeps the holes, covered and open, over the paper and over the picture', () => {
     expect(at(out, ...(holeAt(0, 0) as [number, number]))).toEqual(NAVY)
-    expect(at(out, ...(holeAt(1, 0) as [number, number]))).toEqual([250, 250, 250])
+    // an open hole shows the paper, which comes out white
+    expect(at(out, ...(holeAt(1, 0) as [number, number]))).toEqual([255, 255, 255])
     expect(at(out, ...(holeAt(0, 4) as [number, number]))).toEqual(NAVY)
     // an open hole over the picture: its light centre and its ring both stay
     const [x, y] = holeAt(1, 4)
-    expect(at(out, x, y)).toEqual([250, 250, 250])
+    expect(at(out, x, y)).toEqual([255, 255, 255])
     expect(at(out, x + 5, y)).toEqual(NAVY)
   })
 

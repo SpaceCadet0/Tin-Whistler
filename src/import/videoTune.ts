@@ -1,8 +1,9 @@
 import type { TuneNote, TuneSection } from '../music/types'
-import { getWhistle, WHISTLE_KEYS } from '../music/whistles'
+import { fingeringForMidi, getWhistle, WHISTLE_KEYS } from '../music/whistles'
 import { alignNotes, attackAt, correctTuning, HOP, pitchTrack, timedNotes, type Alignment, type PitchFrame } from './align'
 import { lightPaper, toHouseColours } from './palette'
 import { quantizeSections } from './quantize'
+import { fixBySound, MISFIT } from './soundFix'
 import { cleanTab } from './tabClean'
 import { recognizeTab, type RecognitionResult, type RGBAImage } from './tabImage'
 import { cropImage, medianFrame, tabRegion } from './videoFrames'
@@ -110,14 +111,21 @@ export interface VideoTune {
   keyFits: { id: string; misfit: number }[]
   /** Notes where the recording doesn't match the tab (section and note, from 1). */
   doubtful: { section: number; note: number }[]
+  /** Notes the tab had wrong and the recording put right (section and note, from 1; MIDI pitches). */
+  fixed: { section: number; note: number; from: number; to: number }[]
+}
+
+export interface BuildOptions {
+  /** The whistle to read the tab for; heard from the recording when left out. */
+  whistle?: string
+  /** Where the tab and a clear, steady sound disagree, the sound wins (on by default). */
+  fixBySound?: boolean
 }
 
 /** A page is played until a little after the next one appears (pages show up ahead of the playing). */
 const PLAYED_PAST = 4
 /** The keys are judged on the first pages only: enough to tell them apart, quicker on a phone. */
 const KEY_PAGES = 2
-/** Mean cost per frame above which a note doesn't match the recording. */
-const MISFIT = 1
 /** Below this attack strength a note with no articulation mark is taken as slurred. */
 const SLUR_ATTACK = 0.25
 /** The fingerings are read as a D whistle. */
@@ -149,7 +157,7 @@ function alignChain(frames: PitchFrame[], pages: VideoPage[], shift: number) {
 }
 
 /** The notes of the pages timed against the recording, in the whistle that fits it best (or `whistle`). */
-export function buildVideoTune(pages: VideoPage[], samples: Float32Array, sampleRate: number, whistle?: string): VideoTune {
+export function buildVideoTune(pages: VideoPage[], samples: Float32Array, sampleRate: number, { whistle, fixBySound: bySound = true }: BuildOptions = {}): VideoTune {
   const frames = pitchTrack(samples, sampleRate)
   const keys = WHISTLE_KEYS.filter((w) => w.id !== 'lowD' && (!whistle || w.id === whistle || (whistle === 'lowD' && w.id === 'D')))
   const keyFits = keys
@@ -164,10 +172,17 @@ export function buildVideoTune(pages: VideoPage[], samples: Float32Array, sample
   if (!whistle && id === 'D' && heard[heard.length >> 1] < READ_AS) id = 'lowD'
   const shift = getWhistle(id).baseMidi - READ_AS
   const chain = alignChain(frames, pages, shift)
-  const doubtful: { section: number; note: number }[] = []
+  const doubtful: VideoTune['doubtful'] = []
+  const fixed: VideoTune['fixed'] = []
+  const playable = (midi: number) => fingeringForMidi(midi, id) != null
   const measured = pages.map((page, si): TuneSection => {
-    const { tuned, al } = chain[si]
-    const notes = sounding(page.section).map((n): TuneNote => ({ ...n, pitch: n.pitch! + shift }))
+    const { tuned } = chain[si]
+    const read = sounding(page.section).map((n): TuneNote => ({ ...n, pitch: n.pitch! + shift }))
+    const fix = bySound ? fixBySound(tuned, read.map((n) => n.pitch!), chain[si].al, playable) : null
+    const al = fix?.al ?? chain[si].al
+    // a note put right by the sound takes the whistle's own fingering for it
+    const notes = read.map((n, k): TuneNote => (fix?.fixed.includes(k) ? { ...n, pitch: fix.pitches[k], fingering: undefined } : n))
+    fix?.fixed.forEach((k) => fixed.push({ section: si + 1, note: k + 1, from: read[k].pitch!, to: fix.pitches[k] }))
     al.misfit.forEach((m, k) => m > MISFIT && doubtful.push({ section: si + 1, note: k + 1 }))
     const loud = tuned.map((f) => f.rms).sort((a, b) => a - b)[Math.floor(tuned.length * 0.9)]
     // no articulation under a note: the recording decides, a smooth change of pitch is a slur
@@ -187,5 +202,5 @@ export function buildVideoTune(pages: VideoPage[], samples: Float32Array, sample
     return { ...page.section, phrases }
   })
   const written = quantizeSections(measured)
-  return { whistle: id, bpm: written.bpm, sections: written.sections, keyFits, doubtful }
+  return { whistle: id, bpm: written.bpm, sections: written.sections, keyFits, doubtful, fixed }
 }
