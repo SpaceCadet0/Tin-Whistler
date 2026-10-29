@@ -1,132 +1,8 @@
-import {
-  ArrowClockwise,
-  ArrowCounterClockwise,
-  ArrowDown,
-  ArrowsClockwise,
-  ArrowsSplit,
-  ArrowUp,
-  BookOpen,
-  CalendarBlank,
-  CaretDown,
-  CaretLeft,
-  CaretRight,
-  ChartBar,
-  Check,
-  ClipboardText,
-  Copy,
-  DownloadSimple,
-  Ear,
-  Eye,
-  File,
-  Flame,
-  Heart,
-  GameController,
-  Gauge,
-  GearSix,
-  HandPalm,
-  Headphones,
-  HourglassMedium,
-  House,
-  Image,
-  Info,
-  Keyboard,
-  Ladder,
-  Lightning,
-  List,
-  MagicWand,
-  Metronome,
-  Microphone,
-  MicrophoneSlash,
-  Minus,
-  MusicNote,
-  MusicNotes,
-  Pause,
-  PencilSimple,
-  Play,
-  Plus,
-  Record,
-  Repeat,
-  Scissors,
-  Sparkle,
-  SpeakerHigh,
-  Star,
-  Stop,
-  Sun,
-  Target,
-  Timer,
-  Trash,
-  Trophy,
-  UploadSimple,
-  X,
-  type Icon as PhosphorIcon,
-  type IconWeight,
-} from '@phosphor-icons/react'
 import type { SVGProps } from 'react'
+import { ICON_BOX, ICON_PATHS } from './icons/paths'
 
-/** One icon family (Phosphor), one stroke weight everywhere. */
-const ICONS: Record<string, PhosphorIcon> = {
-  home: House,
-  book: BookOpen,
-  target: Target,
-  music: MusicNotes,
-  note: MusicNote,
-  chart: ChartBar,
-  play: Play,
-  pause: Pause,
-  stop: Stop,
-  mic: Microphone,
-  micOff: MicrophoneSlash,
-  repeat: Repeat,
-  copy: Copy,
-  cut: Scissors,
-  paste: ClipboardText,
-  undo: ArrowCounterClockwise,
-  redo: ArrowClockwise,
-  back: CaretLeft,
-  next: CaretRight,
-  check: Check,
-  x: X,
-  settings: GearSix,
-  flame: Flame,
-  star: Star,
-  heart: Heart,
-  caret: CaretDown,
-  trophy: Trophy,
-  upload: UploadSimple,
-  edit: PencilSimple,
-  trash: Trash,
-  plus: Plus,
-  minus: Minus,
-  volume: SpeakerHigh,
-  headphones: Headphones,
-  loop: ArrowsClockwise,
-  metronome: Metronome,
-  tuner: Gauge,
-  ear: Ear,
-  gamepad: GameController,
-  record: Record,
-  timer: Timer,
-  info: Info,
-  hand: HandPalm,
-  ladder: Ladder,
-  calendar: CalendarBlank,
-  sparkles: Sparkle,
-  wand: MagicWand,
-  file: File,
-  image: Image,
-  keyboard: Keyboard,
-  eye: Eye,
-  slow: HourglassMedium,
-  fast: Lightning,
-  up: ArrowUp,
-  down: ArrowDown,
-  menu: List,
-  download: DownloadSimple,
-  sun: Sun,
-  split: ArrowsSplit,
-}
-
-export type IconName = keyof typeof ICONS
+/** One hand-drawn family (src/ui/icons, traced from scripts/icons-sheet.png by scripts/trace-icons.py). */
+export type IconName = keyof typeof ICON_PATHS
 
 interface IconProps extends Omit<SVGProps<SVGSVGElement>, 'ref'> {
   name: IconName | string
@@ -134,24 +10,15 @@ interface IconProps extends Omit<SVGProps<SVGSVGElement>, 'ref'> {
   filled?: boolean
 }
 
-const SOLID = new Set(['play', 'pause', 'stop', 'record'])
-
-/** The app's own mark: a whistle body with six holes (a simple geometric mark, not an icon). */
-function WhistleMark({ size, className, style }: { size: number; className?: string; style?: React.CSSProperties }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" className={className} style={style} aria-hidden="true" focusable="false">
-      <rect x="9.5" y="2" width="5" height="20" rx="2.5" fill="currentColor" opacity="0.28" />
-      {/* six holes, three for each hand */}
-      {[6.2, 8.6, 11, 13.8, 16.2, 18.6].map((y) => (
-        <circle key={y} cx="12" cy={y} r="1.05" fill="currentColor" />
-      ))}
-    </svg>
-  )
-}
+/** How strongly a filled icon's silhouette is tinted under its drawing. */
+const FILL_TINT = 0.35
 
 export function Icon({ name, size = 22, filled, className, style }: IconProps) {
-  if (name === 'whistle') return <WhistleMark size={size} className={className} style={style} />
-  const Cmp = ICONS[name] ?? Info
-  const weight: IconWeight = filled || SOLID.has(name) ? 'fill' : 'regular'
-  return <Cmp size={size} weight={weight} className={className} style={style} aria-hidden="true" focusable="false" />
+  const icon = ICON_PATHS[name] ?? ICON_PATHS.info
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${ICON_BOX} ${ICON_BOX}`} fill="currentColor" className={className} style={style} aria-hidden="true" focusable="false">
+      {filled && icon.fill && <path d={icon.fill} opacity={FILL_TINT} />}
+      <path d={icon.d} fillRule="evenodd" />
+    </svg>
+  )
 }
