@@ -25,7 +25,9 @@ BOX = 120
 # traced at this many times the sheet's resolution, for smooth curves
 UP = 4
 # a single drawing is scaled to stand this tall or wide, as the sheet's do
-SIZE = 100
+SIZE = 96
+# single drawings stand a little lighter than the sheet's: their strokes are this share of its thickness
+EXTRA_WEIGHT = 0.8
 # strokes thickened by this many sheet pixels, to stand as heavy as the old icons at 22 px
 GROW = 1
 
@@ -110,6 +112,10 @@ def half_width(ink):
     return float(np.median(ndimage.maximum_filter(d, 3)[ink]))
 
 
+# half thickness (mask pixels) of the core a single drawing's strokes are thinned to
+CORE = 2
+
+
 def extra_ink(path, target):
     """A single drawing (dark or opaque on clear) scaled to SIZE, its strokes made `target` half thick."""
     im = Image.open(path).convert('RGBA')
@@ -121,7 +127,10 @@ def extra_ink(path, target):
     k = SIZE * UP / max(crop.size)
     w, h = round(crop.width * k), round(crop.height * k)
     ink = np.array(crop.resize((w, h), Image.LANCZOS)) < 128
-    ink = grow(ink, round(target - half_width(ink)))
+    # thinned to a core and grown back: every stroke gets one thickness and a round end,
+    # even where the picture's edge cut it off flat
+    core = ndimage.binary_erosion(ink, structure=disk(max(0, round(half_width(ink)) - CORE)))
+    ink = grow(core, round(target * EXTRA_WEIGHT) - CORE)
     out = np.zeros((BOX * UP, BOX * UP), dtype=bool)
     y0, x0 = (BOX * UP - h) // 2, (BOX * UP - w) // 2
     out[y0:y0 + h, x0:x0 + w] = ink
