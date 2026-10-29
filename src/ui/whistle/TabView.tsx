@@ -43,6 +43,15 @@ function PartnerShadow({ notes, whistle }: { notes: TuneNote[]; whistle: string 
   )
 }
 
+/** The nearest ancestor that scrolls up and down on its own, rather than with the page. */
+function scrollBoxOf(el: HTMLElement): HTMLElement | null {
+  for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+    const { overflowY } = getComputedStyle(p)
+    if ((overflowY === 'auto' || overflowY === 'scroll') && p.scrollHeight > p.clientHeight) return p
+  }
+  return null
+}
+
 interface TabViewProps {
   tune: Tune
   section: TuneSection
@@ -107,7 +116,11 @@ export const TabView = memo(function TabView({
     const el = currentRef.current
     if (!el || !followRef.current) return
     const r = el.getBoundingClientRect()
-    if (r.top >= 0 && r.bottom <= window.innerHeight) return
+    // in view of the window and of the box it scrolls in (the import preview), if any
+    const box = scrollBoxOf(el)?.getBoundingClientRect()
+    const top = Math.max(0, box?.top ?? 0)
+    const bottom = Math.min(window.innerHeight, box?.bottom ?? Infinity)
+    if (r.top >= top && r.bottom <= bottom) return
     const reduce = document.documentElement.dataset.motion === 'reduce'
     el.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: reduce ? 'auto' : 'smooth' })
     // only when the note moves: turning follow on must not yank the page back to the playhead

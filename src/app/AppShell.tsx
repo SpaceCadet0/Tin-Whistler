@@ -10,6 +10,7 @@ import { AppLogo } from '../ui/AppLogo'
 import { motion, PageEnter } from '../ui/motion'
 import { cn } from '../ui/primitives'
 import { ErrorBoundary, ScreenError } from './ErrorBoundary'
+import { BackButton } from './BackButton'
 import { Toaster } from './Toaster'
 
 const NAV: { to: string; icon: string; label: MessageKey }[] = [
@@ -187,6 +188,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
       )}
       <Toaster />
+      <BackButton />
     </div>
   )
 }

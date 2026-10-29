@@ -59,9 +59,8 @@ function FileDrop({ accept, multiple, onFiles, label, icon }: { accept: string; 
 }
 
 /** Hear the whole imported tune before saving it; stops when the result changes or the page is left. */
-function ListenButton({ tune }: { tune: Tune }) {
+function ListenButton({ tune, playing, progress }: { tune: Tune; playing: boolean; progress: number }) {
   const { t } = useT()
-  const { playing, progress } = usePreview(tune.id)
   useEffect(() => stopPreview, [tune])
   return (
     <div className="flex flex-col gap-1.5">
@@ -92,6 +91,7 @@ export default function TuneImport() {
   const [busy, setBusy] = useState(false)
   const [midi, setMidi] = useState<{ data: MidiImport; name: string } | null>(null)
   const [images, setImages] = useState<string[]>([])
+  const heard = usePreview(tune?.id ?? '')
 
   const reset = () => {
     setTune(null)
@@ -430,7 +430,7 @@ export default function TuneImport() {
                   <Chip key={n}>{n}</Chip>
                 ))}
               </div>
-              <ListenButton tune={tune} />
+              <ListenButton tune={tune} playing={heard.playing} progress={heard.progress} />
               {warnings.length > 0 && (
                 <ul className="flex flex-col gap-1 rounded-2xl bg-warn-soft p-3 text-sm text-warn">
                   {warnings.map((w, i) => (
@@ -439,10 +439,11 @@ export default function TuneImport() {
                 </ul>
               )}
               <div className="max-h-96 overflow-auto rounded-2xl border border-line p-3">
-                {tune.sections.slice(0, 3).map((s) => (
+                {/* every section while listening, so the marker can follow the whole tune */}
+                {(heard.playing ? tune.sections : tune.sections.slice(0, 3)).map((s, si) => (
                   <div key={s.id} className="mb-4">
                     <p className="mb-1 text-sm font-semibold">{s.name}</p>
-                    <TabView tune={tune} section={s} dot={10} />
+                    <TabView tune={tune} section={s} dot={10} current={heard.at?.section === si ? heard.at.note : null} />
                   </div>
                 ))}
               </div>

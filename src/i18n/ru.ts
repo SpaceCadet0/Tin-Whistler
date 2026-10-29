@@ -5,6 +5,10 @@ export const ru: Record<MessageKey, string> = {
   'common.back': 'Назад',
   'common.cancel': 'Отмена',
   'common.close': 'Закрыть',
+  'app.exitTitle': 'Выйти из Tin Whistler?',
+  'app.exitText': 'Вы на главном экране. Назад отсюда закроет приложение.',
+  'app.exit': 'Выйти',
+  'app.stay': 'Остаться',
   'common.min': 'мин',
 
   'nav.label': 'Основная навигация',

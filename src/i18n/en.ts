@@ -3,6 +3,10 @@ export const en = {
   'common.back': 'Back',
   'common.cancel': 'Cancel',
   'common.close': 'Close',
+  'app.exitTitle': 'Leave Tin Whistler?',
+  'app.exitText': 'You are on the home screen. Going back closes the app.',
+  'app.exit': 'Leave',
+  'app.stay': 'Stay',
   'common.min': 'min',
 
   'nav.label': 'Main navigation',

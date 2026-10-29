@@ -55,23 +55,35 @@ export function stopPreview(): void {
   player.stop()
 }
 
-/** Whether `id` is the tune being previewed, and how far through (0…1). */
-export function usePreview(id: string): { playing: boolean; progress: number } {
+/** The note sounding in the preview: its section (index in the tune) and place in that section. */
+export interface PreviewNote {
+  section: number
+  note: number
+}
+
+/** Whether `id` is the tune being previewed, how far through (0…1), and which note sounds. */
+export function usePreview(id: string): { playing: boolean; progress: number; at: PreviewNote | null } {
   const [playing, setPlaying] = useState(() => current?.id === id)
   const [progress, setProgress] = useState(0)
+  const [at, setAt] = useState<PreviewNote | null>(null)
   useEffect(
     () =>
       changed.on((playingId) => {
         // a new run starts from the beginning, not where the last one stopped
         setProgress(0)
+        setAt(null)
         setPlaying(playingId === id)
       }),
     [id],
   )
   useRaf(() => {
     if (!current) return
-    const { passTime } = player.positionAt(audioEngine.now)
+    const { passTime, index, countdown } = player.positionAt(audioEngine.now)
     setProgress(Math.min(1, Math.max(0, passTime / current.duration)))
+    const n = player.timeline[index]
+    // same note as the last frame: keep the object, so the tab doesn't re-render 60 times a second
+    const next = n && countdown <= 0 ? { section: n.sectionIndex, note: n.noteInSection } : null
+    setAt((was) => (was?.section === next?.section && was?.note === next?.note ? was : next))
   }, playing)
-  return { playing, progress: playing ? progress : 0 }
+  return { playing, progress: playing ? progress : 0, at: playing ? at : null }
 }
