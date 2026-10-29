@@ -1,6 +1,6 @@
 """
 Cuts the hand-drawn icon sheet (scripts/icons-sheet.png) into icons, traces each to an SVG outline and
-writes src/ui/icons/*.svg plus src/ui/icons/paths.ts, which the Icon component draws.
+adds the single drawings in scripts/icons-extra, and writes src/ui/icons/*.svg plus src/ui/icons/paths.ts, which the Icon component draws.
 
 Needs numpy, scipy, pillow and potracer:  pip install --target /tmp/py potracer
 Run:  PYTHONPATH=/tmp/py python3 scripts/trace-icons.py
@@ -17,11 +17,15 @@ import potrace
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHEET = os.path.join(ROOT, 'scripts', 'icons-sheet.png')
 OUT = os.path.join(ROOT, 'src', 'ui', 'icons')
+# single drawings outside the sheet, one per file, named for the icon
+EXTRA = os.path.join(ROOT, 'scripts', 'icons-extra')
 
 # icon box on the sheet, in sheet pixels: the drawings stand at one scale, so every icon keeps it
 BOX = 120
 # traced at this many times the sheet's resolution, for smooth curves
 UP = 4
+# a single drawing is scaled to stand this tall or wide, as the sheet's do
+SIZE = 100
 # strokes thickened by this many sheet pixels, to stand as heavy as the old icons at 22 px
 GROW = 1
 
@@ -30,7 +34,7 @@ FILLED = {'home', 'book', 'target', 'music', 'chart', 'flame', 'star', 'heart'}
 
 # the sheet's rows, left to right; extra-* = drawings the app has no use for yet
 SHEET_ROWS = [
-    ['next', 'chart', 'back', 'play', 'caret', 'calendar', 'extra-clover', 'check'],
+    ['next', 'chart', 'back', 'play', 'caret', 'calendar', 'clover', 'check'],
     ['copy', 'cut', 'down', 'download', 'book', 'edit', 'fast', 'eye'],
     ['file', 'gamepad', 'pause', 'stop', 'heart', 'trophy', 'extra-tin', 'image'],
     ['info', 'headphones', 'keyboard', 'ladder', 'home', 'menu', 'whistle', 'micOff'],
@@ -88,12 +92,40 @@ def cells(gray):
 def ink_of(box):
     """The drawing as a mask at UP times the size, strokes grown by GROW."""
     big = np.array(Image.fromarray(box.astype(np.uint8)).resize((BOX * UP, BOX * UP), Image.LANCZOS)).astype(float)
-    ink = big < 128
-    if GROW:
-        r = GROW * UP
-        yy, xx = np.mgrid[-r:r + 1, -r:r + 1]
-        ink = ndimage.binary_dilation(ink, structure=(xx * xx + yy * yy) <= r * r)
-    return ink
+    return grow(big < 128, GROW * UP)
+
+
+def disk(r):
+    yy, xx = np.mgrid[-r:r + 1, -r:r + 1]
+    return (xx * xx + yy * yy) <= r * r
+
+
+def grow(ink, r):
+    return ndimage.binary_dilation(ink, structure=disk(r)) if r > 0 else ink
+
+
+def half_width(ink):
+    """Typical half thickness of the strokes, in mask pixels."""
+    d = ndimage.distance_transform_edt(ink)
+    return float(np.median(ndimage.maximum_filter(d, 3)[ink]))
+
+
+def extra_ink(path, target):
+    """A single drawing (dark or opaque on clear) scaled to SIZE, its strokes made `target` half thick."""
+    im = Image.open(path).convert('RGBA')
+    bg = Image.new('RGBA', im.size, (255, 255, 255, 255))
+    bg.alpha_composite(im)
+    gray = np.array(bg.convert('L'))
+    ys, xs = np.nonzero(gray < 128)
+    crop = Image.fromarray(gray[ys.min():ys.max() + 1, xs.min():xs.max() + 1])
+    k = SIZE * UP / max(crop.size)
+    w, h = round(crop.width * k), round(crop.height * k)
+    ink = np.array(crop.resize((w, h), Image.LANCZOS)) < 128
+    ink = grow(ink, round(target - half_width(ink)))
+    out = np.zeros((BOX * UP, BOX * UP), dtype=bool)
+    y0, x0 = (BOX * UP - h) // 2, (BOX * UP - w) // 2
+    out[y0:y0 + h, x0:x0 + w] = ink
+    return grow(out, GROW * UP)
 
 
 def path_d(ink):
@@ -134,9 +166,14 @@ def main():
     # the sheet's thin cross, turned, is the close mark
     found['x'] = ndimage.rotate(found['x'], 45, reshape=False, cval=255.0, order=1)
     found['upload'] = upload_from(found['download'])
+    found = {name: ink_of(box) for name, box in found.items()}
+    # single drawings take the sheet's stroke (before the common GROW)
+    target = half_width(gray < 128) * UP
+    for file in sorted(os.listdir(EXTRA)):
+        found[os.path.splitext(file)[0]] = extra_ink(os.path.join(EXTRA, file), target)
     lines = []
     for name in sorted(found):
-        ink = ink_of(found[name])
+        ink = found[name]
         d = path_d(ink)
         svg = (
             f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {BOX} {BOX}" fill="currentColor">'

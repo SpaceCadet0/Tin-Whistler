@@ -1,4 +1,3 @@
-import { Shamrock } from '../../ui/ornaments'
 import { Link } from 'react-router-dom'
 import { BUILTIN_TUNES } from '../../data/tunes'
 import { COURSE_LEVELS } from '../../data/lessons/course'
@@ -45,7 +44,7 @@ export default function Home() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="flex items-center gap-1.5 text-ink-soft">
-            <Shamrock className="h-4 w-4 text-brass" weight={6} />
+            <Icon name="clover" size={16} className="text-brass" />
             {greeting}
           </p>
           <h1 className="font-display text-4xl font-semibold md:text-5xl">{t('home.title')}</h1>
