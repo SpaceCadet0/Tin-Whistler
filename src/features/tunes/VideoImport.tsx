@@ -78,6 +78,7 @@ export function VideoImport({ onResult, onReset }: Props) {
       }
       const warnings = [
         t('import.videoNote'),
+        ...(pages.some((p) => p.articulated) ? [] : [t('import.allTongued')]),
         ...pages.flatMap((p, i) => (p.twoColours ? [t('import.videoTwoColoursAt', { n: i + 1 })] : [])),
         ...r.fixed.map((f) => t('import.videoFixed', { s: f.section, n: f.note, from: midiToName(f.from), to: midiToName(f.to) })),
         ...r.doubtful.map((d) => t('import.videoDoubtful', { s: d.section, n: d.note })),

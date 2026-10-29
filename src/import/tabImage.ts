@@ -593,7 +593,7 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
     // red specks (a few reddish pixels at the edge of dark text) are not red articulation
     // a red ring round the lowest hole can touch the text under it: what reaches up into the holes is no text
     const clearOfHoles = (b: Blob) => b.y0 > holeY[5] + D * RING_REACH
-    const redMarks = redBlobs.filter((b) => inArticulationZone(b) && clearOfHoles(b) && b.n >= D * D * RED_MARK_AREA)
+    const redMarks = redBlobs.filter((b) => inArticulationZone(b) && clearOfHoles(b) && b.n >= D * D * RED_MARK_AREA && !isPlusMark(b, redLetters, W))
     // ...but the dot of a red "i" is small too: it stays when the "i" stands right under it
     const iDots = redBlobs.filter((b) => inArticulationZone(b) && b.n < D * D * RED_MARK_AREA && redMarks.some((m) => m.y0 > b.y1 - 1 && m.y0 - b.y1 < D * 0.9 && Math.abs(m.cx - b.cx) < D * 0.45))
     // a stray red shape or two (a bit of a ring) is no red articulation line
@@ -797,6 +797,30 @@ const DESCENDER_SHARE = 0.15
 const DESCENDER_MIN_PX = 3
 
 /** Convert a recognition result into an editable section (1 beat per column by default). */
+/** A line of articulation stands under at least this share of the notes... */
+const ARTICULATION_SHARE = 0.5
+/** ...or of the notes without "+", and under this many of them at least. */
+const PLAIN_SHARE = 0.2
+const PLAIN_MIN = 2
+
+/**
+ * Whether the page writes articulation: attacks read under most of the notes, or under a fair share
+ * of those without "+". A "+" sitting low (or one missed as a "+") can pass for a letter of the text
+ * line, so a few marks under "+" columns don't count.
+ */
+export function writesArticulation(r: RecognitionResult): boolean {
+  const columns = r.systems.flatMap((s) => s.columns)
+  const plain = columns.filter((c) => !c.plus)
+  const marked = (cs: RecognizedColumn[]) => cs.filter((c) => c.attack != null).length
+  const plainMarked = marked(plain)
+  return marked(columns) >= columns.length * ARTICULATION_SHARE || (plainMarked >= PLAIN_MIN && plainMarked >= plain.length * PLAIN_SHARE)
+}
+
+/** Every note of the section with this attack: a tab that writes no articulation anywhere is tongued throughout. */
+export function withAttack(section: TuneSection, attack: Attack): TuneSection {
+  return { ...section, phrases: section.phrases.map((p) => p.map((n) => (n.pitch == null ? n : { ...n, attack }))) }
+}
+
 export function sectionFromRecognition(r: RecognitionResult, id: string, name: string, whistleId = 'D', beats = 1): TuneSection {
   const phrases: Phrase[] = []
   const lineBreaks: number[] = []

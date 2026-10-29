@@ -2,7 +2,7 @@
 import type { TuneSection } from '../music/types'
 import { partCount } from './duetPage'
 import { lightPaper } from './palette'
-import { sectionFromRecognition, type RGBAImage } from './tabImage'
+import { sectionFromRecognition, writesArticulation, type RGBAImage } from './tabImage'
 import { tabRegion, type Rect } from './videoFrames'
 import { buildVideoTune, pagePanel, type BuildOptions, type VideoPage } from './videoTune'
 
@@ -18,6 +18,8 @@ export interface VideoPageRead {
   section: TuneSection
   warnings: string[]
   twoColours: boolean
+  /** The page writes articulation (an attack under a column without "+"). */
+  articulated: boolean
 }
 
 /** Room round the tab found on one frame: the median of all frames finds its exact edges again. */
@@ -40,7 +42,7 @@ self.onmessage = (e: MessageEvent<{ id: number; request: VideoWorkRequest }>) =>
     if (request.kind === 'region') result = regionOf(request.frame)
     else if (request.kind === 'page') {
       const page = pagePanel(request.frames)
-      result = page && ({ panel: page.panel, section: sectionFromRecognition(page.result, 's', 'S', 'D'), warnings: page.result.warnings, twoColours: partCount(page.panel) > 1 } satisfies VideoPageRead)
+      result = page && ({ panel: page.panel, section: sectionFromRecognition(page.result, 's', 'S', 'D'), warnings: page.result.warnings, twoColours: partCount(page.panel) > 1, articulated: writesArticulation(page.result) } satisfies VideoPageRead)
     } else result = buildVideoTune(request.pages, request.samples, request.sampleRate, request.options)
     self.postMessage({ id, result })
   } catch (err) {

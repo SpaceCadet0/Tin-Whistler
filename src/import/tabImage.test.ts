@@ -5,7 +5,7 @@ import { shepardsFlute } from '../data/tunes/shepardsFlute'
 import { thePrayer } from '../data/tunes/thePrayer'
 import { sectionNotes } from '../music/tune'
 import { whistleLabel } from '../music/whistles'
-import { recognizeTab, sectionFromRecognition } from './tabImage'
+import { recognizeTab, sectionFromRecognition, withAttack, writesArticulation } from './tabImage'
 
 /** Recognise the reference screenshots and compare with the hand transcription. */
 function load(n: number) {
@@ -118,5 +118,25 @@ describe('tab panel read from a video (Kaer Morhen, section 2)', () => {
     expect(r.warnings.join(' ')).not.toMatch(/Note names/)
     expect(notes.filter((n) => n.attack === 'tongue').length).toBe(2)
     expect(notes.filter((n) => n.attack === 'slur').length).toBeGreaterThanOrEqual(24)
+  })
+})
+
+describe('a tab that writes no articulation', () => {
+  const read = (name: string) => {
+    const png = PNG.sync.read(readFileSync(new URL(`./__fixtures__/${name}.png`, import.meta.url)))
+    return recognizeTab({ width: png.width, height: png.height, data: png.data })
+  }
+
+  it.each(['simple-1', 'simple-2', 'simple-3'])('%s writes none (dots only, "+" marks, note names)', (name) => {
+    expect(writesArticulation(read(name))).toBe(false)
+  })
+
+  it.each(['shepard-1', 'prayer-2', 'story-1', 'story-2'])('%s writes it', (name) => {
+    expect(writesArticulation(read(name))).toBe(true)
+  })
+
+  it('is tongued throughout, rests left alone', () => {
+    const section = withAttack({ id: 's', name: 'S', phrases: [[{ pitch: 74, beats: 1, attack: 'ru' }, { pitch: null, beats: 1 }, { pitch: 76, beats: 1 }]] }, 'tongue')
+    expect(section.phrases[0].map((n) => n.attack)).toEqual(['tongue', undefined, 'tongue'])
   })
 })

@@ -5,7 +5,7 @@ import { readMidi, type MidiImport } from '../../import/midi'
 import { isNotationSvg, mergeScorePages, parseNotationSvg } from '../../import/notationSvg'
 import { tuneFromNotationImages, type NotationImageResult } from '../../import/notationImage'
 import { recognizeImageFile, recognizeNotationFile } from '../../import/recognizeFile'
-import { sectionFromRecognition } from '../../import/tabImage'
+import { sectionFromRecognition, withAttack, writesArticulation, type RecognitionResult } from '../../import/tabImage'
 import { useT } from '../../i18n'
 import { toast } from '../../lib/toast'
 import { usedNotes } from '../../music/tune'
@@ -184,15 +184,22 @@ export default function TuneImport() {
     if (files.every((f) => /\.svg$/i.test(f.name) || f.type === 'image/svg+xml')) return onScore(files)
     setBusy(true)
     try {
-      const sections = []
+      const read: { result: RecognitionResult; i: number }[] = []
       const previews: string[] = []
       const warn: string[] = []
       for (const [i, f] of files.entries()) {
         const { result, preview } = await recognizeImageFile(f, whistleId)
         previews.push(preview)
         warn.push(...result.warnings.map((w) => `${f.name}: ${w}`))
-        if (result.systems.length) sections.push(sectionFromRecognition(result, `s${i + 1}`, `${t('import.section')} ${i + 1}`, whistleId, 0.5))
+        if (result.systems.length) read.push({ result, i })
       }
+      // no articulation written on any screenshot: every note is tongued
+      const tongued = read.length > 0 && !read.some((r) => writesArticulation(r.result))
+      const sections = read.map(({ result, i }) => {
+        const section = sectionFromRecognition(result, `s${i + 1}`, `${t('import.section')} ${i + 1}`, whistleId, 0.5)
+        return tongued ? withAttack(section, 'tongue') : section
+      })
+      if (tongued) warn.push(t('import.allTongued'))
       setImages(previews)
       if (!sections.length) throw new Error(t('import.noTab'))
       setTune({

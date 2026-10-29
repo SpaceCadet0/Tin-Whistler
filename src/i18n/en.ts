@@ -505,6 +505,7 @@ export const en = {
   'import.imageHelp': 'Works best with dot-style whistle tabs: straight, sharp images. Light and dark themes both work (light dots on a dark background are read as covered holes). You can fix any mistakes in the editor.',
   'import.reading': 'Reading the tab…',
   'import.noTab': 'No whistle tab was found in these images.',
+  'import.allTongued': 'The tab writes no articulation anywhere, so every note is tongued (tu).',
   'import.imageNote': 'Tabs have no note lengths, so every note got the same one. Adjust them in the editor.',
   'import.section': 'Section',
   'import.blankHelp': 'Start an empty tune and build it note by note with the visual editor.',

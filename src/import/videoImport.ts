@@ -1,6 +1,6 @@
 import type { TuneSection } from '../music/types'
 import { recognizeImageFile } from './recognizeFile'
-import { sectionFromRecognition, type RGBAImage } from './tabImage'
+import { sectionFromRecognition, withAttack, writesArticulation, type RGBAImage } from './tabImage'
 import { cropImage, tabPages, type Rect } from './videoFrames'
 import { closeVideo, decodeAudio, frameAt, openVideo, thumbnails } from './videoMedia'
 import type { VideoPageRead, VideoWorkRequest } from './videoTune.worker'
@@ -31,6 +31,8 @@ export interface ImportedPage {
   warnings: string[]
   /** Two dot colours: a duet page, read as one part for now. */
   twoColours: boolean
+  /** The page writes articulation; when no page does, every note is tongued. */
+  articulated: boolean
 }
 
 export type VideoStage = 'audio' | 'pages' | 'frames'
@@ -103,7 +105,7 @@ export async function readVideo(file: File, onProgress: (stage: VideoStage, shar
       // a page turn seen where there was none (a flicker) gives the same page twice: one page, longer
       const last = pages[pages.length - 1]
       if (last && samePage(last.section, page.section)) last.end = end
-      else pages.push({ start, end, preview: previewOf(page.panel), section: page.section, warnings: page.warnings, twoColours: page.twoColours })
+      else pages.push({ start, end, preview: previewOf(page.panel), section: page.section, warnings: page.warnings, twoColours: page.twoColours, articulated: page.articulated })
     }
     onProgress('frames', 1)
     return { pages, samples }
@@ -117,14 +119,19 @@ export async function readVideo(file: File, onProgress: (stage: VideoStage, shar
 export async function pageFromScreenshot(file: File, start: number, end: number): Promise<ImportedPage | null> {
   const { result, preview } = await recognizeImageFile(file, 'D')
   if (!result.systems.length) return null
-  return { start, end, preview, section: sectionFromRecognition(result, 's', 'S', 'D'), warnings: result.warnings, twoColours: false }
+  return { start, end, preview, section: sectionFromRecognition(result, 's', 'S', 'D'), warnings: result.warnings, twoColours: false, articulated: writesArticulation(result) }
 }
 
 /** The checked pages timed against the soundtrack, in the key heard (or the one chosen). */
 export async function buildFromVideo(pages: ImportedPage[], samples: Float32Array, options: BuildOptions = {}): Promise<VideoTune> {
   const worker = new VideoWorker()
   try {
-    const input = pages.map((p, i) => ({ section: { ...p.section, id: `s${i + 1}` }, start: p.start, end: p.end }))
+    // a tab that writes no articulation on any page is tongued throughout (not judged by the sound)
+    const tongued = !pages.some((p) => p.articulated)
+    const input = pages.map((p, i) => {
+      const section = { ...p.section, id: `s${i + 1}` }
+      return { section: tongued ? withAttack(section, 'tongue') : section, start: p.start, end: p.end }
+    })
     // a copy goes to the worker: the samples stay here for building again in another key
     const copy = samples.slice()
     return await worker.run<VideoTune>({ kind: 'build', pages: input, samples: copy, sampleRate: AUDIO_RATE, options }, [copy.buffer])
