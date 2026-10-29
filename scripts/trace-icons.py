@@ -38,10 +38,10 @@ FILLED = {'home', 'book', 'target', 'music', 'chart', 'flame', 'star', 'heart'}
 SHEET_ROWS = [
     ['next', 'chart', 'back', 'play', 'caret', 'calendar', 'clover', 'check'],
     ['copy', 'cut', 'down', 'download', 'book', 'edit', 'fast', 'eye'],
-    ['file', 'gamepad', 'pause', 'stop', 'heart', 'trophy', 'extra-tin', 'image'],
+    ['file', 'gamepad', 'pause', 'stop', 'heart', 'trophy', 'tin', 'image'],
     ['info', 'headphones', 'keyboard', 'ladder', 'home', 'menu', 'whistle', 'micOff'],
     ['minus', 'flame', 'mic', 'record', 'ear', 'paste', 'metronome', 'music'],
-    ['plus', 'x', 'star', 'redo', 'hand', 'slow', 'extra-snail', 'sparkles'],
+    ['plus', 'x', 'star', 'redo', 'hand', 'extra-hourglass', 'slow', 'sparkles'],
     ['split', 'settings', 'target', 'loop', 'repeat', 'timer', 'trash', 'tuner'],
     ['undo', 'up'],
 ]

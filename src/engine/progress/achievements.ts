@@ -40,7 +40,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
   {
     id: 'first-tune',
-    icon: 'star',
+    icon: 'tin',
     title: { en: 'I can play a tune!', ru: 'Я играю мелодию!' },
     description: { en: 'Play a whole tune from start to finish.', ru: 'Сыграйте мелодию целиком от начала до конца.' },
     test: (s) => s.tunesPlayed >= 1,
