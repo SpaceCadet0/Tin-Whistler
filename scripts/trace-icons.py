@@ -42,7 +42,7 @@ SHEET_ROWS = [
     ['info', 'headphones', 'keyboard', 'ladder', 'home', 'menu', 'whistle', 'micOff'],
     ['minus', 'flame', 'mic', 'record', 'ear', 'paste', 'metronome', 'music'],
     ['plus', 'x', 'star', 'redo', 'hand', 'extra-hourglass', 'slow', 'sparkles'],
-    ['split', 'settings', 'target', 'loop', 'repeat', 'timer', 'trash', 'tuner'],
+    ['split', 'settings', 'target', 'repeat', 'loop', 'timer', 'trash', 'tuner'],
     ['undo', 'up'],
 ]
 
