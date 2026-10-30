@@ -81,7 +81,7 @@ export default function SettingsPage() {
           </Row>
           <Row label={t('settings.level')}>
             <Segmented<PlayerLevel>
-              className="grid-flow-row sm:grid-flow-col"
+              size="sm"
               label={t('settings.level')}
               value={s.level}
               onChange={(v) => s.set({ level: v })}

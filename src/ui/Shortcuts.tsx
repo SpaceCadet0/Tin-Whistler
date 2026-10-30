@@ -63,9 +63,9 @@ export function TabLegend() {
       {hole(0.5, 'lg.half')}
       {sym(<span className="text-ink">+</span>, 'lg.high')}
       {sym(<span className="block h-4 w-4 rounded-full border-2 border-bad" />, 'lg.ring')}
-      {sym('C', 'orn.cut')}
-      {sym('B', 'orn.bounce')}
-      {sym('S', 'orn.slide')}
+      {sym('C', 'lg.cut')}
+      {sym('B', 'lg.bounce')}
+      {sym('S', 'lg.slide')}
       {sym('tr', 'lg.trill')}
       {sym('t', 'lg.t')}
       {sym('r', 'lg.r')}

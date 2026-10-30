@@ -255,7 +255,7 @@ export const LESSONS: Lesson[] = [
   {
     id: 'l09-tonguing',
     level: 2,
-    title: { en: 'Tonguing: "to" and "ru"', ru: 'Атака: «то» и «ру»' },
+    title: { en: 'Tonguing: "to" and "ru"', ru: 'Атака: «ту» и «ру»' },
     description: { en: 'Separate notes cleanly with your tongue.', ru: 'Чисто разделяем ноты языком.' },
     duration: 5,
     difficulty: 2,
@@ -267,10 +267,10 @@ export const LESSONS: Lesson[] = [
         id: 'info-tongue',
         type: 'info',
         illustration: 'tongue',
-        title: { en: '"to" and "ru"', ru: '«то» и «ру»' },
+        title: { en: '"to" and "ru"', ru: '«ту» и «ру»' },
         body: {
           en: '"t" in a tab = say "to" into the whistle. "r" = a softer "ru". "-" = no tongue, just change fingers.',
-          ru: '«t» в табах: скажите «то» в флейту. «r»: более мягкое «ру». «-»: без языка, только пальцы.',
+          ru: '«t» в табах: скажите «ту» в флейту. «r»: более мягкое «ру». «-»: без языка, только пальцы.',
         },
       },
       {

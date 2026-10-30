@@ -6,6 +6,7 @@ import type { Attack, Tune, TuneNote, TuneSection } from '../../music/types'
 import { whistleLabel } from '../../music/whistles'
 import { cn } from '../primitives'
 import { FingeringColumn, type ColumnState } from './FingeringColumn'
+import { RestSign } from './RestSign'
 
 const ATTACK_LABEL: Record<Attack, string> = { tongue: 't', ru: 'r', slur: '-', trru: 'trr' }
 const ORN_LETTER = { cut: 'C', bounce: 'B', slide: 'S', roll: 'R', trill: 'tr' } as const
@@ -215,14 +216,14 @@ export const TabView = memo(function TabView({
         )}
       >
         {shadow && partner && <PartnerShadow notes={shadow[idx]} whistle={partner.whistle} />}
-        <span className="h-4 text-[13px] leading-4 font-bold text-bad" aria-hidden="true">
+        <span className="mb-1.5 h-4 text-[13px] leading-4 font-bold text-bad" aria-hidden="true">
           {orn}
         </span>
         {fg ? (
           <FingeringColumn fingering={fg.fingering} register={fg.register} ringHole={ring} cutHole={n.ornament?.cut ? n.ornament.cut - 1 : undefined} dot={dot} state={state} label={onSelect ? undefined : aria} />
         ) : (
           <span className="grid w-5 place-items-center text-ink-faint" style={{ height: dot * 7.3 }} aria-label={t('tab.rest')}>
-            𝄽
+            <RestSign />
           </span>
         )}
         <span className="h-4 text-[13px] leading-4 font-semibold text-bad" aria-hidden="true">

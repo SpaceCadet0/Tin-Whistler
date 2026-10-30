@@ -6,6 +6,7 @@ import type { Attack, Fingering, OrnamentType, Register, TuneNote } from '../../
 import { fingeringForMidi, midiForFingering, whistleLabel, whistleNotes } from '../../../music/whistles'
 import { Button, cn, Segmented } from '../../../ui/primitives'
 import { whistleWidth } from '../../../ui/whistle/dimensions'
+import { RestSign } from '../../../ui/whistle/RestSign'
 import { WhistleView } from '../../../ui/whistle/WhistleView'
 
 const WHISTLE_HEIGHT = 250
@@ -68,7 +69,7 @@ export function NoteInspector({ note, whistleId, onChange, onInsert, onDelete, s
           <WhistleView fingering={fg.fingering} interactive onToggle={toggleHole} ornamentHole={note.ornament?.hole ? note.ornament.hole - 1 : undefined} height={WHISTLE_HEIGHT} showHands={false} label={t('whistle.tapToCover')} />
         ) : (
           <div className="grid shrink-0 place-items-center rounded-2xl bg-surface-2 text-2xl text-ink-faint" style={{ width: whistleWidth(WHISTLE_HEIGHT), height: WHISTLE_HEIGHT }}>
-            𝄽
+            <RestSign size={34} />
           </div>
         )}
         <div className="flex flex-1 flex-col gap-3">

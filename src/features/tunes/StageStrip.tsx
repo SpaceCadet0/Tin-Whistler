@@ -4,6 +4,7 @@ import { whistleLabel } from '../../music/whistles'
 import { motion } from '../../ui/motion'
 import { cn } from '../../ui/primitives'
 import { FingeringColumn } from '../../ui/whistle/FingeringColumn'
+import { RestSign } from '../../ui/whistle/RestSign'
 import { articulationLabel } from '../../ui/whistle/TabView'
 
 /** Height of a fingering column relative to its dot size (six holes, gaps, octave mark). */
@@ -35,7 +36,7 @@ export function StageStrip({ timeline, current, whistle, narrow }: { timeline: T
               <FingeringColumn fingering={fg.fingering} register={fg.register} dot={dot} state={isCurrent ? 'current' : 'idle'} />
             ) : (
               <span className="grid w-5 place-items-center text-ink-faint" style={{ height: dot * COLUMN_HEIGHT_PER_DOT }}>
-                𝄽
+                <RestSign />
               </span>
             )}
             <span className="h-5 text-[14px] leading-5 font-semibold text-bad">{articulationLabel(n.note)}</span>
