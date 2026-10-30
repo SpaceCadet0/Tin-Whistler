@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Exercise, ExerciseResult, MelodyExercise, RhythmExercise, SequenceExercise } from '../../engine/lesson/types'
 import { useT } from '../../i18n'
+import { isDuet } from '../../music/duet'
 import { useProgress } from '../../state/progress'
 import { useTune } from '../../state/tunes'
 import { Button } from '../../ui/primitives'
@@ -88,7 +89,7 @@ function MelodyStep({ exercise, onComplete }: { exercise: MelodyExercise; onComp
   if (!tune) return null
   const onScored = (run: ScoredRun) => {
     setBest((b) => Math.max(b ?? 0, run.report.overall))
-    if (run.complete) recordTune(tune.id, run.sectionId, run.report.overall, run.tempo, tune.title)
+    if (run.complete) recordTune(tune.id, run.sectionId, run.report.overall, run.tempo, tune.title, { notes: run.report.notes, duet: isDuet(tune) })
   }
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">

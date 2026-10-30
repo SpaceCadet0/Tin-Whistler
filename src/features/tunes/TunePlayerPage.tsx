@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { recommendTempo } from '../../engine/adaptive/smartPractice'
 import { usePracticeTimer } from '../../hooks/audio'
 import { useT } from '../../i18n'
+import { isDuet } from '../../music/duet'
 import { useProgress } from '../../state/progress'
 import { useTune } from '../../state/tunes'
 import { Icon } from '../../ui/Icon'
@@ -25,7 +26,7 @@ export default function TunePlayerPage() {
   const onScored = useCallback(
     (run: ScoredRun) => {
       if (!tune) return
-      if (run.complete) recordTune(tune.id, run.sectionId, run.report.overall, run.tempo, tune.title)
+      if (run.complete) recordTune(tune.id, run.sectionId, run.report.overall, run.tempo, tune.title, { notes: run.report.notes, duet: isDuet(tune) })
       if (step?.pass && run.complete && run.report.overall >= step.pass) setStep(tune.id, step.n)
     },
     [tune, step, recordTune, setStep],

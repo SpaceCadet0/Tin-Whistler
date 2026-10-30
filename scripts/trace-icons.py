@@ -47,16 +47,16 @@ SHEET_ROWS = [
     ['file', 'gamepad', 'pause', 'stop', 'heart', 'trophy', 'tin', 'image'],
     ['info', 'headphones', 'keyboard', 'ladder', 'home', 'menu', 'whistle', 'micOff'],
     ['minus', 'flame', 'mic', 'record', 'ear', 'paste', 'metronome', 'music'],
-    ['plus', 'x', 'star', 'redo', 'hand', 'extra-hourglass', 'slow', 'sparkles'],
+    ['plus', 'x', 'star', 'redo', 'hand', 'hourglass', 'slow', 'sparkles'],
     ['split', 'settings', 'target', 'repeat', 'loop', 'timer', 'trash', 'tuner'],
     ['undo', 'up'],
 ]
 
 # the second sheet's rows; None = a drawing the app has no use for
 SHEET2_ROWS = [
-    [None, 'bonfire', None, None, None, None],
+    ['composer', 'bonfire', None, None, None, None],
     ['diamond', 'duet', 'hare', None, None, None],
-    ['medal', 'month', 'combo', 'note', 'collection', None],
+    ['medal', None, 'combo', 'note', 'collection', None],
     ['owl', None, 'peak', 'scores', 'start', None],
     [None, None, None, None, None, None],
 ]

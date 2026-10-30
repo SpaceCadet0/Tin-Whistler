@@ -11,6 +11,7 @@ import { TUNE_TYPES, type Tune, type TuneNote, type TuneSection, type TuneType }
 import { getWhistle, WHISTLE_KEYS } from '../../music/whistles'
 import { usePlayer } from '../../hooks/audio'
 import { useHotkeys } from '../../hooks/useHotkeys'
+import { useProgress } from '../../state/progress'
 import { useTune, useTuneLibrary } from '../../state/tunes'
 import { Button, ButtonLink, Card, cn, IconButton, Modal, PageHeader, Segmented } from '../../ui/primitives'
 import { TabView } from '../../ui/whistle/TabView'
@@ -37,6 +38,7 @@ export default function TuneEditor() {
   const { tuneId } = useParams()
   const stored = useTune(tuneId)
   const save = useTuneLibrary((s) => s.save)
+  const recordEdit = useProgress((s) => s.recordEdit)
   const navigate = useNavigate()
   const { t, lang } = useT()
   const [tune, setTune] = useState<Tune | null>(null)
@@ -317,6 +319,7 @@ export default function TuneEditor() {
   const doSave = async () => {
     if (!(await save(tune))) return false
     setDirty(false)
+    recordEdit()
     toast({ kind: 'info', title: t('editor.saved') })
     return true
   }

@@ -1,8 +1,9 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { ACHIEVEMENTS, newlyUnlocked, type ProgressSnapshot } from '../engine/progress/achievements'
+import { ACHIEVEMENTS, FAST_TEMPO, newlyUnlocked, type ProgressSnapshot } from '../engine/progress/achievements'
 import { computeStreak, updateMastery, XP } from '../engine/progress/levels'
 import { appStorage, todayKey } from '../lib/storage'
+import { SECOND_OCTAVE } from '../music/whistles'
 import { toast } from '../lib/toast'
 import { isFiniteNumber, isRecord, sanitizeAgainst } from '../lib/validate'
 import { useSettings } from './settings'
@@ -48,6 +49,13 @@ export interface SessionLog {
   score?: number
 }
 
+/** What a run was, beyond its score: for the achievements. */
+export interface RunDetails {
+  /** Share of the notes played right (1 = every one). */
+  notes: number
+  duet: boolean
+}
+
 export interface ProgressState {
   xp: number
   completedLessons: Record<string, { at: number; score: number }>
@@ -60,13 +68,17 @@ export interface ProgressState {
   tunerLocks: number
   gameBestCombo: number
   importedTunes: number
+  cleanRuns: number
+  duetsPlayed: number
+  latePractice: number
+  editedTunes: number
   log: SessionLog[]
 
   addXp: (amount: number, reason?: string) => void
   completeLesson: (id: string, score: number, title: string) => void
   recordNote: (noteId: string, hit: boolean, cents?: number) => void
   recordTransition: (from: string, to: string, hit: boolean) => void
-  recordTune: (tuneId: string, sectionId: string | null, score: number, tempo: number, title: string) => void
+  recordTune: (tuneId: string, sectionId: string | null, score: number, tempo: number, title: string, run?: RunDetails) => void
   setTuneStep: (tuneId: string, step: number) => void
   addPracticeTime: (seconds: number) => void
   completeDaily: () => void
@@ -74,6 +86,7 @@ export interface ProgressState {
   recordTunerLock: () => void
   recordGame: (combo: number, score: number) => void
   recordImport: () => void
+  recordEdit: () => void
   logSession: (entry: Omit<SessionLog, 'at'>) => void
   resetAll: () => void
 }
@@ -90,8 +103,20 @@ const INITIAL = {
   tunerLocks: 0,
   gameBestCombo: 0,
   importedTunes: 0,
+  cleanRuns: 0,
+  duetsPlayed: 0,
+  latePractice: 0,
+  editedTunes: 0,
   log: [],
 }
+
+/** Practice in these hours (from, to) counts for the night owl. */
+const NIGHT_FROM = 23
+const NIGHT_TO = 4
+const isNight = (hour: number) => hour >= NIGHT_FROM || hour < NIGHT_TO
+
+/** A whole tune played well enough to count as played. */
+const PLAYED_SCORE = 0.5
 
 /** Keep the entries of a map that pass `ok`; one bad entry must not cost the rest of the history. */
 const pickEntries = <V,>(x: Record<string, unknown>, ok: (v: unknown) => boolean): Record<string, V> =>
@@ -123,11 +148,15 @@ export const MASTERED_NOTE = 0.75
 
 export function snapshot(s: ProgressState): ProgressSnapshot {
   const tunes = Object.values(s.tunes)
+  const mastered = (id: string) => {
+    const n = s.noteStats[id]
+    return !!n && n.mastery >= MASTERED_NOTE && n.hits >= 5
+  }
   return {
     xp: s.xp,
     streak: computeStreak(new Set(Object.keys(s.days).filter((d) => s.days[d].seconds > 0 || s.days[d].xp > 0))),
     lessonsDone: Object.keys(s.completedLessons).length,
-    masteredNotes: Object.values(s.noteStats).filter((n) => n.mastery >= MASTERED_NOTE && n.hits >= 5).length,
+    masteredNotes: Object.keys(s.noteStats).filter(mastered).length,
     notesPlayed: Object.values(s.noteStats).reduce((a, n) => a + n.hits, 0),
     tunesPlayed: tunes.filter((t) => t.completedFull > 0).length,
     tunesMastered: tunes.filter((t) => t.mastered).length,
@@ -136,6 +165,13 @@ export function snapshot(s: ProgressState): ProgressSnapshot {
     dailyDone: Object.values(s.days).filter((d) => d.dailyDone).length,
     gameBestCombo: s.gameBestCombo,
     importedTunes: s.importedTunes,
+    masteredHighNotes: SECOND_OCTAVE.filter(mastered).length,
+    cleanRuns: s.cleanRuns,
+    fastTunes: tunes.filter((t) => t.bestTempo >= FAST_TEMPO).length,
+    duetsPlayed: s.duetsPlayed,
+    latePractice: s.latePractice,
+    bestDaySeconds: Math.max(0, ...Object.values(s.days).map((d) => d.seconds)),
+    editedTunes: s.editedTunes,
   }
 }
 
@@ -222,9 +258,10 @@ export const useProgress = create<ProgressState>()(
             return { transitions: { ...s.transitions, [key]: { attempts: t.attempts + 1, misses: t.misses + (hit ? 0 : 1) } } }
           }),
 
-        recordTune: (tuneId, sectionId, score, tempo, title) => {
+        recordTune: (tuneId, sectionId, score, tempo, title, run) => {
           const s0 = get().tunes[tuneId] ?? emptyTune()
           const full = sectionId == null
+          const played = full && score >= PLAYED_SCORE
           const masteredNow = full && score >= 0.85 && tempo >= 0.99 && !s0.mastered
           const xp = masteredNow ? XP.tuneLearned : full && score >= 0.6 ? XP.tuneSection * 2 : score >= 0.6 ? XP.tuneSection : 5
           commit((s) => {
@@ -245,13 +282,15 @@ export const useProgress = create<ProgressState>()(
                   ...t,
                   sections,
                   plays: t.plays + 1,
-                  completedFull: t.completedFull + (full && score >= 0.5 ? 1 : 0),
+                  completedFull: t.completedFull + (played ? 1 : 0),
                   bestScore: full ? Math.max(t.bestScore, score) : t.bestScore,
                   bestTempo: full && score >= 0.7 ? Math.max(t.bestTempo, tempo) : t.bestTempo,
                   mastered: t.mastered || masteredNow,
                   lastPlayed: Date.now(),
                 },
               },
+              cleanRuns: s.cleanRuns + (full && run && run.notes >= 1 ? 1 : 0),
+              duetsPlayed: s.duetsPlayed + (played && run?.duet ? 1 : 0),
               log: [{ at: Date.now(), kind: 'tune' as const, label: title, score }, ...s.log].slice(0, 50),
             }
           }, xp)
@@ -267,7 +306,10 @@ export const useProgress = create<ProgressState>()(
           commit((s) => {
             const day = todayKey()
             const d = s.days[day] ?? { seconds: 0, xp: 0, dailyDone: false }
-            return { days: { ...s.days, [day]: { ...d, seconds: d.seconds + seconds } } }
+            return {
+              days: { ...s.days, [day]: { ...d, seconds: d.seconds + seconds } },
+              latePractice: s.latePractice + (seconds > 0 && isNight(new Date().getHours()) ? 1 : 0),
+            }
           }),
 
         completeDaily: () =>
@@ -311,6 +353,8 @@ export const useProgress = create<ProgressState>()(
           ),
 
         recordImport: () => commit((s) => ({ importedTunes: s.importedTunes + 1 })),
+
+        recordEdit: () => commit((s) => ({ editedTunes: s.editedTunes + 1 })),
 
         logSession: (entry) => set((s) => ({ log: [{ ...entry, at: Date.now() }, ...s.log].slice(0, 50) })),
 
