@@ -59,7 +59,7 @@ Runs in the browser or as an Android app. Your progress stays on your device.
     <td><img src="docs/screenshots/progress.webp" alt="Progress: level, streak, practice calendar, note mastery" /></td>
   </tr>
   <tr>
-    <td><b>80 built-in tunes.</b> Search them, filter by difficulty or whistle key, and preview any tune right from its card.</td>
+    <td><b>86 built-in tunes.</b> Search them, filter by difficulty or whistle key, and preview any tune right from its card.</td>
     <td><b>See yourself improve.</b> XP and levels, streaks, a 12-week calendar, mastery for every note, and Smart Practice, which drills the note you miss most.</td>
   </tr>
 </table>
@@ -172,7 +172,7 @@ For videos that show a dot tab while the tune is played (one tab page per chapte
 
 - Sheet music is read exactly from **SVG exports** (MuseScore: File → Export → SVG, one file per page). JPG/PNG scores are recognised for pitch only: every note gets the same length, so fix the rhythm in the editor. Tempo text isn't read, so set the BPM after importing.
 
-- *Shepard's Flute* is Bill Brown's Lineage II theme, transcribed from the tab screenshots in `reference/` (tab by Hound4Sound). It is bundled for personal practice. Remove it before distributing the app.
+- *Shepard's Flute* is Bill Brown's Lineage II theme, transcribed from the tab screenshots in `reference/` (tab by Hound4Sound).
 - Tab-image recognition targets dot-style whistle tabs on white or tinted paper, photo backgrounds and dark themes, including dots drawn edge to edge. Note names written under the columns are ignored (only `t`, `r`, `-` and `i` are read as articulation), and the octave comes from the `+` marks. On the reference screenshots it gets pitch classes ≥ 97% right. The "+" octave marks are less reliable on photographic backgrounds, and bracketed second voices are imported as extra phrases. Fix these in the editor.
 - Ornaments are displayed, synthesised and taught, but not graded. Cuts and taps are too short to judge reliably from a phone microphone, so scoring ignores them on purpose.
 

@@ -6,6 +6,7 @@ import { auldLangSyne, butterfly, cooleysReel, saints, scarboroughFair } from '.
 import { drunkenSailor, greensleeves, joyToTheWorld, POPULAR_TUNES, silentNight, twinkle } from './popularTunes'
 import { FOLK_SONGS } from './folkSongs'
 import { blackthornStick, JIGS, morrisonsJig, oldJohns } from './jigs'
+import { kidOnTheMountain, kingOfTheFairies, SLIP_JIGS_AND_HORNPIPES } from './slipJigsAndHornpipes'
 import { AIRS_AND_MARCHES, charlieHesMyDarling, lochLomond } from './airsAndMarches'
 import { musicalPriest, SESSION_TUNES, siegeOfEnnis, tamLin, windThatShakesTheBarley } from './sessionTunes'
 import { thePrayer } from './thePrayer'
@@ -48,7 +49,7 @@ describe('ABC-defined built-in tunes', () => {
   it('are unique and ordered by difficulty', () => {
     const ids = BUILTIN_TUNES.map((t) => t.id)
     expect(new Set(ids).size).toBe(ids.length)
-    expect(BUILTIN_TUNES).toHaveLength(80)
+    expect(BUILTIN_TUNES).toHaveLength(86)
     const levels = BUILTIN_TUNES.map((t) => t.difficulty)
     expect(levels).toEqual([...levels].sort((a, b) => a - b))
   })
@@ -182,5 +183,29 @@ describe('Jigs written out from the MIDI files in reference/abc', () => {
     expect(labels(morrisonsJig, 4)).toEqual(['E', 'B', 'E', 'B'])
     expect(labels(oldJohns, 3)).toEqual(["E'", "D'", 'C'])
     expect(blackthornStick.sections).toHaveLength(1)
+  })
+})
+
+describe('Slip jigs and hornpipes written out from the MIDI files in reference/abc', () => {
+  it('add two slip jigs in 9/8 and four hornpipes in 4/4, whole bars inside the whistle range', () => {
+    expect(SLIP_JIGS_AND_HORNPIPES.map((t) => t.type)).toEqual(['slip-jig', 'slip-jig', 'hornpipe', 'hornpipe', 'hornpipe', 'hornpipe'])
+    for (const t of SLIP_JIGS_AND_HORNPIPES) {
+      expect(t.meter, t.id).toBe(t.type === 'slip-jig' ? '9/8' : '4/4')
+      const notes = t.sections.flatMap(sectionNotes)
+      // triplet thirds add up with a rounding crumb either side of a whole bar
+      const rest = notes.reduce((a, n) => a + n.beats, 0) % t.beatsPerBar!
+      expect(Math.min(rest, t.beatsPerBar! - rest), t.id).toBeCloseTo(0)
+      const pitches = notes.flatMap((n) => (n.pitch == null ? [] : [n.pitch - 74]))
+      expect(Math.min(...pitches), t.id).toBeGreaterThanOrEqual(0)
+      expect(Math.max(...pitches), t.id).toBeLessThanOrEqual(23)
+      expect(t.description?.en && t.description.ru, t.id).toBeTruthy()
+    }
+  })
+
+  it('keep the rolls of the Kid and tie the King over the bar line', () => {
+    expect(kidOnTheMountain.sections).toHaveLength(5)
+    expect(kidOnTheMountain.sections.flatMap(sectionNotes).filter((n) => n.ornament?.type === 'roll')).toHaveLength(7)
+    expect(labels(kingOfTheFairies, 1)).toEqual(['B'])
+    expect(kingOfTheFairies.sections[1].phrases.flat().some((n) => n.beats === 1.5)).toBe(true)
   })
 })

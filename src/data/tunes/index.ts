@@ -41,6 +41,7 @@ import {
 } from './popularTunes'
 import { SESSION_TUNES } from './sessionTunes'
 import { JIGS } from './jigs'
+import { SLIP_JIGS_AND_HORNPIPES } from './slipJigsAndHornpipes'
 import { aStoryYouWontBelieve } from './aStoryYouWontBelieve'
 import { hope } from './hope'
 import { kaerMorhen } from './kaerMorhen'
@@ -101,6 +102,7 @@ const CURATED: Tune[] = [
   ...AIRS_AND_MARCHES,
   ...SESSION_TUNES,
   ...JIGS,
+  ...SLIP_JIGS_AND_HORNPIPES,
 ]
 
 /** Ordered from easiest to hardest. */
