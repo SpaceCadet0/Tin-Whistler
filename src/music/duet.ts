@@ -15,6 +15,30 @@ export function duetSection(id: string, name: string, texts: string[], parts: Du
   return { id, name, phrases: sectionParts[0].phrases, lineBreaks: sectionParts[0].lineBreaks, parts: sectionParts }
 }
 
+/** The part that sounds first (a listen from the start shouldn't open on the other part's rests). */
+export function leadingPart(tune: Tune): number {
+  if (!isDuet(tune)) return 0
+  let best = 0
+  let bestAt = Infinity
+  tune.duet!.parts.forEach((_, i) => {
+    let at = 0
+    for (const s of tune.sections) {
+      const notes = s.parts?.[i]?.phrases.flat() ?? []
+      const k = notes.findIndex((n) => n.pitch != null)
+      if (k >= 0) {
+        at += notes.slice(0, k).reduce((sum, n) => sum + n.beats, 0)
+        break
+      }
+      at += notes.reduce((sum, n) => sum + n.beats, 0)
+    }
+    if (at < bestAt) {
+      best = i
+      bestAt = at
+    }
+  })
+  return best
+}
+
 /** A part's name by its whistle: "Low D", "High D", "High C"… (the same in every language). */
 export function partName(whistle: string): string {
   if (whistle === 'lowD') return 'Low D'

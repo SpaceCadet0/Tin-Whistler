@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { hope } from '../data/tunes/hope'
-import { duetSection, isDuet, partName, partnerUnder, tuneForPart } from './duet'
+import { duetSection, isDuet, leadingPart, partName, partnerUnder, tuneForPart } from './duet'
 import { flattenPartner, sectionBeats } from './tune'
 import type { DuetPart, Tune } from './types'
 
@@ -13,6 +13,11 @@ const section = duetSection('s1', 'Section 1', ['t:D*0.5 -:E*0.5 | z', 't:A*0.5 
 const tune: Tune = { id: 'x', title: 'X', origin: 'builtin', type: 'air', whistle: 'D', key: '', bpm: 60, difficulty: 1, sections: [section], duet: { parts: PARTS } }
 
 describe('duets', () => {
+  it('finds the part that sounds first: Hope opens on low D while high D rests', () => {
+    expect(leadingPart(tune)).toBe(0)
+    expect(leadingPart(hope)).toBe(1)
+  })
+
   it('makes one part the tune to play, with the other as its partner on its own whistle', () => {
     expect(isDuet(tune)).toBe(true)
     const low = tuneForPart(tune, 1)

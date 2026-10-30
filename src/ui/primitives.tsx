@@ -310,7 +310,8 @@ export function PageHeader({ title, subtitle, back, actions }: { title: ReactNod
         <h1 className="font-display text-3xl leading-tight font-semibold text-balance md:text-4xl">{title}</h1>
         {subtitle && <p className="mt-1.5 max-w-[60ch] text-ink-soft">{subtitle}</p>}
       </div>
-      {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+      {/* on a phone they take their own row, against the right edge where the thumb reaches */}
+      {actions && <div className="flex shrink-0 flex-wrap items-center gap-2 max-sm:w-full max-sm:justify-end">{actions}</div>}
     </header>
   )
 }

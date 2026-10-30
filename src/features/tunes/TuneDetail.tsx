@@ -118,7 +118,7 @@ export default function TuneDetail() {
         actions={
           <>
             <FavoriteButton tuneId={tune.id} title={tune.title} />
-            <ButtonLink to={`/tunes/${tune.id}/play`} icon="play" size="lg">
+            <ButtonLink to={`/tunes/${tune.id}/play`} icon="target" size="lg" className="max-sm:flex-1">
               {t('tune.practise')}
             </ButtonLink>
           </>

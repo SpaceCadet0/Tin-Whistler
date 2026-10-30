@@ -362,7 +362,7 @@ export const ru: Record<MessageKey, string> = {
   'tune.sections': 'Секции',
   'tune.wholeTune': 'Целиком',
   'tune.notFound': 'Мелодия не найдена.',
-  'tune.practise': 'Играть',
+  'tune.practise': 'Тренировать',
   'tune.key': 'Тональность',
   'tune.notesUsed': 'Ноты',
   'tune.tab': 'Табулатура',

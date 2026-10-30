@@ -3,6 +3,7 @@ import { audioEngine } from '../../audio/AudioEngine'
 import { TunePlayer } from '../../audio/TunePlayer'
 import { useRaf } from '../../hooks/audio'
 import { Emitter } from '../../lib/emitter'
+import { leadingPart, tuneForPart } from '../../music/duet'
 import type { TimedNote, Tune } from '../../music/types'
 import { useSettings } from '../../state/settings'
 
@@ -41,7 +42,8 @@ export function togglePreview(tune: Tune, whole = false): void {
     return
   }
   player.stop()
-  player.load(tune)
+  // a duet is heard from the part that opens it, with the other playing along
+  player.load(tuneForPart(tune, leadingPart(tune)))
   player.options.a4 = useSettings.getState().a4
   const timeline = player.timeline
   if (!timeline.length) return
