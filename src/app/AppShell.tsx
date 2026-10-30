@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { useShallow } from 'zustand/react/shallow'
 import { computeStreak, levelFromXp } from '../engine/progress/levels'
 import { useT, type MessageKey } from '../i18n'
+import { useCelebrations } from '../state/celebrations'
 import { useProgress } from '../state/progress'
 import { useSettings } from '../state/settings'
 import { Icon } from '../ui/Icon'
@@ -12,6 +13,7 @@ import { cn } from '../ui/primitives'
 import { ErrorBoundary, ScreenError } from './ErrorBoundary'
 import { BackButton } from './BackButton'
 import { Toaster } from './Toaster'
+import { AchievementCelebration } from './AchievementCelebration'
 
 const NAV: { to: string; icon: string; label: MessageKey }[] = [
   { to: '/', icon: 'home', label: 'nav.home' },
@@ -68,6 +70,13 @@ function StatusPills() {
   )
 }
 
+/** A new achievement waits in the collection: a brass dot on the Progress tab until it is opened. */
+function NewDot({ className = '-top-1 -right-2.5' }: { className?: string }) {
+  const unseen = useCelebrations((s) => s.unseen)
+  if (!unseen) return null
+  return <motion.span aria-hidden="true" className={cn('absolute h-2.5 w-2.5 rounded-full border-2 border-surface bg-brass', className)} initial={{ scale: 0 }} animate={{ scale: [0, 1.4, 1] }} transition={{ duration: 0.4 }} />
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   useApplyPreferences()
   const { t } = useT()
@@ -106,9 +115,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               {({ isActive }) => (
                 <>
                   {isActive && <motion.span layoutId="nav-pill-side" className="absolute inset-0 rounded-2xl bg-moss shadow-soft" transition={{ type: 'spring', stiffness: 420, damping: 34 }} />}
-                  <span className="relative flex items-center gap-3">
+                  <span className="relative flex items-center gap-3" data-nav={n.to === '/progress' ? 'progress' : undefined}>
                     <Icon name={n.icon} />
                     {t(n.label)}
+                    {n.to === '/progress' && <NewDot />}
                   </span>
                 </>
               )}
@@ -174,9 +184,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                 >
                   {({ isActive }) => (
                     <>
-                      <span className="relative grid h-8 w-12 place-items-center">
+                      <span className="relative grid h-8 w-12 place-items-center" data-nav={n.to === '/progress' ? 'progress' : undefined}>
                         {isActive && <motion.span layoutId="nav-pill-bottom" className="absolute inset-0 rounded-full bg-moss-soft" transition={{ type: 'spring', stiffness: 420, damping: 34 }} />}
                         <Icon name={n.icon} size={21} className="relative" filled={isActive} />
+                        {n.to === '/progress' && <NewDot className="top-0 right-1.5" />}
                       </span>
                       {t(n.label)}
                     </>
@@ -188,6 +199,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
       )}
       <Toaster />
+      <AchievementCelebration />
       <BackButton />
     </div>
   )

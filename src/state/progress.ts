@@ -3,10 +3,10 @@ import { persist } from 'zustand/middleware'
 import { ACHIEVEMENTS, FAST_TEMPO, newlyUnlocked, type ProgressSnapshot } from '../engine/progress/achievements'
 import { computeStreak, updateMastery, XP } from '../engine/progress/levels'
 import { appStorage, todayKey } from '../lib/storage'
-import { SECOND_OCTAVE } from '../music/whistles'
 import { toast } from '../lib/toast'
 import { isFiniteNumber, isRecord, sanitizeAgainst } from '../lib/validate'
-import { useSettings } from './settings'
+import { SECOND_OCTAVE } from '../music/whistles'
+import { useCelebrations } from './celebrations'
 
 export interface NoteStat {
   attempts: number
@@ -142,8 +142,6 @@ export function sanitizeProgress(persisted: unknown): Partial<typeof INITIAL> {
   return p as Partial<typeof INITIAL>
 }
 
-const lang = () => useSettings.getState().language
-
 export const MASTERED_NOTE = 0.75
 
 export function snapshot(s: ProgressState): ProgressSnapshot {
@@ -206,7 +204,7 @@ export const useProgress = create<ProgressState>()(
         if (fresh.length) {
           const now = Date.now()
           set({ achievements: { ...s.achievements, ...Object.fromEntries(fresh.map((a) => [a.id, now])) } })
-          for (const a of fresh) toast({ kind: 'achievement', title: a.title[lang()], body: a.description[lang()], icon: a.icon })
+          useCelebrations.getState().push(fresh.map((a) => a.id))
         }
       }
 

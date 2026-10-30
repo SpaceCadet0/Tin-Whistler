@@ -1,11 +1,13 @@
-import { Triskele } from '../../ui/ornaments'
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { Triskele } from '../../ui/ornaments'
 import { ACHIEVEMENTS } from '../../engine/progress/achievements'
 import { courseProgress } from '../../engine/lesson/course'
 import { computeStreak, levelFromXp } from '../../engine/progress/levels'
 import { useT } from '../../i18n'
 import { dayKeyOffset } from '../../lib/storage'
 import { FIRST_OCTAVE, SECOND_OCTAVE } from '../../music/whistles'
+import { useCelebrations } from '../../state/celebrations'
 import { MASTERED_NOTE, useProgress } from '../../state/progress'
 import { useAllTunes } from '../../state/tunes'
 import { Icon } from '../../ui/Icon'
@@ -16,6 +18,12 @@ export default function ProgressPage() {
   const { t, L, lang } = useT()
   const p = useProgress()
   const tunes = useAllTunes()
+  // the collection is open: the new achievement's dot on the tab has done its job
+  const unseen = useCelebrations((s) => s.unseen)
+  const seen = useCelebrations((s) => s.seen)
+  useEffect(() => {
+    if (unseen) seen()
+  }, [unseen, seen])
   const lvl = levelFromXp(p.xp)
   const active = new Set(Object.keys(p.days).filter((d) => p.days[d].seconds > 0 || p.days[d].xp > 0))
   const streak = computeStreak(active)
