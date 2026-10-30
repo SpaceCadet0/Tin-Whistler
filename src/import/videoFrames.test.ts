@@ -43,6 +43,23 @@ describe('reading the tab panel out of video frames', () => {
       [12, 26],
     ])
   })
+
+  it('sees a turn that changes only a few dots, held still before and after', () => {
+    // 2 of 100 pixels step once and stay (the next page shares most of the tab)
+    const page = (turned: boolean) => Uint8Array.from({ length: 100 }, (_, p) => (turned && p < 2 ? 90 : 200))
+    const thumbs = [...Array(10).fill(page(false)), ...Array(4).fill(page(true))]
+    expect(tabPages(thumbs, 1, 14)).toEqual([
+      [0, 10],
+      [10, 14],
+    ])
+  })
+
+  it('does not cut where a few pixels flicker and come back', () => {
+    const still = new Uint8Array(100).fill(200)
+    const flicker = Uint8Array.from({ length: 100 }, (_, p) => (p < 2 ? 90 : 200))
+    const thumbs = [...Array(8).fill(still), flicker, ...Array(8).fill(still)]
+    expect(tabPages(thumbs, 1, 17)).toEqual([[0, 17]])
+  })
 })
 
 describe('finding the tab in a frame', () => {
@@ -61,5 +78,17 @@ describe('finding the tab in a frame', () => {
     expect(box.x + box.width).toBeGreaterThan(91)
     expect(box.x + box.width).toBeLessThan(140)
     expect(box.y).toBeLessThan(37)
+  })
+
+  it('finds a short tab cut out tight round its big dots', () => {
+    // 4 columns of 6 dots 14 px wide on a 100 × 160 crop: each dot is more than a twentieth of it
+    const W = 100
+    const H = 160
+    const data = new Uint8Array(W * H * 4).fill(250)
+    for (let c = 0; c < 4; c++)
+      for (let r = 0; r < 6; r++)
+        for (let y = -7; y <= 7; y++)
+          for (let x = -7; x <= 7; x++) if (x * x + y * y <= 49) data.fill(40, ((40 + r * 18 + y) * W + 20 + c * 20 + x) * 4, ((40 + r * 18 + y) * W + 20 + c * 20 + x) * 4 + 3)
+    expect(tabRegion({ width: W, height: H, data })).not.toBeNull()
   })
 })

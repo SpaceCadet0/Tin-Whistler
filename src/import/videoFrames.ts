@@ -162,8 +162,14 @@ const STILL_RATE = 0.1
 const MIN_STILL_AREA = 0.1
 /** Thumbnails apart that are compared for a page turn (a fade takes up to one step). */
 const TURN_SPAN = 2
-/** Shortest stretch one tab page stays on screen, seconds. */
-const MIN_PAGE = 5
+/**
+ * A page turn that changes only a few dots (the next page shares most of the tab) is a clean step:
+ * at least this share of the still picture jumps in one thumbnail, held still before and after.
+ * Hands, a moving highlight and a slow zoom don't step like that.
+ */
+const PAGE_STEP = 0.015
+/** Shortest stretch one tab page stays on screen, seconds (two readings of one page are merged later). */
+const MIN_PAGE = 3
 
 /**
  * Where the tab page changes in a video without chapters, from greyscale thumbnails taken `fps` per
@@ -184,11 +190,15 @@ export function tabPages(thumbs: Uint8Array[], fps: number, duration: number): [
   const span = (k: number, p: number) => Math.abs(thumbs[k][p] - thumbs[k - TURN_SPAN][p]) > THUMB_CHANGE
   const changed = thumbs.map((_, k) => (k >= TURN_SPAN ? area.filter((p) => span(k, p)).length / area.length : 0))
   const motion = [...changed].sort((a, b) => a - b)[changed.length >> 1]
+  const differs = (a: number, b: number, p: number) => Math.abs(thumbs[a][p] - thumbs[b][p]) > THUMB_CHANGE
+  const step = (k: number) =>
+    k >= 2 && k + 2 < thumbs.length ? area.filter((p) => differs(k, k - 1, p) && !differs(k - 1, k - 2, p) && !differs(k + 1, k, p) && differs(k + 2, k - 1, p)).length / area.length : 0
   const cuts = [0]
   changed.forEach((c, k) => {
     // dated by the later thumbnail: the new page is fully there, no frame of the old one comes after
     const at = k / fps
-    if (c >= Math.max(PAGE_TURN, motion * PAGE_TURN_OVER_MOTION) && at - cuts[cuts.length - 1] >= MIN_PAGE) cuts.push(at)
+    const turned = c >= Math.max(PAGE_TURN, motion * PAGE_TURN_OVER_MOTION) || step(k) >= PAGE_STEP
+    if (turned && at - cuts[cuts.length - 1] >= MIN_PAGE) cuts.push(at)
   })
   const pages: [number, number][] = cuts.map((c, i) => [c, i + 1 < cuts.length ? cuts[i + 1] : duration])
   return pages.filter(([a, b]) => b - a >= MIN_PAGE)

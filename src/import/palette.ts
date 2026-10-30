@@ -72,6 +72,12 @@ function hueBin([r, g, b]: RGB): number {
 
 /** Round, filled blobs of mark pixels this many or more: the tab's covered holes. */
 const MIN_DOTS = 12
+/**
+ * A dot is narrower than a twentieth of the picture (no face or round logo in a whole video frame)
+ * or than this share of its height: a tab cut out tight round a few columns with big dots is
+ * narrow, but a column of six holes always makes it many dots tall.
+ */
+const BIGGEST_DOT = 8
 
 export interface Dot {
   x0: number
@@ -117,7 +123,7 @@ export function roundMarks(img: RGBAImage, paper: RGB): Dot[] {
     }
     const w = x1 - x0 + 1
     const h = y1 - y0 + 1
-    if (w >= 6 && h >= 6 && w / h > 0.75 && w / h < 1.33 && n / (w * h) > 0.55 && w < W / 20) dots.push({ x0, y0, x1, y1, colour: sum.map((v) => v / n) as RGB })
+    if (w >= 6 && h >= 6 && w / h > 0.75 && w / h < 1.33 && n / (w * h) > 0.55 && w < Math.max(W / 20, H / BIGGEST_DOT)) dots.push({ x0, y0, x1, y1, colour: sum.map((v) => v / n) as RGB })
   }
   return dots
 }
