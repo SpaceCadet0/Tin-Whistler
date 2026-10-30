@@ -45,6 +45,7 @@ export const hope: Tune = {
   description: {
     en: 'The Dirt theme from Heroes of Might and Magic IV for two whistles: a high D and a low D take turns with the tune and the harmony, and play together. Choose your part; the other plays along.',
     ru: 'Тема земли из Heroes of Might and Magic IV для двух вистлов: high D и low D по очереди ведут мелодию и гармонию и играют вместе. Выберите свою партию, вторая сыграет вместе с вами.',
+    ga: 'Téama na hÚire ó Heroes of Might and Magic IV do dhá fheadóg: glacann feadóg D ard agus feadóg D íseal sealanna leis an bhfonn agus leis an armóin, agus seinneann siad le chéile. Roghnaigh do pháirt; seinnfidh an ceann eile in éineacht leat.',
   },
   tabSource: HOUND4SOUND,
   origin: 'builtin',

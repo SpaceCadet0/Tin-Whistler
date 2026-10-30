@@ -24,6 +24,7 @@ B|:"D"A2 D FED F2 A A2 f|"Em"g2 e f2 d "A"e2 d Bcd|
     description: {
       en: 'A Kerry slide in 12/8: long-short skipping rhythm, a climb to high A and a roll to finish the B part.',
       ru: 'Керрийский слайд на 12/8: прыгающий ритм «долго-коротко», подъём к верхнему A и roll в конце второй части.',
+      ga: 'Sleamhnán Ciarraíoch in 12/8: rithim scipeála fhada-ghearr, dreapadh go A ard agus roll chun cuid B a chríochnú.',
     },
   },
 )
@@ -49,6 +50,7 @@ A>B AG|FA de|fa/f/ ef/e/|d4 ||`,
     description: {
       en: 'The polka for the famous céilí dance. Bouncy sixteenths and a B part that lives high in the second octave; the top D is folded down an octave to stay on the whistle.',
       ru: 'Полька к знаменитому кейли-танцу. Подпрыгивающие шестнадцатые и вторая часть высоко во второй октаве; верхнее D перенесено на октаву ниже, чтобы остаться в диапазоне вистла.',
+      ga: 'An polca don damhsa céilí cáiliúil. Séú nótaí déag preabacha agus cuid B a mhaireann go hard sa dara hochtach; fillteadh an D is airde síos ochtach chun fanacht ar an bhfeadóg.',
     },
   },
 )
@@ -72,6 +74,7 @@ dcAG F2D2|dcAG F2D2|B,A,B,C DCDE|1 FEDC D2 A2:|2 FEDC D2z2||`,
     description: {
       en: 'The "Glasgow Reel": a dark minor reel that drives off a low pedal note. Written in D minor below the whistle, it is moved to B minor so every note is a plain fingering on a D whistle.',
       ru: '«Глазго-рил»: тёмный минорный рил, который раскачивается от низкой педальной ноты. Записан в ре миноре ниже вистла, поэтому перенесён в си минор, где на D-вистле все ноты играются обычной аппликатурой.',
+      ga: 'An «Glasgow Reel»: ríl dhorcha mhion a thiomáineann ó nóta pedail íseal. Scríofa i D mion faoi raon na feadóige, aistríodh go B mion é ionas gur méarú simplí é gach nóta ar fheadóg D.',
     },
   },
 )
@@ -95,6 +98,7 @@ f2fg fedc|Bggf g2gf|edcB ABcd|eddc d2 de:|`,
     description: {
       en: 'A sunny reel loved from Quebec to Ireland. Broken-chord runs down from high F#, and a G# that needs a half-holed note.',
       ru: 'Солнечный рил, который любят от Квебека до Ирландии. Пробежки по аккордам вниз от верхнего F# и G#, который берётся полузакрытым отверстием.',
+      ga: 'Ríl ghrianmhar a bhfuil grá uirthi ó Québec go hÉirinn. Ritheanna cordaí briste anuas ó F# ard, agus G# a dteastaíonn leathpholl uaidh.',
     },
   },
 )
@@ -117,6 +121,7 @@ E|:FBBA ~B3d|cBAf ecBA|FBBA ~B3d|1 cBAc B2BA:|2 cBAc ~B3c||
     description: {
       en: 'A three-part reel in B minor, full of rolls on B. The third part leaps to high B and back again and again.',
       ru: 'Рил из трёх частей в си миноре, полный rolls на B. В третьей части мелодия снова и снова прыгает к верхнему B и обратно.',
+      ga: 'Ríl trí chuid i B mion, lán de rolls ar B. Léimeann an tríú cuid go B ard agus ar ais arís agus arís eile.',
     },
   },
 )
@@ -140,6 +145,7 @@ K:Dmaj
     description: {
       en: 'One of the best-known reels in the session repertoire. Cuts on the long As and taps on the repeated Ds give it its lift.',
       ru: 'Один из самых известных рилов сейшен-репертуара. Cuts на длинных A и taps на повторяющихся D дают ему упругость.',
+      ga: 'Ceann de na ríleanna is cáiliúla i stór na seisiún. Tugann cuts ar na A fada agus taps ar na D athráite a ardú di.',
     },
   },
 )
@@ -163,6 +169,7 @@ faaf bzaf|defd ezde|fBBA Bcdz|AFEF D3z:|`,
     description: {
       en: 'A favourite reel with short breaths built in: the little rests are where you sneak a breath without losing the beat.',
       ru: 'Любимый рил со встроенными вдохами: короткие паузы как раз для того, чтобы успеть вдохнуть, не теряя ритм.',
+      ga: 'Ríl cheanúil le hanálacha gearra tógtha isteach: is sna sosanna beaga a ghoideann tú anáil gan an buille a chailleadh.',
     },
   },
 )
@@ -186,6 +193,7 @@ ea a2 efgf|eBBA B2 Bd|eged BAGA|BAGE EDD2:|`,
     description: {
       en: 'A flowing G-major reel. The A part rocks between G and low D; the B part jumps up to high A over and over.',
       ru: 'Плавный рил в соль мажоре. Первая часть покачивается между G и нижним D, вторая раз за разом прыгает к верхнему A.',
+      ga: 'Ríl shreabhach G mór. Luascann cuid A idir G agus D íseal; léimeann cuid B suas go A ard arís agus arís eile.',
     },
   },
 )
@@ -209,6 +217,7 @@ d2Bd gdBd|d2Bd gdBd|c2Ac BAGB|1 AGFA GABc:|2 AGFA ~G3A||`,
     description: {
       en: 'A G-major reel with a cross-fingered C natural and a roll on G closing the A part. The B part circles around high G.',
       ru: 'Рил в соль мажоре с натуральным C (вилочная аппликатура) и roll на G в конце первой части. Вторая часть кружит вокруг верхнего G.',
+      ga: 'Ríl G mór le C nádúrtha crosmhéaraithe agus roll ar G ag dúnadh chuid A. Téann cuid B timpeall ar G ard.',
     },
   },
 )
@@ -234,6 +243,7 @@ B2EB GBEB|B2EB AFDF|Bdeg fdec|d2dA BAFD|
     description: {
       en: 'An E dorian reel built on a ringing B: the long middle part keeps returning to it, first an octave up, then down low.',
       ru: 'Рил в ми дорийском, построенный вокруг звонкого B: длинная средняя часть постоянно к нему возвращается, сначала октавой выше, потом внизу.',
+      ga: 'Ríl E dórach tógtha ar B glórach: filleann an chuid fhada lárnach air arís agus arís, ochtach suas ar dtús, ansin thíos íseal.',
     },
   },
 )
@@ -258,6 +268,7 @@ dBfB dBfB|cAeA fAeA|defd B/c/d ec|BABc dAFD||`,
     description: {
       en: 'A session staple: the A part bounces off low E, the later parts swap between a high melody and a drone note in quick alternation.',
       ru: 'Обязательный сейшен-рил: первая часть отталкивается от нижнего E, дальше мелодия быстро чередуется с повторяющейся опорной нотой.',
+      ga: 'Bunfhonn seisiúin: preabann cuid A de E íseal, malartaíonn na codanna níos déanaí idir séis ard agus nóta dordáin go tapa.',
     },
   },
 )
@@ -281,6 +292,7 @@ fa a2 bfaf|gfed Bdef|g3 e f3 e|1 dfed B2 A2:|2 dfed B2 AG||`,
     description: {
       en: 'A cheerful D-major reel and a great first "real" reel: clear phrases, long notes to land on and a B part up to high B.',
       ru: 'Весёлый рил в ре мажоре и отличный первый «настоящий» рил: понятные фразы, длинные ноты-опоры и вторая часть до верхнего B.',
+      ga: 'Ríl ghealgháireach D mór agus céad «fhíor»-ríl iontach: frásaí soiléire, nótaí fada le tuirlingt orthu agus cuid B suas go B ard.',
     },
   },
 )

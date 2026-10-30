@@ -10,6 +10,7 @@ export const hotCrossBuns: Tune = {
   description: {
     en: 'Your very first tune: only three notes, B, A and G.',
     ru: 'Самая первая мелодия: всего три ноты, B, A и G.',
+    ga: 'Do chéad fhonn ar fad: trí nóta amháin, B, A agus G.',
   },
   origin: 'builtin',
   type: 'children',
@@ -36,6 +37,7 @@ export const maryLamb: Tune = {
   description: {
     en: 'Four notes of the lower hand: D, E, F# and A. Great for practising covering the bottom holes.',
     ru: 'Четыре ноты нижней руки: D, E, F# и A. Отлично тренирует закрытие нижних отверстий.',
+    ga: 'Ceithre nóta den lámh íochtair: D, E, F# agus A. Iontach chun clúdach na bpoll íochtair a chleachtadh.',
   },
   origin: 'builtin',
   type: 'children',
@@ -63,6 +65,7 @@ export const odeToJoy: Tune = {
   description: {
     en: 'Five neighbouring notes, step by step. A classic for smooth finger changes.',
     ru: 'Пять соседних нот шаг за шагом. Классика для плавной смены пальцев.',
+    ga: 'Cúig nóta in aice a chéile, céim ar chéim. Clasaiceach d’athruithe réidhe méar.',
   },
   origin: 'builtin',
   type: 'classical',
@@ -96,6 +99,7 @@ export const amazingGrace: Tune = {
   description: {
     en: 'A slow song in 3/4 that visits the high D. Practise long, steady notes and a gentle octave jump.',
     ru: 'Медленная песня на 3/4 с верхним D. Тренирует длинные ровные ноты и мягкий переход в верхнюю октаву.',
+    ga: 'Amhrán mall in 3/4 a thugann cuairt ar D ard. Cleachtaigh nótaí fada seasta agus léim réidh ochtaigh.',
   },
   origin: 'builtin',
   type: 'hymn',
@@ -127,6 +131,7 @@ export const strandPolka: Tune = {
   description: {
     en: 'A short original polka in the Irish style: bouncy eighth notes on D, E, F#, G and A.',
     ru: 'Короткая оригинальная полька в ирландском стиле: пружинистые восьмые на D, E, F#, G и A.',
+    ga: 'Polca gearr bunaidh sa stíl Ghaelach: ochtú nótaí preabacha ar D, E, F#, G agus A.',
   },
   origin: 'builtin',
   type: 'polka',
@@ -161,6 +166,7 @@ export const keshJig: Tune = {
   description: {
     en: 'One of the most-played session jigs. Uses both octaves and the lilting "long-short" jig feel.',
     ru: 'Один из самых популярных джигов на сейшенах. Обе октавы и характерный «качающийся» ритм джиги.',
+    ga: 'Ceann de na poirt seisiúin is mó a sheinntear. Úsáideann sé an dá ochtach agus mothú luascach «fada-gearr» an phoirt.',
   },
   origin: 'builtin',
   type: 'jig',

@@ -25,6 +25,7 @@ export const kaerMorhen: Tune = {
   description: {
     en: 'The theme of the witchers\' keep from The Witcher 3, a slow rubato air in D minor for the high C whistle. Long slurred lines high in the second octave, with taps, cuts and slides.',
     ru: 'Тема крепости ведьмаков из The Witcher 3: медленная мелодия с рубато в ре миноре для вистла High C. Длинные легато высоко во второй октаве, с tap, cut и slide.',
+    ga: 'Téama dhaingean na witchers ó The Witcher 3, aer mall rubato i D mion don fheadóg C ard. Línte fada ceangailte go hard sa dara hochtach, le taps, cuts agus slides.',
   },
   tabSource: HOUND4SOUND,
   origin: 'builtin',

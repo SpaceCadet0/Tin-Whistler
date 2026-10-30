@@ -53,7 +53,20 @@ export default function SettingsPage() {
         <Card className="flex flex-col gap-5">
           <h2 className="font-display text-xl font-semibold">{t('settings.general')}</h2>
           <Row label={t('settings.language')}>
-            <Segmented<Language> label={t('settings.language')} value={s.language} onChange={(v) => s.set({ language: v })} options={[{ value: 'en', label: 'English' }, { value: 'ru', label: 'Русский' }]} />
+            <Segmented<Language> label={t('settings.language')} value={s.language} onChange={(v) => s.set({ language: v })} options={[
+                { value: 'en', label: 'English' },
+                { value: 'ru', label: 'Русский' },
+                {
+                  value: 'ga',
+                  label: (
+                    <span className="inline-flex items-center gap-1.5">
+                      <Icon name="clover" size={18} />
+                      Gaeilge
+                    </span>
+                  ),
+                },
+              ]}
+            />
           </Row>
           <Row label={t('settings.theme')}>
             <Segmented<ThemePref>

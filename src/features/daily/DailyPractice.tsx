@@ -37,7 +37,7 @@ function WarmUp({ block, onDone }: { block: DailyBlock; onDone: () => void }) {
   return (
     <NoteStep
       key={note + i}
-      exercise={{ id: `warm-${i}`, type: 'pitch', note, holdMs: 3000, tolerance: 35, title: { en: `Long ${note}`, ru: `Длинная ${note}` }, instruction: { en: 'Steady breath, steady needle.', ru: 'Ровное дыхание, ровная стрелка.' } }}
+      exercise={{ id: `warm-${i}`, type: 'pitch', note, holdMs: 3000, tolerance: 35, title: { en: `Long ${note}`, ru: `Длинная ${note}`, ga: `${note} fada` }, instruction: { en: 'Steady breath, steady needle.', ru: 'Ровное дыхание, ровная стрелка.', ga: 'Anáil sheasta, snáthaid sheasta.' } }}
       onComplete={() => (i + 1 < block.notes.length ? setI(i + 1) : onDone())}
     />
   )

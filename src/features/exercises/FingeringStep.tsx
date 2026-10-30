@@ -33,7 +33,7 @@ export function FingeringStep({ exercise, onComplete }: { exercise: FingeringExe
 
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center">
-      <ExerciseHeader title={exercise.title} instruction={{ en: 'Tap the holes your fingers should cover.', ru: 'Нажмите на отверстия, которые нужно закрыть.' }} />
+      <ExerciseHeader title={exercise.title} instruction={{ en: 'Tap the holes your fingers should cover.', ru: 'Нажмите на отверстия, которые нужно закрыть.', ga: 'Tapáil na poill ba chóir do do mhéara a chlúdach.' }} />
       {/* phone: the whistle stands tall on the left, the note and the result beside it; wide screens stack them */}
       <div className="flex min-h-0 w-full flex-1 flex-row items-stretch justify-center gap-6 lg:flex-none lg:flex-col lg:items-center lg:gap-0">
         <FitWhistle fingering={fg} target={hint ? note.fingering : undefined} interactive={!done} onToggle={toggle} max={420} minHeight={180} wrapperClassName="w-28 flex-none lg:w-full" label={t('whistle.tapToCover')} />

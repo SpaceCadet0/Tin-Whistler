@@ -30,6 +30,7 @@ export const thePrayer: Tune = {
   description: {
     en: 'The Swamp theme from Heroes of Might and Magic IV. A slow, rubato air in D minor for the high C whistle: soft "du" and "ru" repeats, cuts, slow slides and a long climb to high A.',
     ru: 'Тема Болота из Heroes of Might and Magic IV. Медленная мелодия с рубато в ре миноре для вистла High C: мягкие повторы «du» и «ru», cut, медленные slide и долгий подъём к верхнему A.',
+    ga: 'Téama an Chorraigh ó Heroes of Might and Magic IV. Aer mall rubato i D mion don fheadóg C ard: athrá bog «du» agus «ru», cuts, slides malla agus dreapadh fada go A ard.',
   },
   tabSource: HOUND4SOUND,
   origin: 'builtin',

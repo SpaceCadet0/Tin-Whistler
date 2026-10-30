@@ -45,6 +45,7 @@ z FFE|D3D|F2A2|AG3|z FGA|F2D2|E4|D4|]`,
     description: {
       en: 'A cheerful march on five neighbouring notes with plenty of long, easy notes to settle your breath.',
       ru: 'Бодрый марш на пяти соседних нотах. Много длинных лёгких нот, чтобы выровнять дыхание.',
+      ga: 'Máirseáil ghealgháireach ar chúig nóta in aice a chéile le neart nótaí fada éasca chun d’anáil a shocrú.',
     },
   },
 )
@@ -68,6 +69,7 @@ e2|d3B B2G2|A3G A2e2|d3B B2d2|e6 g2|d3B B2G2|A3G A2B2|G3E E2D2|G6|]`,
     description: {
       en: 'The long-short "dotted" rhythm and a leap up to high D, E and G. A friendly first step into the second octave.',
       ru: 'Пунктирный ритм «долго-коротко» и скачки к верхним D, E и G. Дружелюбный первый шаг во вторую октаву.',
+      ga: 'An rithim «phoncaithe» fhada-ghearr agus léim suas go D, E agus G arda. Céad chéim chairdiúil isteach sa dara hochtach.',
     },
   },
 )
@@ -91,6 +93,7 @@ e2e|e2d|B2B|AGF|E2B|A2G|FED|E3|]`,
     description: {
       en: 'A haunting ballad in the dorian mode, the sound of so many Irish airs. Uses C# and climbs to high E.',
       ru: 'Задумчивая баллада в дорийском ладу, так звучат многие ирландские мелодии. Есть C# и подъём к верхнему E.',
+      ga: 'Bailéad uaigneach sa mhód dórach, fuaim an oiread sin aeranna Gaelacha. Úsáideann sé C# agus dreapann sé go E ard.',
     },
   },
 )
@@ -112,6 +115,7 @@ K:Edor
     description: {
       en: 'A classic session reel in E dorian. Driving eighth notes, octave jumps and rolls on the long Bs.',
       ru: 'Классический сейшен-рил в ми дорийском. Напористые восьмые, октавные скачки и rolls на длинных B.',
+      ga: 'Ríl chlasaiceach seisiúin in E dórach. Ochtú nótaí tiomána, léimeanna ochtaigh agus rolls ar na B fada.',
     },
   },
 )
@@ -134,6 +138,7 @@ K:Em
     description: {
       en: 'A beloved slip jig in 9/8 with three parts. Floating rhythm, fast finger work and the top of the range up to high B.',
       ru: 'Любимый слип-джиг на 9/8 из трёх частей. Парящий ритм, быстрые пальцы и верх диапазона до верхнего B.',
+      ga: 'Port luascach ionúin in 9/8 le trí chuid. Rithim ar snámh, obair thapa méar agus barr an raoin suas go B ard.',
     },
   },
 )

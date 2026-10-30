@@ -10,6 +10,7 @@ export type Register = 1 | 2
 export interface LocalizedText {
   en: string
   ru: string
+  ga: string
 }
 
 /** A playable note on a specific whistle. */

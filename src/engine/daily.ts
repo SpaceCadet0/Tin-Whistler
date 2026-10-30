@@ -16,10 +16,10 @@ export interface DailyBlock {
 }
 
 const TITLES: Record<DailyBlockKind, LocalizedText> = {
-  warmup: { en: 'Warm-up: long tones', ru: 'Разминка: длинные ноты' },
-  notes: { en: 'Note practice', ru: 'Тренировка нот' },
-  melody: { en: 'Melody', ru: 'Мелодия' },
-  challenge: { en: 'Challenge', ru: 'Испытание' },
+  warmup: { en: 'Warm-up: long tones', ru: 'Разминка: длинные ноты', ga: 'Téamh suas: nótaí fada' },
+  notes: { en: 'Note practice', ru: 'Тренировка нот', ga: 'Cleachtadh nótaí' },
+  melody: { en: 'Melody', ru: 'Мелодия', ga: 'Séis' },
+  challenge: { en: 'Challenge', ru: 'Испытание', ga: 'Dúshlán' },
 }
 
 /** Split of a 10-minute session: 2 / 3 / 3 / 2 minutes, scaled to the daily goal. */

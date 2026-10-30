@@ -238,6 +238,15 @@ export default function Onboarding() {
           options={[
             { value: 'en', label: 'EN' },
             { value: 'ru', label: 'RU' },
+            {
+              value: 'ga',
+              label: (
+                <span className="inline-flex items-center gap-1">
+                  <Icon name="clover" size={16} />
+                  GA
+                </span>
+              ),
+            },
           ]}
         />
       </div>

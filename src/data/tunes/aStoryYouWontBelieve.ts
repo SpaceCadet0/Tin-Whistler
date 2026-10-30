@@ -43,6 +43,7 @@ export const aStoryYouWontBelieve: Tune = {
   description: {
     en: 'A lively tavern tune from The Witcher 3 for the high C whistle, in D minor. Runs of tongued notes high in the second octave, nine short sections.',
     ru: 'Бойкая трактирная мелодия из The Witcher 3 для вистла High C, в ре миноре. Пробежки нот с атакой языком высоко во второй октаве, девять коротких секций.',
+    ga: 'Fonn bríomhar tábhairne ó The Witcher 3 don fheadóg C ard, i D mion. Ritheanna nótaí teangaithe go hard sa dara hochtach, naoi gcuid ghearra.',
   },
   tabSource: HOUND4SOUND,
   origin: 'builtin',

@@ -4,7 +4,7 @@ import { appStorage } from '../lib/storage'
 import { oneOf, sanitizeAgainst } from '../lib/validate'
 import { WHISTLE_KEYS } from '../music/whistles'
 
-export type Language = 'en' | 'ru'
+export type Language = 'en' | 'ru' | 'ga'
 export type PlayerLevel = 'beginner' | 'some' | 'returning'
 export type ThemePref = 'system' | 'light' | 'dark'
 export type MotionPref = 'system' | 'reduce' | 'full'
@@ -32,7 +32,10 @@ export interface SettingsState {
   reset: () => void
 }
 
-const browserLanguage = (): Language => (navigator.language?.toLowerCase().startsWith('ru') ? 'ru' : 'en')
+const browserLanguage = (): Language => {
+  const nav = navigator.language?.toLowerCase() ?? ''
+  return nav.startsWith('ru') ? 'ru' : nav.startsWith('ga') ? 'ga' : 'en'
+}
 
 const DEFAULTS = {
   language: browserLanguage(),
@@ -55,7 +58,7 @@ const inRange = (lo: number, hi: number) => (x: unknown) => typeof x === 'number
 /** Persisted settings with invalid values replaced by defaults. */
 export function sanitizeSettings(persisted: unknown): Partial<typeof DEFAULTS> {
   return sanitizeAgainst(DEFAULTS, persisted, {
-    language: oneOf('en', 'ru'),
+    language: oneOf('en', 'ru', 'ga'),
     level: oneOf('beginner', 'some', 'returning'),
     theme: oneOf('system', 'light', 'dark'),
     motion: oneOf('system', 'reduce', 'full'),

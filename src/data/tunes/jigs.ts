@@ -24,6 +24,7 @@ K:Dmix
     description: {
       en: 'A three-part jig in D mixolydian, the flattened C giving it its old-world sound. The C part bounces off low D between every melody note.',
       ru: 'Джиг из трёх частей в ре миксолидийском: C натуральное придаёт ему старинное звучание. В третьей части мелодия отталкивается от нижнего D после каждой ноты.',
+      ga: 'Port trí chuid i D micsileidiach, an C maolaithe ag tabhairt a fhuaime seanaimseartha dó. Preabann cuid C de D íseal idir gach nóta séise.',
     },
   },
 )
@@ -45,6 +46,7 @@ K:Gmaj
     description: {
       en: 'A sunny G-major jig with long held Bs to settle into. The B part climbs to high G and rolls back down through the scale.',
       ru: 'Солнечный джиг в соль мажоре с длинными B, на которых можно устроиться. Вторая часть поднимается к верхнему G и скатывается обратно по гамме.',
+      ga: 'Port grianmhar G mór le B fada coinnithe le socrú isteach iontu. Dreapann cuid B go G ard agus rollann sé anuas arís tríd an scála.',
     },
   },
 )
@@ -66,6 +68,7 @@ K:Ador
     description: {
       en: 'An A dorian jig that swings between low E and A, then answers an octave higher in the B part. Plenty of repeated As to practise clean tonguing.',
       ru: 'Джиг в ля дорийском, который качается между нижними E и A, а во второй части отвечает октавой выше. Много повторяющихся A для чёткой атаки языком.',
+      ga: 'Port A dórach a luascann idir E íseal agus A, ansin freagraíonn sé ochtach níos airde i gcuid B. Neart A athráite chun teangú glan a chleachtadh.',
     },
   },
 )
@@ -88,6 +91,7 @@ Bee fee|aee fee|Bee fee|faf def|g3 gfe|def g2d|edc d2A|BAG FED|]`,
     description: {
       en: 'One of the most played jigs: an E dorian A part built on long low Es and Bs, and a B part that hammers out high E with every turn.',
       ru: 'Один из самых играемых джигов: первая часть в ми дорийском на длинных нижних E и B, вторая раз за разом отбивает верхнее E.',
+      ga: 'Ceann de na poirt is mó a sheinntear: cuid A in E dórach tógtha ar E agus B fada ísle, agus cuid B a bhuaileann E ard amach le gach casadh.',
     },
   },
 )
@@ -110,6 +114,7 @@ K:Dmix
     description: {
       en: 'A three-part jig in D mixolydian that switches between C natural and C sharp, a good workout for the cross-fingered C.',
       ru: 'Джиг из трёх частей в ре миксолидийском, где C натуральное чередуется с C диезом: хорошая тренировка вилочного C.',
+      ga: 'Port trí chuid i D micsileidiach a athraíonn idir C nádúrtha agus C géar, cleachtadh maith don C crosmhéaraithe.',
     },
   },
 )
@@ -131,6 +136,7 @@ K:Dmaj
     description: {
       en: 'A favourite D-major jig that leans towards B minor. The A part rocks on repeated As, the B part reaches up to high B.',
       ru: 'Любимый джиг в ре мажоре с уклоном в си минор. Первая часть покачивается на повторяющихся A, вторая тянется к верхнему B.',
+      ga: 'Port ceanúil D mór a chlaonann i dtreo B mion. Luascann cuid A ar A athráite, síneann cuid B suas go B ard.',
     },
   },
 )
@@ -152,6 +158,7 @@ K:Ador
     description: {
       en: 'An A dorian jig that opens with a quick pair of sixteenths. The B part climbs to high A and B, with C naturals to cross-finger.',
       ru: 'Джиг в ля дорийском, который начинается с быстрой пары шестнадцатых. Вторая часть поднимается к верхним A и B, с вилочным C натуральным.',
+      ga: 'Port A dórach a osclaíonn le péire tapa séú nótaí déag. Dreapann cuid B go A agus B arda, le C nádúrtha le crosmhéarú.',
     },
   },
 )
@@ -175,6 +182,7 @@ GEG EDB,|DEG GG2|DGA Bc2|cBA GBd|ded cBA|GEG EDB,|DEG GG2|]`,
     description: {
       en: 'A short, gentle G-major jig in the low octave, with long Gs and Cs to rest on. A good first jig to get the lilting 6/8 feel; the two low Bs below the whistle are played an octave up.',
       ru: 'Короткий спокойный джиг в соль мажоре в нижней октаве, с длинными G и C, на которых можно отдохнуть. Хороший первый джиг, чтобы поймать качающийся ритм 6/8; два низких B ниже вистла играются октавой выше.',
+      ga: 'Port gearr séimh G mór san ochtach íseal, le G agus C fada le scíth a ligean orthu. Céad phort maith chun mothú luascach 6/8 a fháil; seinntear an dá B íseal faoi raon na feadóige ochtach suas.',
     },
   },
 )

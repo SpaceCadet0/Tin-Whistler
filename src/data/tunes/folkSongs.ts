@@ -30,6 +30,7 @@ D2 | G2 G2 G2 | G B3 GG | A2 A2 A2 | A !slide!c3
     description: {
       en: "Dublin's unofficial anthem in waltz time. Repeated notes to tongue cleanly, a gentle climb to high D and a chorus you can sing along to.",
       ru: 'Неофициальный гимн Дублина в размере вальса. Повторяющиеся ноты для чёткой атаки языком, плавный подъём к верхнему D и припев, который хочется подпевать.',
+      ga: 'Amhrán náisiúnta neamhoifigiúil Bhaile Átha Cliath in am válsa. Nótaí athráite le teangú go glan, dreapadh réidh go D ard agus curfá ar féidir leat a chanadh leis.',
     },
   },
 )
@@ -59,6 +60,7 @@ z2 !breath!B2 B2 | B2 A2 B2 | c6 | z2
     description: {
       en: 'The pub singalong: a steady verse, then the "No, nay, never" chorus with its rests where everyone claps. Long held notes train your breath.',
       ru: 'Песня, которую поют всем пабом: ровный куплет и припев «No, nay, never» с паузами, где все хлопают. Длинные ноты тренируют дыхание.',
+      ga: 'An t-amhrán tábhairne a chanann cách: véarsa seasta, ansin curfá «No, nay, never» lena shosanna ina mbuaileann cách bosa. Traenálann nótaí fada coinnithe d’anáil.',
     },
   },
 )
@@ -84,6 +86,7 @@ B2 | E2 EE E2 GG | B2 {d}B2 B2 BB | c2 AA A2 cc | ee B2 B2
     description: {
       en: 'The whaling shanty in E minor. Quick repeated notes on the off-beats, a cut on the long Bs and a chorus that climbs to high E.',
       ru: 'Китобойная морская песня в ми миноре. Быстрые повторяющиеся ноты на слабых долях, кат на длинных B и припев с подъёмом к верхнему E.',
+      ga: 'Amhrán mairnéalach na míolta móra in E mion. Nótaí athráite tapa ar na buillí laga, cut ar na B fada agus curfá a dhreapann go E ard.',
     },
   },
 )
@@ -109,6 +112,7 @@ g2) {a}f(f e)d(ed | BG3) !breath!(def g-| g2) {a}f(f ed)(BA-| A2) !breath!d(dd !
     description: {
       en: 'The Londonderry Air, played slow and slurred. Slides into the long notes, a big climb to high G and B, and long phrases to plan your breathing.',
       ru: 'Londonderry Air, медленно и легато. Слайды на длинные ноты, большой подъём к верхним G и B и длинные фразы, в которых нужно продумать дыхание.',
+      ga: 'Aer Dhoire, seinnte go mall agus ceangailte. Slides isteach sna nótaí fada, dreapadh mór go G agus B arda, agus frásaí fada le d’anáil a phleanáil.',
     },
   },
 )
@@ -133,6 +137,7 @@ CFG | AF3- F !breath!CFG | AF3- F !breath!CFG | A2GF A2GF | c2c2 c
     description: {
       en: 'The Italian partisan song, set in A minor for a C whistle so every note is a plain fingering. Short, catchy phrases with tied notes across the beat.',
       ru: 'Итальянская партизанская песня в ля миноре для C-вистла: все ноты берутся обычной аппликатурой. Короткие запоминающиеся фразы с залигованными через долю нотами.',
+      ga: 'Amhrán na bpáirtíneach Iodálach, socraithe in A mion don fheadóg C ionas gur méarú simplí é gach nóta. Frásaí gearra tarraingteacha le nótaí ceangailte trasna an bhuille.',
     },
   },
 )
@@ -166,6 +171,7 @@ d/d/ d3/2 d/ | d B c | d c B- | B3 |
     description: {
       en: 'A ballad of a girl with a black velvet band, in a lilting 3/4. Long tied notes at the end of every line to practise steady breath, and a cross-fingered C natural.',
       ru: 'Баллада о девушке с чёрной бархатной лентой в плавном размере 3/4. Длинные залигованные ноты в конце каждой строки тренируют ровное дыхание, есть до-бекар вилочной аппликатурой.',
+      ga: 'Bailéad faoi chailín le banda dubh veilbhite, in 3/4 luascach. Nótaí fada ceangailte ag deireadh gach líne chun anáil sheasta a chleachtadh, agus C nádúrtha crosmhéaraithe.',
     },
   },
 )
@@ -193,6 +199,7 @@ z !breath!B B>A | Bc dB | AF EF | D3 |]`,
     description: {
       en: 'The highwayman\'s song: quick repeated notes in the verse, then the "Musha ring dum a doo dum a da" chorus on a run of Es. Tongue every syllable.',
       ru: 'Песня о разбойнике: быстрые повторяющиеся ноты в куплете, затем припев «Musha ring dum a doo dum a da» на череде нот E. Каждый слог берите языком.',
+      ga: 'Amhrán an rapaire: nótaí athráite tapa sa véarsa, ansin curfá «Musha ring dum a doo dum a da» ar shraith E. Teangaigh gach siolla.',
     },
   },
 )
@@ -218,6 +225,7 @@ B, | B,2E E2F | G2F G2E | D3- D2B, | D3- D2
     description: {
       en: 'The anti-war march in E minor, the tune of "When Johnny Comes Marching Home". A steady 6/8 stride and quick repeated notes in the "hurroo, hurroo" refrain.',
       ru: 'Антивоенный марш в ми миноре, на мотив «When Johnny Comes Marching Home». Ровный шаг в 6/8 и быстрые повторяющиеся ноты в припеве «hurroo, hurroo».',
+      ga: 'An mháirseáil frithchogaidh in E mion, fonn «When Johnny Comes Marching Home». Coisíocht sheasta 6/8 agus nótaí athráite tapa sa loinneog «hurroo, hurroo».',
     },
   },
 )
@@ -242,6 +250,7 @@ F/A/B{d}BB A/B/dde | d/e/fe/d/B B2<!slide!A2 | !breath!F/A/B{d}BB A/B/dde | d/e/
     description: {
       en: 'A sweeping love song with a modal, B-minor colour. Quick pick-up notes into every line, cuts on the repeated Bs and slides into the long As.',
       ru: 'Размашистая песня о любви с модальным, си-минорным оттенком. Быстрые затакты в начале каждой строки, каты на повторяющихся B и слайды на длинные A.',
+      ga: 'Amhrán grá leathan le dath módúil B mion. Nótaí tapa tosaigh isteach i ngach líne, cuts ar na B athráite agus slides isteach sna A fada.',
     },
   },
 )
@@ -268,6 +277,7 @@ BBB | B2B A2F E2E | B2E E2F G2A | !breath!B2B A2F E2G | F2D D2E FG
     description: {
       en: 'The tongue-twister song in 9/8, a slip jig with words, set in E dorian so every note is a plain fingering. Rolling groups of three and one long 12/8 bar at the end of the chorus.',
       ru: 'Песня-скороговорка в размере 9/8, по сути слип-джига со словами, в ми дорийском: все ноты берутся обычной аппликатурой. Перекатывающиеся тройки и один длинный такт в 12/8 в конце припева.',
+      ga: 'An t-amhrán casfhoclach in 9/8, port luascach le focail, socraithe in E dórach ionas gur méarú simplí é gach nóta. Grúpaí trí rollta agus barra fada amháin 12/8 ag deireadh an churfá.',
     },
   },
 )
@@ -291,6 +301,7 @@ F | ABA FDF | ABA F2 D/2F/2 | A3 B3 | G3/2 F/2 G E2
     description: {
       en: 'A halyard shanty with a rolling 6/8 swing: "Way, hey, blow the man down!" Short and catchy, played in the second octave with a leap up to high B for the hauling shout.',
       ru: 'Морская песня для подъёма парусов с раскачивающимся ритмом 6/8: «Way, hey, blow the man down!». Короткая и цепкая, звучит во второй октаве, со скачком к верхнему B на рабочем выкрике.',
+      ga: 'Amhrán mairnéalach tarraingthe le luascadh rollach 6/8: «Way, hey, blow the man down!» Gearr agus tarraingteach, seinnte sa dara hochtach le léim suas go B ard don bhéic tharraingthe.',
     },
   },
 )
@@ -314,6 +325,7 @@ K:F
     description: {
       en: 'The sailors\' farewell to a hard ship, sung slowly at the pumps on the last day of a voyage. Gentle slurred pairs and long notes to end each line.',
       ru: 'Прощание моряков с тяжёлым кораблём, которое пели медленно у помп в последний день плавания. Мягкие легато-пары и длинные ноты в конце каждой строки.',
+      ga: 'Slán na mairnéalach le long chrua, canta go mall ag na caidéil ar lá deireanach an turais. Péirí ceangailte séimhe agus nótaí fada ag deireadh gach líne.',
     },
   },
 )
@@ -339,6 +351,7 @@ K:D
     description: {
       en: 'The Royal Navy sailors\' song of the homeward voyage up the English Channel. A bold march-like tune that climbs to high A in the chorus.',
       ru: 'Песня моряков британского флота о возвращении домой через Ла-Манш. Смелая, маршевая мелодия, в припеве поднимается к верхнему A.',
+      ga: 'Amhrán mairnéalach an Chabhlaigh Ríoga faoin turas abhaile suas Muir nIocht. Fonn dána cosúil le máirseáil a dhreapann go A ard sa churfá.',
     },
   },
 )

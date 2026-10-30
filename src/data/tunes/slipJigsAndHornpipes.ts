@@ -29,6 +29,7 @@ K:Emin
     description: {
       en: 'A five-part slip jig in E minor that keeps coming back to the same tumbling run down to low D. Rolls on E and high G, and a climb to high B in the third part.',
       ru: 'Слип-джиг из пяти частей в ми миноре: каждая часть возвращается к одной и той же пробежке вниз к нижнему D. Роллы на E и верхнем G, а в третьей части подъём к верхнему B.',
+      ga: 'Port luascach cúig chuid in E mion a fhilleann arís agus arís ar an rith céanna ag titim síos go D íseal. Rolls ar E agus G ard, agus dreapadh go B ard sa tríú cuid.',
     },
   },
 )
@@ -51,6 +52,7 @@ K:Edor
     description: {
       en: 'A gentle slip jig in E dorian. Long notes on the beat leave time to breathe, and the second part rises to high B before stepping back down to E.',
       ru: 'Спокойный слип-джиг в ми дорийском. Длинные ноты на сильных долях оставляют время на вдох, а вторая часть поднимается к верхнему B и по ступеням спускается обратно к E.',
+      ga: 'Port luascach séimh in E dórach. Fágann nótaí fada ar an mbuille am chun anáil a tharraingt, agus ardaíonn an dara cuid go B ard sula siúlann sé síos arís go E.',
     },
   },
 )
@@ -74,6 +76,7 @@ K:Gmaj
     description: {
       en: 'A favourite first hornpipe, in G major. Each phrase opens with a quick triplet run-up; play the pairs of eighths long-short for the hornpipe lilt.',
       ru: 'Любимый первый хорнпайп, в соль мажоре. Каждая фраза начинается с быстрого разбега триолью; пары восьмых играйте «длинная-короткая», чтобы хорнпайп покачивался.',
+      ga: 'Céad chornphíopa ceanúil, i G mór. Osclaíonn gach frása le rith suas tapa tréimhse; seinn na péirí ochtú nótaí fada-gearr do luascadh an chornphíopa.',
     },
   },
 )
@@ -97,6 +100,7 @@ K:Dmaj
     description: {
       en: 'A bright D-major hornpipe built on arpeggios that keep bouncing off the A. The second part is a test of quick fingers: an A between every melody note and triplets rolling down.',
       ru: 'Яркий хорнпайп в ре мажоре на арпеджио, которые всё время отталкиваются от A. Вторая часть проверяет беглость пальцев: A между каждой нотой мелодии и скатывающиеся вниз триоли.',
+      ga: 'Cornphíopa geal D mór tógtha ar airpéisí a phreabann de A arís agus arís. Is triail ar mhéara tapa an dara cuid: A idir gach nóta séise agus tréimhsí ag rolladh anuas.',
     },
   },
 )
@@ -120,6 +124,7 @@ K:Emin
     description: {
       en: 'A stately E-minor hornpipe with smooth stepwise lines. Mind the C: natural (half-hole) in the first part, sharp in the second.',
       ru: 'Величавый хорнпайп в ми миноре с плавными ступенчатыми линиями. Следите за C: в первой части оно натуральное (полуотверстие), во второй диезное.',
+      ga: 'Cornphíopa maorga E mion le línte réidhe céimnithe. Bí aireach ar an C: nádúrtha (leathpholl) sa chéad chuid, géar sa dara cuid.',
     },
   },
 )
@@ -144,6 +149,7 @@ efg3 ef2-|fded Bcd2-|dedB AFGA|BcdB AFGF|EDB2 E2EF|GAB2 e2ed|efe2 B2BA|GFE6:|`,
     description: {
       en: 'A dark, majestic set dance in E dorian. The first part uses C natural (half-hole), the long second part C sharp, with notes tied over the bar line.',
       ru: 'Тёмный величественный сет-данс в ми дорийском. В первой части C натуральное (полуотверстие), в длинной второй части C диез, и ноты залигованы через тактовую черту.',
+      ga: 'Damhsa seit dorcha maorga in E dórach. Úsáideann an chéad chuid C nádúrtha (leathpholl), an dara cuid fhada C géar, le nótaí ceangailte thar líne an bharra.',
     },
   },
 )

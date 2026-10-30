@@ -17,7 +17,7 @@ Runs in the browser or as an Android app. Your progress stays on your device.
   <img src="https://img.shields.io/badge/Web%20Audio-live%20pitch-1D5A40" alt="Web Audio">
   <img src="https://img.shields.io/badge/Android-7.0%2B-1D5A40?logo=android&logoColor=white" alt="Android 7.0+">
   <img src="https://img.shields.io/badge/works-offline-1D5A40" alt="Works offline">
-  <img src="https://img.shields.io/badge/languages-EN%20%C2%B7%20RU-1D5A40" alt="Languages: English, Russian">
+  <img src="https://img.shields.io/badge/languages-EN%20%C2%B7%20RU%20%C2%B7%20GA-1D5A40" alt="Languages: English, Russian, Irish">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-1D5A40" alt="MIT License"></a>
 </p>
 
@@ -82,7 +82,7 @@ Runs in the browser or as an Android app. Your progress stays on your device.
 - **Any whistle**: low D, D, C, B♭ and G whistles. Fingerings are stored relative to the tonic.
 - **Onboarding**: how to hold the whistle, breath and fingers, then your level, a daily goal and the microphone.
 - **Progress**: daily goal, a 10-minute Daily Practice, achievements and tune progress.
-- **UI**: EN/RU, light and dark themes, reduced motion, keyboard shortcuts, screen-reader labels, and states that never rely on colour alone.
+- **UI**: English, Russian and Irish, light and dark themes, reduced motion, keyboard shortcuts, screen-reader labels, and states that never rely on colour alone.
 
 ## Run it
 

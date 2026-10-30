@@ -36,6 +36,7 @@ export const shepardsFlute: Tune = {
   description: {
     en: 'The Town of Dion theme. A slow air played with rubato: lots of cuts, bounces and slides, and a jump into the second octave.',
     ru: 'Тема города Дион. Медленная мелодия (air) с рубато: много cut, bounce и slide, есть переход во вторую октаву.',
+    ga: 'Téama Bhaile Dion. Aer mall seinnte le rubato: a lán cuts, bounces agus slides, agus léim isteach sa dara hochtach.',
   },
   tabSource: HOUND4SOUND,
   origin: 'builtin',
