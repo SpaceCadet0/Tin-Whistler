@@ -26,14 +26,14 @@ export interface Achievement {
 export const ACHIEVEMENTS: Achievement[] = [
   {
     id: 'first-note',
-    icon: 'music',
+    icon: 'note',
     title: { en: 'First sound', ru: 'Первый звук' },
     description: { en: 'Play your first correct note.', ru: 'Сыграйте первую правильную ноту.' },
     test: (s) => s.notesPlayed >= 1,
   },
   {
     id: 'first-lesson',
-    icon: 'book',
+    icon: 'start',
     title: { en: 'Off we go', ru: 'Поехали' },
     description: { en: 'Finish your first lesson.', ru: 'Пройдите первый урок.' },
     test: (s) => s.lessonsDone >= 1,
@@ -68,7 +68,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
   {
     id: 'streak-7',
-    icon: 'flame',
+    icon: 'bonfire',
     title: { en: 'A week of music', ru: 'Неделя музыки' },
     description: { en: 'Practise seven days in a row.', ru: 'Занимайтесь семь дней подряд.' },
     test: (s) => s.streak >= 7,
@@ -96,21 +96,21 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
   {
     id: 'combo-20',
-    icon: 'gamepad',
+    icon: 'combo',
     title: { en: 'In the flow', ru: 'В потоке' },
     description: { en: 'Hit a 20-note combo in Falling Notes.', ru: 'Соберите комбо из 20 нот в Falling Notes.' },
     test: (s) => s.gameBestCombo >= 20,
   },
   {
     id: 'tune-master',
-    icon: 'trophy',
+    icon: 'medal',
     title: { en: 'Session ready', ru: 'Готов к сейшену' },
     description: { en: 'Master a tune at full speed.', ru: 'Выучите мелодию на полной скорости.' },
     test: (s) => s.tunesMastered >= 1,
   },
   {
     id: 'collector',
-    icon: 'upload',
+    icon: 'collection',
     title: { en: 'Collector', ru: 'Коллекционер' },
     description: { en: 'Add your own tune.', ru: 'Добавьте свою мелодию.' },
     test: (s) => s.importedTunes >= 1,

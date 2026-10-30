@@ -1,5 +1,5 @@
 """
-Cuts the hand-drawn icon sheet (scripts/icons-sheet.png) into icons, traces each to an SVG outline and
+Cuts the hand-drawn icon sheets (scripts/icons-sheet.png, icons-sheet-2.png) into icons, traces each to an SVG outline and
 adds the single drawings in scripts/icons-extra, and writes src/ui/icons/*.svg plus src/ui/icons/paths.ts, which the Icon component draws.
 
 Needs numpy, scipy, pillow and potracer:  pip install --target /tmp/py potracer
@@ -16,6 +16,12 @@ import potrace
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHEET = os.path.join(ROOT, 'scripts', 'icons-sheet.png')
+# the achievements sheet: drawn larger and lighter, so scaled down and its strokes brought to the first sheet's
+SHEET2 = os.path.join(ROOT, 'scripts', 'icons-sheet-2.png')
+# share of its size the second sheet is drawn at, for its drawings to stand as tall as the first's
+SHEET2_SCALE = 0.58
+# its strokes, as a share of the first sheet's thickness, for its icons to stand as heavy as the first's
+SHEET2_WEIGHT = 0.55
 OUT = os.path.join(ROOT, 'src', 'ui', 'icons')
 # single drawings outside the sheet, one per file, named for the icon
 EXTRA = os.path.join(ROOT, 'scripts', 'icons-extra')
@@ -46,6 +52,15 @@ SHEET_ROWS = [
     ['undo', 'up'],
 ]
 
+# the second sheet's rows; None = a drawing the app has no use for
+SHEET2_ROWS = [
+    [None, 'bonfire', None, None, None, None],
+    ['diamond', 'duet', 'hare', None, None, None],
+    ['medal', 'month', 'combo', 'note', 'collection', None],
+    ['owl', None, 'peak', 'scores', 'start', None],
+    [None, None, None, None, None, None],
+]
+
 
 def runs(mask, gap=30):
     """Start and end of each run of True, runs closer than `gap` merged (the pause sign's two bars)."""
@@ -67,28 +82,30 @@ def runs(mask, gap=30):
     return merged
 
 
-def load():
-    im = Image.open(SHEET)
+def load(path=SHEET):
+    im = Image.open(path)
     bg = Image.new('RGBA', im.size, (255, 255, 255, 255))
     bg.alpha_composite(im.convert('RGBA'))
     return np.array(bg.convert('L')).astype(float)
 
 
-def cells(gray):
-    """(name, BOX square centred on the drawing) for every drawing on the sheet."""
+def cells(gray, sheet_rows=SHEET_ROWS, box=BOX):
+    """(name, `box` square centred on the drawing) for every named drawing on the sheet."""
     ink = gray < 140
     rows = runs(ink.sum(1) > 0)
-    assert len(rows) == len(SHEET_ROWS), f'sheet has {len(rows)} rows'
-    h = BOX // 2
-    for (y0, y1), names in zip(rows, SHEET_ROWS):
+    assert len(rows) == len(sheet_rows), f'sheet has {len(rows)} rows'
+    h = box // 2
+    for (y0, y1), names in zip(rows, sheet_rows):
         cols = runs(ink[y0:y1].sum(0) > 0)
         assert len(cols) == len(names), f'row at {y0} has {len(cols)} icons'
         for (x0, x1), name in zip(cols, names):
+            if name is None:
+                continue
             cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
             # only this drawing: a neighbour's edge may reach into the square
             only = np.full_like(gray, 255.0)
             only[y0:y1, x0:x1] = gray[y0:y1, x0:x1]
-            yield name, np.pad(only, h, constant_values=255.0)[cy:cy + BOX, cx:cx + BOX]
+            yield name, np.pad(only, h, constant_values=255.0)[cy:cy + box, cx:cx + box]
 
 
 def ink_of(box):
@@ -116,6 +133,19 @@ def half_width(ink):
 CORE = 2
 
 
+def restroke(ink, target):
+    """Thinned to a core and grown back `target` half thick: every stroke gets one thickness and a round end,
+    even where the picture's edge cut it off flat."""
+    core = ndimage.binary_erosion(ink, structure=disk(max(0, round(half_width(ink)) - CORE)))
+    return grow(core, round(target) - CORE)
+
+
+def sheet2_ink(box, target):
+    """A drawing from the second sheet at the first sheet's scale and stroke."""
+    big = Image.fromarray(box.astype(np.uint8)).resize((BOX * UP, BOX * UP), Image.LANCZOS)
+    return grow(restroke(np.array(big) < 128, target * SHEET2_WEIGHT), GROW * UP)
+
+
 def extra_ink(path, target):
     """A single drawing (dark or opaque on clear) scaled to SIZE, its strokes made `target` half thick."""
     im = Image.open(path).convert('RGBA')
@@ -126,11 +156,7 @@ def extra_ink(path, target):
     crop = Image.fromarray(gray[ys.min():ys.max() + 1, xs.min():xs.max() + 1])
     k = SIZE * UP / max(crop.size)
     w, h = round(crop.width * k), round(crop.height * k)
-    ink = np.array(crop.resize((w, h), Image.LANCZOS)) < 128
-    # thinned to a core and grown back: every stroke gets one thickness and a round end,
-    # even where the picture's edge cut it off flat
-    core = ndimage.binary_erosion(ink, structure=disk(max(0, round(half_width(ink)) - CORE)))
-    ink = grow(core, round(target * EXTRA_WEIGHT) - CORE)
+    ink = restroke(np.array(crop.resize((w, h), Image.LANCZOS)) < 128, target * EXTRA_WEIGHT)
     out = np.zeros((BOX * UP, BOX * UP), dtype=bool)
     y0, x0 = (BOX * UP - h) // 2, (BOX * UP - w) // 2
     out[y0:y0 + h, x0:x0 + w] = ink
@@ -178,6 +204,9 @@ def main():
     found = {name: ink_of(box) for name, box in found.items()}
     # single drawings take the sheet's stroke (before the common GROW)
     target = half_width(gray < 128) * UP
+    box2 = round(BOX / SHEET2_SCALE)
+    for name, box in cells(load(SHEET2), SHEET2_ROWS, box2):
+        found[name] = sheet2_ink(box, target)
     for file in sorted(os.listdir(EXTRA)):
         found[os.path.splitext(file)[0]] = extra_ink(os.path.join(EXTRA, file), target)
     lines = []
@@ -194,7 +223,7 @@ def main():
             fill = f", fill: '{path_d(ndimage.binary_fill_holes(ink))}'" if name in FILLED else ''
             lines.append(f"  {name}: {{ d: '{d}'{fill} }},")
     with open(os.path.join(OUT, 'paths.ts'), 'w') as fh:
-        fh.write('// Generated by scripts/trace-icons.py from scripts/icons-sheet.png. Do not edit.\n\n')
+        fh.write('// Generated by scripts/trace-icons.py from scripts/icons-sheet*.png. Do not edit.\n\n')
         fh.write(f'/** Box the outlines are drawn in. */\nexport const ICON_BOX = {BOX}\n\n')
         fh.write('/** Hand-drawn icons: `d` the drawing (even-odd), `fill` its silhouette, for the filled look. */\n')
         fh.write('export const ICON_PATHS: Record<string, { d: string; fill?: string }> = {\n')
