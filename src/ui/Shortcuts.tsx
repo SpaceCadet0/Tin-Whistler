@@ -66,7 +66,7 @@ export function TabLegend() {
       {sym('C', 'lg.cut')}
       {sym('B', 'lg.bounce')}
       {sym('S', 'lg.slide')}
-      {sym('tr', 'lg.trill')}
+      {sym('Tr', 'lg.trill')}
       {sym('t', 'lg.t')}
       {sym('r', 'lg.r')}
       {sym('trr', 'lg.trru')}

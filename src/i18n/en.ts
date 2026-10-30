@@ -373,6 +373,7 @@ export const en = {
   'tune.deleteTitle': 'Delete this tune?',
   'tune.deleteBody': '"{title}" will be removed from this device.',
   'tune.duplicate': 'Copy & edit',
+  'tune.tabSource': 'Tabs taken from the YouTube channel',
   'tune.copy': 'copy',
   'tune.playGame': 'Play as a game',
   'tune.best': 'Best {n}%',

@@ -134,11 +134,18 @@ export type TuneType = (typeof TUNE_TYPES)[number]
 
 export type TuneOrigin = 'builtin' | 'user'
 
+/** Where a tune's tabs come from: a channel or site, credited under the description. */
+export interface TabSource {
+  name: string
+  url: string
+}
+
 export interface Tune {
   id: string
   title: string
   composer?: string
   description?: LocalizedText
+  tabSource?: TabSource
   origin: TuneOrigin
   /** Import format when origin = user. */
   source?: 'abc' | 'midi' | 'image' | 'notation' | 'video' | 'editor'

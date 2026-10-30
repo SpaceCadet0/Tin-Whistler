@@ -1,5 +1,6 @@
 import { sectionFromTabText } from '../../music/tabText'
 import type { Tune } from '../../music/types'
+import { HOUND4SOUND } from './credits'
 
 /*
  * "The Prayer", the Swamp theme of Heroes of Might and Magic IV (also heard in Lineage II).
@@ -30,6 +31,7 @@ export const thePrayer: Tune = {
     en: 'The Swamp theme from Heroes of Might and Magic IV. A slow, rubato air in D minor for the high C whistle: soft "du" and "ru" repeats, cuts, slow slides and a long climb to high A.',
     ru: 'Тема Болота из Heroes of Might and Magic IV. Медленная мелодия с рубато в ре миноре для вистла High C: мягкие повторы «du» и «ru», cut, медленные slide и долгий подъём к верхнему A.',
   },
+  tabSource: HOUND4SOUND,
   origin: 'builtin',
   type: 'soundtrack',
   whistle: 'C',

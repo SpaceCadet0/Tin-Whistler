@@ -375,6 +375,7 @@ export const ru: Record<MessageKey, string> = {
   'tune.deleteTitle': 'Удалить мелодию?',
   'tune.deleteBody': '«{title}» будет удалена с этого устройства.',
   'tune.duplicate': 'Копировать и изменить',
+  'tune.tabSource': 'Табы взяты с YouTube-канала',
   'tune.copy': 'копия',
   'tune.playGame': 'Играть как игру',
   'tune.best': 'Лучший {n}%',

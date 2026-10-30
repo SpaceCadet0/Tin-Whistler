@@ -1,5 +1,6 @@
 import { parseTabText, sectionFromTabText } from '../../music/tabText'
 import type { Tune } from '../../music/types'
+import { HOUND4SOUND } from './credits'
 
 /*
  * Transcribed from the tab screenshots supplied with the project brief (reference/).
@@ -36,6 +37,7 @@ export const shepardsFlute: Tune = {
     en: 'The Town of Dion theme. A slow air played with rubato: lots of cuts, bounces and slides, and a jump into the second octave.',
     ru: 'Тема города Дион. Медленная мелодия (air) с рубато: много cut, bounce и slide, есть переход во вторую октаву.',
   },
+  tabSource: HOUND4SOUND,
   origin: 'builtin',
   type: 'soundtrack',
   whistle: 'D',

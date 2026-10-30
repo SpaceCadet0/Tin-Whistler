@@ -1,5 +1,6 @@
 import { sectionFromTabText } from '../../music/tabText'
 import type { Tune } from '../../music/types'
+import { HOUND4SOUND } from './credits'
 
 /*
  * "Kaer Morhen" from The Witcher 3: Wild Hunt. Read from Hound4Sound's video "Tin Whistle Tabs +
@@ -25,6 +26,7 @@ export const kaerMorhen: Tune = {
     en: 'The theme of the witchers\' keep from The Witcher 3, a slow rubato air in D minor for the high C whistle. Long slurred lines high in the second octave, with taps, cuts and slides.',
     ru: 'Тема крепости ведьмаков из The Witcher 3: медленная мелодия с рубато в ре миноре для вистла High C. Длинные легато высоко во второй октаве, с tap, cut и slide.',
   },
+  tabSource: HOUND4SOUND,
   origin: 'builtin',
   type: 'soundtrack',
   whistle: 'C',

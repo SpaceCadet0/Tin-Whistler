@@ -1,5 +1,6 @@
 import { duetSection } from '../../music/duet'
 import type { DuetPart, Tune } from '../../music/types'
+import { HOUND4SOUND } from './credits'
 
 /*
  * "Hope", the Dirt theme from Heroes of Might and Magic IV, as a duet for a high D and a low D
@@ -45,6 +46,7 @@ export const hope: Tune = {
     en: 'The Dirt theme from Heroes of Might and Magic IV for two whistles: a high D and a low D take turns with the tune and the harmony, and play together. Choose your part; the other plays along.',
     ru: 'Тема земли из Heroes of Might and Magic IV для двух вистлов: high D и low D по очереди ведут мелодию и гармонию и играют вместе. Выберите свою партию, вторая сыграет вместе с вами.',
   },
+  tabSource: HOUND4SOUND,
   origin: 'builtin',
   type: 'soundtrack',
   whistle: 'D',

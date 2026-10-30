@@ -9,7 +9,7 @@ import { FingeringColumn, type ColumnState } from './FingeringColumn'
 import { RestSign } from './RestSign'
 
 const ATTACK_LABEL: Record<Attack, string> = { tongue: 't', ru: 'r', slur: '-', trru: 'trr' }
-const ORN_LETTER = { cut: 'C', bounce: 'B', slide: 'S', roll: 'R', trill: 'tr' } as const
+const ORN_LETTER = { cut: 'C', bounce: 'B', slide: 'S', roll: 'R', trill: 'Tr' } as const
 
 export function articulationLabel(n: TuneNote): string {
   return (n.attack ? ATTACK_LABEL[n.attack] : '') + (n.stop ? 'i' : '')

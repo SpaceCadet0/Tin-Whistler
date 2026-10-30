@@ -79,6 +79,8 @@ export default function TuneDetail() {
   }
   const step = tp?.step ?? 0
   const mins = Math.max(1, Math.round(tuneDurationSec(tune) / 60))
+  // a copy saved by the user keeps the credit: link out only to a web page
+  const tabSource = typeof tune.tabSource?.url === 'string' && tune.tabSource.url.startsWith('https://') ? tune.tabSource : undefined
 
   const openStep = (n: number) => {
     if (n === 2) {
@@ -137,7 +139,16 @@ export default function TuneDetail() {
           {t('tune.difficulty')} <Difficulty value={tune.difficulty} label={t('tune.difficulty')} />
         </span>
       </div>
-      {tune.description && <p className="mb-6 max-w-2xl text-lg text-ink-soft">{L(tune.description)}</p>}
+      {tune.description && <p className={cn('max-w-2xl text-lg text-ink-soft', tabSource ? 'mb-2' : 'mb-6')}>{L(tune.description)}</p>}
+      {tabSource && (
+        <p className="mb-6 max-w-2xl text-ink-soft">
+          {t('tune.tabSource')}{' '}
+          <a href={tabSource.url} target="_blank" rel="noopener noreferrer" className="font-semibold text-moss underline-offset-2 hover:underline">
+            {tabSource.name}
+          </a>
+          .
+        </p>
+      )}
       <div className="mb-8 flex flex-wrap items-center gap-2">
         <span className="text-sm font-semibold text-ink-soft">{t('tune.notesUsed')}:</span>
         {usedNotes(tune).map((n) => (

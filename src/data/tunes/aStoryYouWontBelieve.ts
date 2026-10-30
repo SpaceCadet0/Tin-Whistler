@@ -1,5 +1,6 @@
 import { sectionFromTabText } from '../../music/tabText'
 import type { Tune } from '../../music/types'
+import { HOUND4SOUND } from './credits'
 
 /*
  * "A Story You Won't Believe", tavern and Gwent music from The Witcher 3: Wild Hunt, from
@@ -43,6 +44,7 @@ export const aStoryYouWontBelieve: Tune = {
     en: 'A lively tavern tune from The Witcher 3 for the high C whistle, in D minor. Runs of tongued notes high in the second octave, nine short sections.',
     ru: 'Бойкая трактирная мелодия из The Witcher 3 для вистла High C, в ре миноре. Пробежки нот с атакой языком высоко во второй октаве, девять коротких секций.',
   },
+  tabSource: HOUND4SOUND,
   origin: 'builtin',
   type: 'soundtrack',
   whistle: 'C',
