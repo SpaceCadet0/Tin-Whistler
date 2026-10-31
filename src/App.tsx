@@ -90,6 +90,8 @@ const router = createBrowserRouter(
       </Route>
     </Route>,
   ),
+  // '/Tin-Whistler/' on GitHub Pages → '/Tin-Whistler'; plain '/' everywhere else
+  { basename: import.meta.env.BASE_URL.replace(/\/$/, '') || '/' },
 )
 
 export default function App() {
