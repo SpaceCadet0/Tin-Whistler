@@ -121,6 +121,18 @@ describe('tab panel read from a video (Kaer Morhen, section 2)', () => {
   })
 })
 
+describe('tab panel read from a video (Concerning Hobbits, part 3B)', () => {
+  it('finds thin "+" marks whose arm kept the page colour, and skips capital note names', () => {
+    const png = PNG.sync.read(readFileSync(new URL('./__fixtures__/hobbits-3b.png', import.meta.url)))
+    const r = recognizeTab({ width: png.width, height: png.height, data: png.data })
+    const notes = sectionNotes(sectionFromRecognition(r, 's', 'S'))
+    // D E F# | D E F# A B C# | C# B A E D, all in the upper octave (the red top D is out of range)
+    expect(notes.map((n) => n.pitch)).toEqual([86, 88, 90, 86, 88, 90, 93, 95, 97, 97, 95, 93, 88, 86])
+    expect(notes.every((n) => n.attack == null)).toBe(true)
+    expect(r.warnings.join(' ')).toMatch(/Note names/)
+  })
+})
+
 describe('a tab that writes no articulation', () => {
   const read = (name: string) => {
     const png = PNG.sync.read(readFileSync(new URL(`./__fixtures__/${name}.png`, import.meta.url)))

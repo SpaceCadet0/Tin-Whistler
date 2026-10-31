@@ -61,6 +61,9 @@ type Mask = Uint8Array
 /** Luminance and brightest channel below which a pixel is ink regardless of hue. */
 const DARK_INK_LUM = 90
 const DARK_INK_MAX = 160
+/** A stroke of a strong colour: below this luminance, its channels this far apart. */
+const TINT_LUM = 200
+const TINT_CHROMA = 50
 
 function makeMasks(img: RGBAImage) {
   const { width: W, height: H, data } = img
@@ -71,6 +74,8 @@ function makeMasks(img: RGBAImage) {
   const grey = new Uint8Array(W * H)
   // dark regardless of hue: text with coloured (sub-pixel) fringes still forms whole strokes
   const dark = new Uint8Array(W * H)
+  // ink and strokes of a strong colour, neither red nor blue (a page colour left in a thin line)
+  const stroke = new Uint8Array(W * H)
   for (let i = 0, p = 0; i < W * H; i++, p += 4) {
     const r = data[p]
     const g = data[p + 1]
@@ -82,6 +87,7 @@ function makeMasks(img: RGBAImage) {
     if (lum < DARK_INK_LUM && Math.max(r, g, b) < DARK_INK_MAX) {
       ink[i] = 1
       inkLight[i] = 1
+      stroke[i] = 1
       continue
     }
     const isRed = r > 130 && r - g > 55 && r - b > 35
@@ -92,8 +98,9 @@ function makeMasks(img: RGBAImage) {
     ink[i] = (lum < 115 && b >= r - 10) || (b - r > 40 && r < 140) ? 1 : 0
     inkLight[i] = (lum < 175 && b >= r - 10) || (b - r > 25 && r < 205) ? 1 : 0
     grey[i] = lum < 232 && lum > 90 && Math.abs(r - g) < 40 && Math.abs(g - b) < 45 ? 1 : 0
+    stroke[i] = ink[i] || (lum < TINT_LUM && Math.max(r, g, b) - Math.min(r, g, b) > TINT_CHROMA && b < Math.max(r, g)) ? 1 : 0
   }
-  return { ink, inkLight, red, redLetters: dilate(redLoose, W, H), grey, dark }
+  return { ink, inkLight, red, redLetters: dilate(redLoose, W, H), grey, dark, stroke }
 }
 
 /** 3×3 dilation, glues anti-aliased letter fragments back together. */
@@ -402,7 +409,7 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
   const flatPaper = paper(light).flat
   const { width: W, height: H } = img
   const warnings: string[] = inverted ? ['Dark background detected: colours were inverted before reading.'] : []
-  const { ink, inkLight, red, redLetters, grey, dark } = makeMasks(img)
+  const { ink, inkLight, red, redLetters, grey, dark, stroke } = makeMasks(img)
 
   // 1) filled dots → size
   const blobs = components(ink, W, H, 6)
@@ -459,6 +466,9 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
   const greyBlobs = components(grey, W, H, 3)
   // a solid black "+" is ink, not grey
   const inkBlobs = components(ink, W, H, 3).filter((b) => b.x1 - b.x0 < D * 0.9 && b.y1 - b.y0 < D * 0.9)
+  // a "+" whose thin arm kept a tint of the page's own colour (video blurs it) holds together only
+  // with that tint: ink and tinted strokes together
+  const strokeBlobs = components(stroke, W, H, 3).filter((b) => b.x1 - b.x0 < D * 0.9 && b.y1 - b.y0 < D * 0.9)
   let inkLetters: Blob[] | undefined
   let inkLetterMask: Mask | undefined
 
@@ -519,6 +529,8 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
     }
     columnsX = columnsX.map((x) => holeCentre(x))
 
+    /** The tinted "+" marks found: their pieces in the ink are no letters. */
+    const plusBoxes: Blob[] = []
     const columns: RecognizedColumn[] = columnsX.map((x) => {
       let conf = 1
       const holes = holeY.map((y): HoleState => {
@@ -558,10 +570,14 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
         // on textured backgrounds (clouds, photos) everything is "grey": require a clean surround
         const surround =
           fraction(mask, W, H, g.cx, g.cy, Math.max(w, h) * 1.4, (dx, dy) => Math.abs(dx) > w * 0.7 && Math.abs(dy) < h * 0.5)
-        return Math.abs(g.cx - x) < D * 0.5 && g.cy > holeY[5] + D * 0.5 && g.cy < holeY[5] + D * 1.6 && w < D * 0.9 && h < D * 0.9 && w > 3 && h > 3 && squareish && crossFill > 0.2 && crossFill < 0.75 && surround < 0.12
+        // a big "+" drawn in thin strokes fills little of its box: then its four corners must be empty (a ring's aren't)
+        const crossShape = crossFill > 0.2 || (crossFill > THIN_PLUS_FILL && isPlusMark(g, mask, W))
+        return Math.abs(g.cx - x) < D * 0.5 && g.cy > holeY[5] + D * 0.5 && g.cy < holeY[5] + D * 1.6 && w < D * 0.9 && h < D * 0.9 && w > 3 && h > 3 && squareish && crossShape && crossFill < 0.75 && surround < 0.12
       }
+      const tintedPlus = strokeBlobs.find(isPlus(stroke))
+      if (tintedPlus) plusBoxes.push(tintedPlus)
       const plus =
-        greyBlobs.some(isPlus(grey)) || inkBlobs.some(isPlus(ink)) || (flatPaper && crossAt(dark, W, H, x, holeY[5] + D * 0.5, holeY[5] + D * 1.6, D))
+        greyBlobs.some(isPlus(grey)) || inkBlobs.some(isPlus(ink)) || tintedPlus != null || (flatPaper && crossAt(dark, W, H, x, holeY[5] + D * 0.5, holeY[5] + D * 1.6, D))
       const register: Register = plus || fingeringsEqual(fingering, [0, 1, 1, 1, 1, 1]) ? 2 : 1
       const pitch = midiForFingering(fingering, register, whistleId)
       return { x, fingering, register, ringHole, pitch, confidence: Math.max(0, conf), plus }
@@ -589,6 +605,8 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
       }
     }
     const inArticulationZone = (b: Blob) => b.cy > holeY[5] + D * 1.2 && b.cy < holeY[5] + D * 3.3 && b.y1 - b.y0 < D * 1.8
+    // the stem of a tinted "+" (its arm lost to the tint) stands inside the "+" found: no letter
+    const partOfPlus = (b: Blob) => plusBoxes.some((p) => b.x0 >= p.x0 - 1 && b.x1 <= p.x1 + 1 && b.y0 >= p.y0 - 1 && b.y1 <= p.y1 + 1)
     // articulation is usually red; one-colour tabs (e.g. dark theme) write it in the dot colour
     // red specks (a few reddish pixels at the edge of dark text) are not red articulation
     // a red ring round the lowest hole can touch the text under it: what reaches up into the holes is no text
@@ -604,14 +622,14 @@ export function recognizeTab(source: RGBAImage, whistleId = 'D'): RecognitionRes
       inkLetters ??= components(inkLetterMask, W, H, 3)
       // "+" octave marks can sit right against the articulation line: they are read elsewhere, and their
       // bottoms would pass for the text's baseline
-      below = inkLetters.filter((b) => inArticulationZone(b) && !isPlusMark(b, inkLetterMask!, W))
+      below = inkLetters.filter((b) => inArticulationZone(b) && !isPlusMark(b, inkLetterMask!, W) && !partOfPlus(b))
       // what ends well above the text line (the strokes of "+" marks whose arms are too faint) is not text
       const textBottom = Math.max(...below.map((b) => b.y1))
       below = below.filter((b) => textBottom - b.y1 <= D * ABOVE_TEXT || isSmallDot(b, D))
       // measure letter tops on the lighter mask: the thin tip of a small "t" falls below the ink threshold
       letterMask = inkLight
       // note names (g, a, b, f#…) instead of articulation: "g" hangs below the line, "t r - i" never do
-      if (isNoteNameLine(below, D)) {
+      if (isNoteNameLine(below, D) || belowArticulation(below, holeY[5], D)) {
         below = []
         warnings.push('Note names under the tab were ignored (only articulation marks t, r, - and i are read).')
       }
@@ -795,6 +813,20 @@ function isNoteNameLine(shapes: Blob[], D: number): boolean {
 /** A descender drops the bottom of a letter by at least this share of the letter height (and pixels). */
 const DESCENDER_SHARE = 0.15
 const DESCENDER_MIN_PX = 3
+
+/**
+ * Note names in capitals (D E F#) have no descender to give them away, but they stand lower and
+ * bigger than articulation: the line's letters end this many dot sizes or more below the lowest
+ * hole's centre (articulation, even big "tu" syllables under "+" marks, ends above 3.4).
+ */
+const NAMES_BOTTOM = 3.6
+
+function belowArticulation(shapes: Blob[], lowestHole: number, D: number): boolean {
+  const tall = shapes.filter((b) => b.y1 - b.y0 + 1 > D * 0.42)
+  return tall.length >= 3 && median(tall.map((b) => b.y1 - lowestHole)) >= D * NAMES_BOTTOM
+}
+/** A "+" in thin strokes fills at least this share of its box (an empty-cornered cross). */
+const THIN_PLUS_FILL = 0.1
 
 /** Convert a recognition result into an editable section (1 beat per column by default). */
 /** A line of articulation stands under at least this share of the notes... */
