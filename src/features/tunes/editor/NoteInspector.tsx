@@ -86,9 +86,7 @@ export function NoteInspector({ note, whistleId, onChange, onInsert, onDelete, s
             ]}
           />
           <div className="flex flex-wrap gap-1">
-            {whistleNotes(whistleId)
-              .filter((n) => !n.chromatic || n.name === 'C')
-              .map((n) => (
+            {whistleNotes(whistleId).map((n) => (
                 <button
                   key={n.id}
                   type="button"

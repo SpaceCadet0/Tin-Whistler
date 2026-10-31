@@ -148,10 +148,16 @@ export default function TuneEditor() {
     setClipSize(tabClipboard.size)
     toast({ kind: 'info', title: t('editor.copied', { n: selCount }) })
   }
+  /** The marker stays where the deleted notes were: on the note that moved up, or the empty slot at the end. */
   const deleteSelection = () => {
     if (!section) return
-    setSection(removeRange(section, lo, hi))
-    select(lo, lo)
+    const next = removeRange(section, lo, hi)
+    const left = sectionNotes(next).length
+    setSection(next)
+    if (lo < left) return select(lo, lo)
+    setAnchor(null)
+    setSel(left - 1)
+    setTyping({ index: left, append: true })
   }
   const cutSelection = () => {
     copySelection()
@@ -196,9 +202,9 @@ export default function TuneEditor() {
     const seconds = Math.min(MAX_AUDITION_SEC, (n.beats * 60) / tune.bpm)
     whistleSynth.playNote(n.pitch, seconds, { attack: n.attack ?? 'tongue', stop: n.stop, ornament: n.ornament, fingering: n.fingering })
   }
-  /** A new length or articulation is played at once, keys or mouse alike. */
+  /** A new pitch, length or articulation is played at once, keys or mouse alike. */
   const auditionChange = (before: TuneNote, after: TuneNote) => {
-    if (before.beats !== after.beats || before.attack !== after.attack || before.stop !== after.stop) audition(after)
+    if (before.pitch !== after.pitch || before.beats !== after.beats || before.attack !== after.attack || before.stop !== after.stop) audition(after)
   }
   /** Lengths, articulation and ornaments go to the note just typed, otherwise to the marker. */
   const editTarget = (change: (n: TuneNote) => TuneNote) => {
@@ -295,12 +301,21 @@ export default function TuneEditor() {
 
   // play the section from the marker (selected note) to its end, same as Space in the player
   const firstInSection = tune ? tune.sections.slice(0, sectionIdx).reduce((n, x) => n + sectionNotes(x).length, 0) : 0
+  /** Where the last play started: stopping with Space brings the marker back there. */
+  const playStart = useRef(0)
   const playFromMarker = () => {
     if (!tune || !count) return
+    playStart.current = selIdx
     player.setOptions({ tempo: 1, countIn: 0, melody: true, repeat: false })
     player.play(firstInSection + selIdx, firstInSection + count - 1)
   }
   const playing = playState !== 'stopped'
+  /** Space: play from the marker; again while it sounds: stop, the marker back where the play began. */
+  const togglePlay = () => {
+    if (!playing) return playFromMarker()
+    player.stop()
+    select(playStart.current, playStart.current)
+  }
   const playhead = playing && position ? position.index - firstInSection : null
 
   useHotkeys(
@@ -323,7 +338,7 @@ export default function TuneEditor() {
             setSection(insertNote(section, selIdx, { ...note }, true))
             select(selIdx + 1, selIdx + 1)
           },
-          ' ': playFromMarker,
+          ' ': togglePlay,
           Escape: () => player.stop(),
         }
       : {},
@@ -467,7 +482,7 @@ export default function TuneEditor() {
               className="h-10 rounded-xl border border-transparent bg-transparent px-2 font-display text-xl font-semibold hover:border-line focus:border-moss"
             />
             <div className="flex items-center gap-2">
-              <Button size="sm" variant={playing ? 'danger' : 'secondary'} icon={playing ? 'stop' : 'play'} onClick={() => (playing ? player.stop() : playFromMarker())} title={t('editor.playHint')}>
+              <Button size="sm" variant={playing ? 'danger' : 'secondary'} icon={playing ? 'stop' : 'play'} onClick={togglePlay} title={t('editor.playHint')}>
                 {playing ? t('tune.stop') : t('editor.playFromMarker')}
               </Button>
               <Segmented
@@ -551,6 +566,8 @@ export default function TuneEditor() {
               note={note}
               whistleId={tune.whistle}
               onChange={(n) => {
+                // on the empty slot a picked note (or rest) fills the slot, not the note before it
+                if (atEnd && n.pitch !== note.pitch) return enterPitch(n.pitch)
                 setSection(updateNote(section, selIdx, n))
                 auditionChange(note, n)
               }}

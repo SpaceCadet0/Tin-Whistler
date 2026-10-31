@@ -95,7 +95,6 @@ export function FilterAllRow({ label, checked, onClick }: { label: string; check
         className={cn('flex w-full cursor-pointer items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-semibold hover:bg-surface-2', checked ? 'text-moss' : 'text-ink-soft')}
       >
         {label}
-        {checked && <Icon name="check" size={16} />}
       </button>
       <div className="my-1 h-px bg-line" />
     </>
@@ -146,7 +145,6 @@ export function SelectFilter<T extends string>({
             >
               <span className={cn('flex-1 font-semibold', o.value === value && 'text-moss')}>{o.label}</span>
               {o.count != null && <span className="tabular text-ink-faint">{o.count}</span>}
-              <span className="flex w-4 justify-center text-moss">{o.value === value && <Icon name="check" size={16} />}</span>
             </button>
           ))}
         </>

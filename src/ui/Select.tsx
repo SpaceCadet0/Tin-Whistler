@@ -9,6 +9,12 @@ export interface SelectOption<T extends string | number> {
 
 /** The margin the open list keeps from the screen edge, px. */
 const EDGE_GAP = 16
+/** One row of the list, its padding and its tallest height, px. */
+const ROW_HEIGHT = 40
+const LIST_PADDING = 12
+const MAX_LIST = 352
+/** Gap between the field and the list, and from the list to a screen edge or bar, px. */
+const LIST_GAP = 8
 
 /**
  * A form dropdown drawn by the app (the system one looks different on every platform): a field-like
@@ -35,6 +41,7 @@ export function Select<T extends string | number>({
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
   const [alignRight, setAlignRight] = useState(false)
+  const [place, setPlace] = useState<{ up: boolean; maxHeight: number }>({ up: false, maxHeight: MAX_LIST })
   const root = useRef<HTMLDivElement>(null)
   const list = useRef<HTMLUListElement>(null)
   const listId = useId()
@@ -56,7 +63,17 @@ export function Select<T extends string | number>({
 
   const show = () => {
     const box = root.current?.getBoundingClientRect()
-    setAlignRight(!!box && box.left + Math.max(box.width, 224) > window.innerWidth - EDGE_GAP)
+    if (box) {
+      setAlignRight(box.left + Math.max(box.width, 160) > window.innerWidth - EDGE_GAP)
+      // the list stays clear of the phone's bottom bar: it opens upwards when there's more room there
+      const bar = document.querySelector('[data-bottom-bar]')?.getBoundingClientRect()
+      const floor = bar && bar.height > 0 ? bar.top : window.innerHeight
+      const below = Math.min(floor, window.innerHeight) - box.bottom - LIST_GAP
+      const above = box.top - LIST_GAP
+      const wanted = Math.min(options.length * ROW_HEIGHT + LIST_PADDING, MAX_LIST)
+      const up = below < wanted && above > below
+      setPlace({ up, maxHeight: Math.max(ROW_HEIGHT, Math.min(MAX_LIST, up ? above : below)) })
+    }
     setActive(Math.max(0, current))
     setOpen(true)
   }
@@ -110,8 +127,10 @@ export function Select<T extends string | number>({
           ref={list}
           id={listId}
           role="listbox"
+          style={{ maxHeight: place.maxHeight }}
           className={cn(
-            'absolute top-full z-30 mt-1.5 max-h-[min(60dvh,22rem)] w-max min-w-full max-w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl border border-line bg-surface p-1.5 shadow-lift',
+            'absolute z-40 w-max min-w-full max-w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl border border-line bg-surface p-1.5 shadow-lift',
+            place.up ? 'bottom-full mb-1.5' : 'top-full mt-1.5',
             alignRight ? 'right-0' : 'left-0',
           )}
         >
@@ -122,15 +141,14 @@ export function Select<T extends string | number>({
               role="option"
               aria-selected={i === current}
               onPointerEnter={() => setActive(i)}
-              onClick={() => pick(i)}
-              className={cn(
-                'flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold',
-                i === active && 'bg-surface-2',
-                i === current ? 'text-moss' : 'text-ink',
-              )}
+              onClick={(e) => {
+                // inside a <label> a click would also reach the field and open the list again
+                e.preventDefault()
+                pick(i)
+              }}
+              className={cn('cursor-pointer rounded-xl px-3 py-2.5 text-sm font-semibold whitespace-nowrap', i === active && 'bg-surface-2', i === current ? 'text-moss' : 'text-ink')}
             >
-              <span className="flex-1">{o.label}</span>
-              <span className="flex w-4 justify-center">{i === current && <Icon name="check" size={16} />}</span>
+              {o.label}
             </li>
           ))}
         </ul>

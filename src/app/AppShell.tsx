@@ -182,6 +182,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* mobile bottom navigation */}
       {!immersive && (
         <nav
+          data-bottom-bar
           className="fixed inset-x-0 bottom-0 z-30 border-t border-line/70 bg-surface/95 pr-[var(--safe-right)] pb-[var(--safe-bottom)] pl-[var(--safe-left)] backdrop-blur lg:hidden"
           aria-label={t('nav.label')}
         >
