@@ -74,6 +74,11 @@ interface TabViewProps {
   showNames?: boolean
   showSecondVoice?: boolean
   dot?: number
+  /**
+   * Editor: an empty slot after the last note (given: shown; true: the marker stands there, the
+   * next typed note goes into it). Tapping it calls `onSelect` with the note count.
+   */
+  appendSlot?: boolean
 }
 
 /** Renders a section as whistle tab: phrases, lines, ornaments above, articulation and names below. */
@@ -91,6 +96,7 @@ export const TabView = memo(function TabView({
   showNames = true,
   showSecondVoice,
   dot = 15,
+  appendSlot,
 }: TabViewProps) {
   const { t } = useT()
   const currentRef = useRef<HTMLButtonElement | null>(null)
@@ -240,6 +246,22 @@ export const TabView = memo(function TabView({
 
   const voice2 = showSecondVoice ? section.secondVoice : undefined
 
+  // the editor's empty column after the last note, as tall as a note column
+  const slot = appendSlot != null && onSelect && (
+    <button
+      type="button"
+      onClick={() => onSelect(count, false)}
+      aria-label={t('editor.appendSlot')}
+      aria-pressed={appendSlot}
+      className={cn('flex flex-col items-center rounded-xl px-[3px] pt-1 pb-1.5 transition-colors hover:bg-surface-2', appendSlot && 'ring-2 ring-brass')}
+    >
+      <span className="mb-1.5 h-4" aria-hidden="true" />
+      <span className="rounded-lg border-2 border-dashed border-line" style={{ height: dot * 7.3, width: dot + 4 }} aria-hidden="true" />
+      <span className="h-4" aria-hidden="true" />
+      {showNames && <span className="mt-0.5 h-3" aria-hidden="true" />}
+    </button>
+  )
+
   return (
     <div className="flex flex-col gap-4">
       {lines.map((line, li) => (
@@ -248,6 +270,7 @@ export const TabView = memo(function TabView({
             // a phrase wider than the screen wraps its own notes onto the next row
             <div key={pi} className="flex max-w-full flex-wrap items-start gap-y-3" role="group" aria-label={t('tab.phrase', { n: pi + 1 })}>
               {section.phrases[pi].map((n, k) => renderNote(n, phraseStart[pi] + k))}
+              {pi === section.phrases.length - 1 && slot}
             </div>
           ))}
         </div>

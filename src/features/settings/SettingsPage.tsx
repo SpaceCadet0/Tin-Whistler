@@ -9,6 +9,7 @@ import { localTuneRepository } from '../../state/tunes'
 import { useSettings, type Language, type MotionPref, type PlayerLevel, type ThemePref } from '../../state/settings'
 import { Icon } from '../../ui/Icon'
 import { Button, buttonClass, Card, Modal, PageHeader, Segmented, Slider } from '../../ui/primitives'
+import { Select } from '../../ui/Select'
 
 const MAX_BACKUP_BYTES = 5_000_000
 
@@ -113,13 +114,7 @@ export default function SettingsPage() {
         <Card className="flex flex-col gap-5">
           <h2 className="font-display text-xl font-semibold">{t('settings.audio')}</h2>
           <Row label={t('settings.whistle')}>
-            <select value={s.whistleId} onChange={(e) => s.set({ whistleId: e.target.value })} className="h-11 rounded-xl border border-line bg-surface px-3">
-              {WHISTLE_KEYS.map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.label}
-                </option>
-              ))}
-            </select>
+            <Select label={t('settings.whistle')} value={s.whistleId} onChange={(whistleId) => s.set({ whistleId })} options={WHISTLE_KEYS.map((w) => ({ value: w.id, label: w.label }))} />
           </Row>
           <p className="-mt-3 text-sm text-ink-soft">{t('settings.whistleHint')}</p>
           <Slider label={t('settings.volume')} value={Math.round(s.volume * 100)} min={0} max={100} onChange={(v) => s.set({ volume: v / 100 })} format={(v) => `${v}%`} />

@@ -575,6 +575,7 @@ export const ga: Record<MessageKey, string> = {
   'editor.auto': 'uath',
   'editor.insertBefore': 'Cuir isteach roimhe',
   'editor.insertAfter': 'Cuir isteach ina dhiaidh',
+  'editor.appendSlot': 'I ndiaidh an nóta dheireanaigh: tagann an chéad nóta eile anseo',
   'editor.breakPhrase': 'Briseadh frása',
   'editor.breakLine': 'Briseadh líne',
   'editor.joinPhrase': 'Bain an briseadh frása',

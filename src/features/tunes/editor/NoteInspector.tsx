@@ -5,6 +5,7 @@ import { noteFingering } from '../../../music/ornaments'
 import type { Attack, Fingering, OrnamentType, Register, TuneNote } from '../../../music/types'
 import { fingeringForMidi, midiForFingering, whistleLabel, whistleNotes } from '../../../music/whistles'
 import { Button, cn, Segmented } from '../../../ui/primitives'
+import { Select } from '../../../ui/Select'
 import { whistleWidth } from '../../../ui/whistle/dimensions'
 import { RestSign } from '../../../ui/whistle/RestSign'
 import { WhistleView } from '../../../ui/whistle/WhistleView'
@@ -151,18 +152,12 @@ export function NoteInspector({ note, whistleId, onChange, onInsert, onDelete, s
           {note.ornament && (
             <label className="flex items-center gap-2 text-sm font-semibold text-ink-soft">
               {t('editor.hole')}
-              <select
-                value={note.ornament.hole ?? ''}
-                onChange={(e) => onChange({ ...note, ornament: { ...note.ornament!, hole: e.target.value ? Number(e.target.value) : undefined } })}
-                className="h-9 rounded-xl border border-line bg-surface px-2 text-ink"
-              >
-                <option value="">{t('editor.auto')}</option>
-                {[1, 2, 3, 4, 5, 6].map((h) => (
-                  <option key={h} value={h}>
-                    {h}
-                  </option>
-                ))}
-              </select>
+              <Select
+                size="sm"
+                value={note.ornament.hole ?? 0}
+                onChange={(hole) => onChange({ ...note, ornament: { ...note.ornament!, hole: hole || undefined } })}
+                options={[{ value: 0, label: t('editor.auto') }, ...[1, 2, 3, 4, 5, 6].map((h) => ({ value: h, label: String(h) }))]}
+              />
             </label>
           )}
           {note.pitch != null && (

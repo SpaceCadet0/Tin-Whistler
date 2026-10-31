@@ -574,6 +574,7 @@ export const en = {
   'editor.auto': 'auto',
   'editor.insertBefore': 'Insert before',
   'editor.insertAfter': 'Insert after',
+  'editor.appendSlot': 'After the last note: the next note goes here',
   'editor.breakPhrase': 'Phrase break',
   'editor.breakLine': 'Line break',
   'editor.joinPhrase': 'Remove phrase break',

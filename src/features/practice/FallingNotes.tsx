@@ -16,6 +16,7 @@ import { useAllTunes } from '../../state/tunes'
 import { MicControl } from '../../ui/feedback/MicControl'
 import { Icon } from '../../ui/Icon'
 import { Button, Card, cn, IconButton, Toggle } from '../../ui/primitives'
+import { Select } from '../../ui/Select'
 import { WhistleView } from '../../ui/whistle/WhistleView'
 
 type Verdict = 'perfect' | 'good' | 'late' | 'miss'
@@ -239,32 +240,20 @@ export default function FallingNotes() {
       <Card className="flex flex-wrap items-end gap-4">
         <label className="flex flex-col gap-1 text-sm font-semibold text-ink-soft">
           {t('game.tune')}
-          <select
+          <Select
             value={tune.id}
-            onChange={(e) => {
-              setTuneId(e.target.value)
+            onChange={(id) => {
+              setTuneId(id)
               setSectionIdx(0)
             }}
             disabled={state !== 'stopped'}
-            className="h-11 rounded-xl border border-line bg-surface px-3 text-ink"
-          >
-            {tunes.map((x) => (
-              <option key={x.id} value={x.id}>
-                {x.title}
-              </option>
-            ))}
-          </select>
+            options={tunes.map((x) => ({ value: x.id, label: x.title }))}
+          />
         </label>
         {tune.sections.length > 1 && (
           <label className="flex flex-col gap-1 text-sm font-semibold text-ink-soft">
             {t('tune.sections')}
-            <select value={sectionIdx} onChange={(e) => setSectionIdx(Number(e.target.value))} disabled={state !== 'stopped'} className="h-11 rounded-xl border border-line bg-surface px-3 text-ink">
-              {tune.sections.map((s, i) => (
-                <option key={s.id} value={i}>
-                  {sectionName(s.name, lang)}
-                </option>
-              ))}
-            </select>
+            <Select value={sectionIdx} onChange={setSectionIdx} disabled={state !== 'stopped'} options={tune.sections.map((s, i) => ({ value: i, label: sectionName(s.name, lang) }))} />
           </label>
         )}
         <div className="flex items-center gap-2" role="group" aria-label={t('tune.tempo')}>

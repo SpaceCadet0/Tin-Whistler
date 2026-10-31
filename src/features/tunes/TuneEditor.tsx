@@ -14,6 +14,7 @@ import { useHotkeys } from '../../hooks/useHotkeys'
 import { useProgress } from '../../state/progress'
 import { useTune, useTuneLibrary } from '../../state/tunes'
 import { Button, ButtonLink, Card, cn, IconButton, Modal, PageHeader, Segmented } from '../../ui/primitives'
+import { Select } from '../../ui/Select'
 import { TabView } from '../../ui/whistle/TabView'
 import { tabClipboard } from './editor/clipboard'
 import { doubleBeats, editorKey, halveBeats, pitchForLetter, setRing, toggleAccidental, toggleDot, toggleOrnament, type EditorKey } from './editor/keyboard'
@@ -25,6 +26,8 @@ const HISTORY_LIMIT = 100
 const GUIDE_SEEN_KEY = 'tw.editorGuideSeen'
 /** Length of the preview sound when a note is typed, seconds. */
 const TYPED_NOTE_SEC = 0.35
+/** A long note changed in the editor is heard for at most this long. */
+const MAX_AUDITION_SEC = 4
 
 const guideSeen = (): boolean => {
   try {
@@ -187,12 +190,32 @@ export default function TuneEditor() {
     if (!last) setSel(selIdx + 1)
     setTyping({ index: selIdx, append: last })
   }
+  /** Hear a note as written: its length at the tune's tempo, its attack (not while the tune plays). */
+  const audition = (n: TuneNote) => {
+    if (!tune || n.pitch == null || playState !== 'stopped') return
+    const seconds = Math.min(MAX_AUDITION_SEC, (n.beats * 60) / tune.bpm)
+    whistleSynth.playNote(n.pitch, seconds, { attack: n.attack ?? 'tongue', stop: n.stop, ornament: n.ornament, fingering: n.fingering })
+  }
+  /** A new length or articulation is played at once, keys or mouse alike. */
+  const auditionChange = (before: TuneNote, after: TuneNote) => {
+    if (before.beats !== after.beats || before.attack !== after.attack || before.stop !== after.stop) audition(after)
+  }
   /** Lengths, articulation and ornaments go to the note just typed, otherwise to the marker. */
   const editTarget = (change: (n: TuneNote) => TuneNote) => {
     if (!section) return
     const i = typing && typing.index < count ? typing.index : selIdx
     const n = sectionNotes(section)[i]
-    if (n) setSection(updateNote(section, i, change(n)))
+    if (!n) return
+    const next = change(n)
+    setSection(updateNote(section, i, next))
+    auditionChange(n, next)
+  }
+  /** The empty slot after the last note: the next typed note is added there. */
+  const atEnd = typing?.append === true
+  const toEnd = () => {
+    setAnchor(null)
+    setSel(count - 1)
+    setTyping({ index: count, append: true })
   }
   const onEditorKey = (k: EditorKey) => {
     if (!tune) return
@@ -283,8 +306,17 @@ export default function TuneEditor() {
   useHotkeys(
     section && note && tune
       ? {
-          ArrowRight: (e) => (e.shiftKey ? extendTo(Math.min(count - 1, selIdx + 1)) : select(Math.min(count - 1, selIdx + 1), Math.min(count - 1, selIdx + 1))),
-          ArrowLeft: (e) => (e.shiftKey ? extendTo(Math.max(0, selIdx - 1)) : select(Math.max(0, selIdx - 1), Math.max(0, selIdx - 1))),
+          ArrowRight: (e) => {
+            if (e.shiftKey) return extendTo(Math.min(count - 1, selIdx + 1))
+            // past the last note: the empty slot where the next note goes
+            if (selIdx >= count - 1) return toEnd()
+            select(selIdx + 1, selIdx + 1)
+          },
+          ArrowLeft: (e) => {
+            if (e.shiftKey) return extendTo(Math.max(0, selIdx - 1))
+            const to = atEnd ? selIdx : Math.max(0, selIdx - 1)
+            select(to, to)
+          },
           Delete: deleteSelection,
           Backspace: deleteSelection,
           Enter: () => {
@@ -383,13 +415,7 @@ export default function TuneEditor() {
         </label>
         <label className="flex flex-col gap-1 text-sm font-semibold text-ink-soft">
           {t('editor.type')}
-          <select value={tune.type} onChange={(e) => commit({ ...tune, type: e.target.value as TuneType })} className="h-11 rounded-xl border border-line bg-surface px-3 text-ink">
-            {TUNE_TYPES.map((x) => (
-              <option key={x} value={x}>
-                {t(`tuneType.${x}`)}
-              </option>
-            ))}
-          </select>
+          <Select<TuneType> value={tune.type} onChange={(type) => commit({ ...tune, type })} options={TUNE_TYPES.map((x) => ({ value: x, label: t(`tuneType.${x}`) }))} />
         </label>
         <label className="flex flex-col gap-1 text-sm font-semibold text-ink-soft">
           BPM
@@ -401,13 +427,7 @@ export default function TuneEditor() {
         </label>
         <label className="flex flex-col gap-1 text-sm font-semibold text-ink-soft" title={t('editor.whistleHint')}>
           {t('editor.whistle')}
-          <select value={tune.whistle} onChange={(e) => changeWhistleKey(e.target.value)} className="h-11 rounded-xl border border-line bg-surface px-3 text-ink">
-            {WHISTLE_KEYS.map((w) => (
-              <option key={w.id} value={w.id}>
-                {w.label}
-              </option>
-            ))}
-          </select>
+          <Select value={tune.whistle} onChange={changeWhistleKey} options={WHISTLE_KEYS.map((w) => ({ value: w.id, label: w.label }))} />
         </label>
       </Card>
 
@@ -471,11 +491,13 @@ export default function TuneEditor() {
                 <TabView
                   tune={tune}
                   section={section}
-                  selected={selIdx}
+                  selected={atEnd ? null : selIdx}
+                  appendSlot={atEnd}
                   current={playhead}
                   range={[lo, hi]}
                   onMove={moveColumns}
                   onSelect={(i, extend) => {
+                    if (i >= count) return toEnd()
                     if (extend) return extendTo(i)
                     // tapping the marker again plays from it; tapping another note moves the marker
                     if (i === selIdx && anchor == null) playFromMarker()
@@ -528,7 +550,10 @@ export default function TuneEditor() {
             <NoteInspector
               note={note}
               whistleId={tune.whistle}
-              onChange={(n) => setSection(updateNote(section, selIdx, n))}
+              onChange={(n) => {
+                setSection(updateNote(section, selIdx, n))
+                auditionChange(note, n)
+              }}
               onInsert={(after) => {
                 setSection(insertNote(section, selIdx, { ...note, ornament: undefined }, after))
                 if (after) setSel(selIdx + 1)

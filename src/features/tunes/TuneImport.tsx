@@ -15,6 +15,7 @@ import { useSettings } from '../../state/settings'
 import { useTune, useTuneLibrary } from '../../state/tunes'
 import { Icon } from '../../ui/Icon'
 import { Button, Card, Chip, cn, PageHeader, ProgressBar, Segmented } from '../../ui/primitives'
+import { Select } from '../../ui/Select'
 import { TabView } from '../../ui/whistle/TabView'
 import { stopPreview, togglePreview, usePreview } from './preview'
 import { VideoImport } from './VideoImport'
@@ -89,7 +90,7 @@ export default function TuneImport() {
   const [warnings, setWarnings] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [midi, setMidi] = useState<{ data: MidiImport; name: string } | null>(null)
+  const [midi, setMidi] = useState<{ data: MidiImport; name: string; track: number } | null>(null)
   const [images, setImages] = useState<string[]>([])
   const heard = usePreview(tune?.id ?? '')
 
@@ -117,7 +118,7 @@ export default function TuneImport() {
     try {
       const data = readMidi(await f.arrayBuffer(), f.name, whistleId)
       if (!data.tracks.length) throw new Error(t('import.midiEmpty'))
-      setMidi({ data, name: f.name })
+      setMidi({ data, name: f.name, track: data.tracks[0].index })
       const r = data.build(data.tracks[0].index)
       setTune(r.tune)
       setWarnings(r.warnings)
@@ -332,20 +333,16 @@ export default function TuneImport() {
               {midi && midi.data.tracks.length > 1 && (
                 <label className="flex flex-col gap-1 text-sm font-semibold text-ink-soft">
                   {t('import.track')}
-                  <select
-                    className="h-11 rounded-xl border border-line bg-surface px-3 text-ink"
-                    onChange={(e) => {
-                      const r = midi.data.build(Number(e.target.value))
+                  <Select
+                    value={midi.track}
+                    onChange={(track) => {
+                      const r = midi.data.build(track)
+                      setMidi({ ...midi, track })
                       setTune(r.tune)
                       setWarnings(r.warnings)
                     }}
-                  >
-                    {midi.data.tracks.map((tr) => (
-                      <option key={tr.index} value={tr.index}>
-                        {tr.name} · {tr.notes} {t('import.notes')} {tr.instrument && `· ${tr.instrument}`}
-                      </option>
-                    ))}
-                  </select>
+                    options={midi.data.tracks.map((tr) => ({ value: tr.index, label: `${tr.name} · ${tr.notes} ${t('import.notes')}${tr.instrument ? ` · ${tr.instrument}` : ''}` }))}
+                  />
                 </label>
               )}
             </div>

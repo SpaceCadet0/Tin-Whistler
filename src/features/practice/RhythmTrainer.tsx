@@ -4,6 +4,7 @@ import { useT, type MessageKey } from '../../i18n'
 import { FIRST_OCTAVE } from '../../music/whistles'
 import { useProgress } from '../../state/progress'
 import { Card, cn, PageHeader, Slider } from '../../ui/primitives'
+import { Select } from '../../ui/Select'
 import { RhythmRun } from '../exercises/RhythmRun'
 
 const PATTERNS: { id: string; label: MessageKey; pattern: (number | null)[] }[] = [
@@ -49,11 +50,7 @@ export default function RhythmTrainer() {
           <Slider label={t('rhythm.tempo')} value={bpm} min={50} max={140} step={2} onChange={setBpm} format={(v) => `${v} BPM`} />
           <label className="flex items-center justify-between gap-3 text-sm font-semibold text-ink-soft">
             {t('rhythm.note')}
-            <select value={note} onChange={(e) => setNote(e.target.value)} className="h-10 rounded-xl border border-line bg-surface px-3 text-ink">
-              {FIRST_OCTAVE.map((n) => (
-                <option key={n}>{n}</option>
-              ))}
-            </select>
+            <Select size="sm" className="w-24" value={note} onChange={setNote} options={FIRST_OCTAVE.map((n) => ({ value: n, label: n }))} />
           </label>
         </Card>
       </div>
