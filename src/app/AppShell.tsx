@@ -8,6 +8,7 @@ import { useProgress } from '../state/progress'
 import { useSettings } from '../state/settings'
 import { Icon } from '../ui/Icon'
 import { AppLogo } from '../ui/AppLogo'
+import { isNativeApp } from '../lib/platform'
 import { motion, PageEnter } from '../ui/motion'
 import { cn } from '../ui/primitives'
 import { ErrorBoundary, ScreenError } from './ErrorBoundary'
@@ -25,6 +26,18 @@ const NAV: { to: string; icon: string; label: MessageKey }[] = [
 
 /** Routes that take the whole screen on phones (the player needs every pixel). */
 const IMMERSIVE = [/^\/learn\/.+/, /^\/tunes\/[^/]+\/play/, /^\/practice\/game/, /^\/daily/, /^\/welcome/]
+
+/** The name beside the logo; on the web its version below it, both lines no taller than the logo. */
+function AppName({ className, lineClassName, versionClassName }: { className: string; lineClassName: string; versionClassName: string }) {
+  if (isNativeApp()) return <span className={cn('font-display font-semibold', className)}>Tin Whistler</span>
+  // sizes come with their own line height (text-lg/none): a separate leading-none is merged away by cn
+  return (
+    <span className="flex flex-col">
+      <span className={cn('font-display font-semibold', lineClassName)}>Tin Whistler</span>
+      <span className={cn('text-ink-faint tabular-nums', versionClassName)}>v{__APP_VERSION__}</span>
+    </span>
+  )
+}
 
 function useApplyPreferences() {
   const { theme, motion, language } = useSettings(useShallow((s) => ({ theme: s.theme, motion: s.motion, language: s.language })))
@@ -97,7 +110,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-line/70 px-4 py-6 lg:flex" aria-label={t('nav.label')}>
         <NavLink to="/" className="mb-8 flex items-center gap-3 px-3">
           <AppLogo size={40} className="shrink-0" />
-          <span className="font-display text-xl font-semibold">Tin Whistler</span>
+          <AppName className="text-xl" lineClassName="text-xl/none" versionClassName="mt-1 text-xs/none" />
         </NavLink>
         <nav className="flex flex-col gap-1">
           {NAV.map((n) => (
@@ -145,7 +158,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <header className="sticky top-0 z-20 flex items-center justify-between border-b border-line/60 bg-bg/85 pt-[calc(0.625rem+var(--safe-top))] pr-[max(1rem,var(--safe-right))] pb-2.5 pl-[max(1rem,var(--safe-left))] backdrop-blur lg:hidden">
             <NavLink to="/" className="flex items-center gap-2">
               <AppLogo size={32} className="shrink-0" />
-              <span className="font-display text-lg font-semibold">Tin Whistler</span>
+              <AppName className="text-lg" lineClassName="text-lg/none" versionClassName="mt-1 text-[10px]/none" />
             </NavLink>
             <div className="flex items-center gap-1">
               <StatusPills />
