@@ -1,5 +1,6 @@
 import type { MicStatus } from '../../audio/MicInput'
 import { useT } from '../../i18n'
+import { useSession } from '../../state/session'
 import { Icon } from '../Icon'
 import { Button, cn } from '../primitives'
 import { LevelMeter } from './Feedback'
@@ -19,6 +20,7 @@ export function MicControl({
   className?: string
 }) {
   const { t } = useT()
+  const retryMic = useSession((s) => s.retryMic)
   if (status === 'denied' || status === 'unsupported' || status === 'error') {
     return (
       <div className={cn('flex items-start gap-3 rounded-2xl bg-bad-soft p-3 text-sm text-bad', className)} role="alert">
@@ -26,7 +28,7 @@ export function MicControl({
         <div className="flex flex-col gap-2">
           <span>{t(status === 'denied' ? 'mic.denied' : status === 'unsupported' ? 'mic.unsupported' : 'mic.error')}</span>
           {status !== 'unsupported' && (
-            <Button size="sm" variant="secondary" onClick={() => onChange(true)}>
+            <Button size="sm" variant="secondary" onClick={retryMic}>
               {t('mic.retry')}
             </Button>
           )}

@@ -302,7 +302,7 @@ export default function TuneImport() {
                 spellCheck={false}
                 aria-label={t('import.abcLabel')}
                 placeholder={SAMPLE_ABC}
-                className="w-full rounded-2xl border border-line bg-surface-2/50 p-4 font-mono text-sm outline-none focus:border-moss"
+                className="w-full rounded-2xl border border-line-strong bg-surface-2/50 p-4 font-mono text-sm outline-none focus:border-moss"
               />
               <div className="flex flex-wrap gap-2">
                 <Button icon="wand" onClick={() => fromAbc(abc || SAMPLE_ABC)}>
@@ -415,7 +415,7 @@ export default function TuneImport() {
             <>
               <label className="flex flex-col gap-1 text-sm font-semibold text-ink-soft">
                 {t('import.name')}
-                <input value={tune.title} onChange={(e) => setTune({ ...tune, title: e.target.value })} className="h-11 rounded-xl border border-line bg-surface px-3 text-lg text-ink" />
+                <input value={tune.title} onChange={(e) => setTune({ ...tune, title: e.target.value })} className="h-11 rounded-xl border border-line-strong bg-surface px-3 text-lg text-ink" />
               </label>
               <div className="flex flex-wrap gap-1.5">
                 <Chip tone="moss">{t(`tuneType.${tune.type}`)}</Chip>

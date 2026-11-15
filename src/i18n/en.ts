@@ -28,6 +28,7 @@ export const en = {
   'home.allLessons': 'All lessons done. Time for tunes!',
   'home.course': 'Course progress',
   'home.continue': 'Continue lesson',
+  'home.startLesson': 'Start lesson',
   'home.practiceToday': "Practice today's lesson",
   'home.streak': 'Day streak',
   'home.notesLearned': 'Notes learned',

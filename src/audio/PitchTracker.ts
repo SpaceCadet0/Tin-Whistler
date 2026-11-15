@@ -1,3 +1,4 @@
+import { markActivity } from '../lib/activity'
 import { Emitter } from '../lib/emitter'
 import { CHROMATIC_DETECTION, micInput, WHISTLE_DETECTION } from './MicInput'
 import { DEFAULT_CALIBRATION, PitchStabilizer, type Calibration, type PitchFrame } from './pitch/stabilizer'
@@ -41,6 +42,7 @@ class PitchTracker {
       this.unsub = micInput.frames.on((raw) => {
         const f = this.stabilizer.process(raw)
         this.latest = f
+        if (f.voiced) markActivity()
         this.history.push(f)
         const cutoff = f.time - HISTORY_SECONDS
         while (this.history.length && this.history[0].time < cutoff) this.history.shift()

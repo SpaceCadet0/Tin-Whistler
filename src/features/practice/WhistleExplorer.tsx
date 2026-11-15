@@ -67,7 +67,7 @@ export default function WhistleExplorer() {
             onPointerLeave={() => blowing && stop()}
             onKeyDown={(e) => (e.key === ' ' || e.key === 'Enter') && !blowing && start()}
             onKeyUp={(e) => (e.key === ' ' || e.key === 'Enter') && stop()}
-            className={cn('h-16 w-full touch-none rounded-3xl text-lg font-semibold transition select-none', blowing ? 'bg-brass text-white' : 'bg-moss text-on-moss')}
+            className={cn('h-16 w-full touch-none rounded-3xl text-lg font-semibold transition select-none', blowing ? 'bg-brass text-on-brass' : 'bg-moss text-on-moss')}
           >
             {blowing ? t('explorer.blowing') : t('explorer.hold')}
           </button>

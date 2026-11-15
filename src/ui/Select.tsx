@@ -114,7 +114,7 @@ export function Select<T extends string | number>({
         onClick={() => (open ? setOpen(false) : show())}
         onKeyDown={onKeyDown}
         className={cn(
-          'flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl border border-line bg-surface text-left font-normal text-ink transition disabled:cursor-default disabled:opacity-50',
+          'flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl border border-line-strong bg-surface text-left font-normal text-ink transition disabled:cursor-default disabled:opacity-50',
           size === 'sm' ? 'h-9 pr-2 pl-2.5 text-sm' : 'h-11 pr-3 pl-3',
           open && 'border-moss',
         )}

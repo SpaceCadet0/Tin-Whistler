@@ -86,7 +86,7 @@ export default function Home() {
           </div>
           <div className="mt-7 flex flex-wrap gap-3">
             <ButtonLink to={lesson ? `/learn/${lesson.id}` : '/tunes'} size="lg" variant="secondary" icon="play" className="flex-1 border-0 bg-surface whitespace-nowrap text-moss sm:flex-none">
-              {t('home.continue')}
+              {t(!lesson ? 'home.allTunes' : course.done === 0 ? 'home.startLesson' : 'home.continue')}
             </ButtonLink>
             <ButtonLink to="/daily" size="lg" variant="ghost" icon="calendar" className="flex-1 border border-on-moss/30 whitespace-nowrap text-on-moss hover:bg-white/10 hover:text-on-moss sm:flex-none">
               {t('home.practiceToday')}
@@ -123,7 +123,7 @@ export default function Home() {
 
       {suggestion && (
         <Card className="flex flex-wrap items-center gap-4 border-brass/40 bg-brass-soft/40">
-          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-brass text-white">
+          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-brass text-on-brass">
             <Icon name="wand" />
           </span>
           <div className="min-w-0 flex-1 basis-52">

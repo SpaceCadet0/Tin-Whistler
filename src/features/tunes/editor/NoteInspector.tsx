@@ -118,7 +118,7 @@ export function NoteInspector({ note, whistleId, onChange, onInsert, onDelete, s
             value={Number(note.beats.toFixed(4))}
             onChange={(e) => onChange({ ...note, beats: Math.max(0.0625, Number(e.target.value) || 1) })}
             aria-label={t('editor.beats')}
-            className="h-9 w-20 rounded-xl border border-line bg-surface px-2 text-sm"
+            className="h-9 w-20 rounded-xl border border-line-strong bg-surface px-2 text-sm"
           />
           <span className="text-sm text-ink-soft">{t('editor.beats')}</span>
         </div>

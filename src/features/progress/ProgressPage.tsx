@@ -132,7 +132,7 @@ export default function ProgressPage() {
             const got = p.achievements[a.id]
             return (
               <li key={a.id} className={cn('flex items-center gap-3 rounded-2xl border p-3', got ? 'border-brass/40 bg-brass-soft/40' : 'border-line opacity-60')}>
-                <span className={cn('grid h-11 w-11 shrink-0 place-items-center rounded-2xl', got ? 'bg-brass text-white' : 'bg-surface-2 text-ink-faint')}>
+                <span className={cn('grid h-11 w-11 shrink-0 place-items-center rounded-2xl', got ? 'bg-brass text-on-brass' : 'bg-surface-2 text-ink-faint')}>
                   <Icon name={a.icon} />
                 </span>
                 <span>

@@ -45,7 +45,7 @@ export default function PracticeHub() {
       {suggestion && (
         <Card className="mb-6 border-brass/40">
           <div className="flex flex-wrap items-center gap-4">
-            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-brass text-white">
+            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-brass text-on-brass">
               <Icon name="wand" />
             </span>
             <div className="min-w-0 flex-1 basis-52">

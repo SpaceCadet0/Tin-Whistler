@@ -3,8 +3,10 @@ import { audioEngine } from '../audio/AudioEngine'
 import { micInput, type MicStatus } from '../audio/MicInput'
 import { pitchTracker, type PitchFrame } from '../audio/PitchTracker'
 import { TunePlayer, type PlayerPosition, type PlayerState } from '../audio/TunePlayer'
+import { activeMs, markActivity } from '../lib/activity'
 import type { Tune } from '../music/types'
 import { useProgress } from '../state/progress'
+import { useSession } from '../state/session'
 import { useSettings } from '../state/settings'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -42,6 +44,8 @@ export function usePitch(enabled: boolean, onFrame?: (f: PitchFrame) => void, mo
   cb.current = onFrame
   const latest = useRef<PitchFrame | null>(null)
   const { a4, offsetCents, sensitivity } = useSettings(useShallow((s) => ({ a4: s.a4, offsetCents: s.offsetCents, sensitivity: s.sensitivity })))
+  // "try again" after a refusal: `enabled` is already true, so the attempt count restarts the mic
+  const attempt = useSession((s) => s.micAttempt)
 
   useEffect(() => {
     pitchTracker.setCalibration({ a4, offsetCents, sensitivity })
@@ -67,7 +71,7 @@ export function usePitch(enabled: boolean, onFrame?: (f: PitchFrame) => void, mo
       latest.current = null
       setFrame(null)
     }
-  }, [enabled, mode])
+  }, [enabled, mode, attempt])
 
   useRaf(() => {
     if (latest.current !== frame) setFrame(latest.current)
@@ -113,20 +117,30 @@ export function usePlayer(tune: Tune | undefined) {
   return { player, state, position }
 }
 
-/** Credit practice time while a practice screen is open and visible. */
+/**
+ * Credit practice time while a practice screen is open, visible and in use: a note heard, a tune
+ * playing, a tap or a key. A screen merely left open earns nothing.
+ */
 export function usePracticeTimer(active = true): void {
   const add = useProgress((s) => s.addPracticeTime)
   useEffect(() => {
     if (!active) return
     let last = Date.now()
-    const id = window.setInterval(() => {
+    const credit = () => {
       const now = Date.now()
-      if (document.visibilityState === 'visible') add(Math.round((now - last) / 1000))
+      const seconds = Math.round(activeMs(last, now) / 1000)
+      if (seconds > 0 && document.visibilityState === 'visible') add(seconds)
       last = now
-    }, 15000)
+    }
+    const onInput = () => markActivity()
+    window.addEventListener('pointerdown', onInput)
+    window.addEventListener('keydown', onInput)
+    const id = window.setInterval(credit, 15000)
     return () => {
       window.clearInterval(id)
-      if (document.visibilityState === 'visible') add(Math.round((Date.now() - last) / 1000))
+      window.removeEventListener('pointerdown', onInput)
+      window.removeEventListener('keydown', onInput)
+      credit()
     }
   }, [active, add])
 }

@@ -30,6 +30,7 @@ export const ru: Record<MessageKey, string> = {
   'home.allLessons': 'Все уроки пройдены. Время мелодий!',
   'home.course': 'Прогресс курса',
   'home.continue': 'Продолжить урок',
+  'home.startLesson': 'Начать урок',
   'home.practiceToday': 'Тренировка на сегодня',
   'home.streak': 'Дней подряд',
   'home.notesLearned': 'Нот выучено',

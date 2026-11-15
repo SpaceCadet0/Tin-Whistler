@@ -29,6 +29,7 @@ export const ga: Record<MessageKey, string> = {
   'home.allLessons': 'Na ceachtanna go léir déanta. Am do na foinn!',
   'home.course': 'Dul chun cinn an chúrsa',
   'home.continue': 'Lean leis an gceacht',
+  'home.startLesson': 'Tosaigh an ceacht',
   'home.practiceToday': 'Cleachtaigh ceacht an lae',
   'home.streak': 'Sraith laethanta',
   'home.notesLearned': 'Nótaí foghlamtha',

@@ -33,6 +33,10 @@ class MicInput {
   private workletLoaded = false
   private detection: YinOptions = WHISTLE_DETECTION
   private users = 0
+  /** The start in flight: everyone who asks meanwhile waits for it instead of opening a second stream. */
+  private starting: Promise<boolean> | null = null
+  /** Bumped by stop(), so a start that was overtaken by it gives its stream back. */
+  private generation = 0
 
   get current(): MicStatus {
     return this._status
@@ -68,7 +72,13 @@ class MicInput {
   async acquire(): Promise<boolean> {
     this.users++
     if (this._status === 'on') return true
-    return this.start()
+    this.starting ??= this.start().finally(() => {
+      this.starting = null
+    })
+    const ok = await this.starting
+    // a failed start holds nothing: callers only release() what they got
+    if (!ok) this.users = Math.max(0, this.users - 1)
+    return ok
   }
 
   release(): void {
@@ -88,17 +98,25 @@ class MicInput {
       return false
     }
     this.setStatus('requesting')
+    const generation = this.generation
     try {
       await audioEngine.resume()
       const ctx = audioEngine.context
-      this.stream = await navigator.mediaDevices.getUserMedia({
+      const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
       })
+      this.stream = stream
       if (!this.workletLoaded) {
         const url = URL.createObjectURL(new Blob([CAPTURE_WORKLET_SOURCE], { type: 'application/javascript' }))
         await ctx.audioWorklet.addModule(url)
         URL.revokeObjectURL(url)
         this.workletLoaded = true
+      }
+      if (generation !== this.generation) {
+        // stopped while the permission prompt or the worklet was loading: nobody wants the mic any more
+        stream.getTracks().forEach((t) => t.stop())
+        if (this.stream === stream) this.stream = null
+        return false
       }
       this.worker = new Worker(new URL('./pitch/pitch.worker.ts', import.meta.url), { type: 'module' })
       // Report the time at the centre of the analysis window, not its end.
@@ -148,6 +166,7 @@ class MicInput {
 
   stop(): void {
     this.users = 0
+    this.generation++
     this.cleanup()
     if (this._status === 'on' || this._status === 'requesting') this.setStatus('off')
   }

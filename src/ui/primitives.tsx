@@ -7,7 +7,7 @@ import { Triquetra } from './ornaments'
 
 // custom radius / colour tokens must be known to the merger so later classes win
 const twMerge = extendTailwindMerge({
-  extend: { theme: { color: ['bg', 'surface', 'surface-2', 'line', 'ink', 'ink-soft', 'ink-faint', 'moss', 'moss-strong', 'moss-soft', 'on-moss', 'brass', 'brass-soft', 'good', 'good-soft', 'warn', 'warn-soft', 'bad', 'bad-soft', 'hole', 'metal', 'metal-2'] } },
+  extend: { theme: { color: ['bg', 'surface', 'surface-2', 'line', 'line-strong', 'ink', 'ink-soft', 'ink-faint', 'moss', 'moss-strong', 'moss-soft', 'on-moss', 'brass', 'brass-soft', 'on-brass', 'good', 'good-soft', 'warn', 'warn-soft', 'bad', 'bad-soft', 'hole', 'metal', 'metal-2'] } },
 })
 
 /** Join class names; conflicting Tailwind utilities resolve to the last one. */
@@ -20,7 +20,7 @@ const VARIANTS: Record<Variant, string> = {
   primary: 'bg-moss text-on-moss hover:bg-moss-strong shadow-soft',
   secondary: 'bg-surface text-ink border border-line hover:bg-surface-2',
   ghost: 'text-ink-soft hover:bg-surface-2 hover:text-ink',
-  brass: 'bg-brass text-white hover:brightness-105 shadow-soft',
+  brass: 'bg-brass text-on-brass hover:brightness-105 shadow-soft',
   danger: 'bg-bad-soft text-bad hover:brightness-95',
 }
 const SIZES: Record<Size, string> = {

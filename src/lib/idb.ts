@@ -25,8 +25,10 @@ export class KeyValueStore<T> {
     return new Promise((resolve, reject) => {
       const tx = db.transaction(this.storeName, mode)
       const req = fn(tx.objectStore(this.storeName))
-      req.onsuccess = () => resolve(req.result)
-      req.onerror = () => reject(req.error)
+      // a write is only stored once its transaction completes: a full disk aborts it after the request succeeded
+      tx.oncomplete = () => resolve(req.result)
+      tx.onerror = () => reject(tx.error ?? req.error)
+      tx.onabort = () => reject(tx.error ?? req.error ?? new DOMException('Transaction aborted', 'AbortError'))
     })
   }
 

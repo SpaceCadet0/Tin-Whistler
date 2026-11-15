@@ -190,7 +190,7 @@ export default function TuneLibrary() {
             value={f.query}
             onChange={(e) => f.update({ query: e.target.value })}
             placeholder={t('tunes.search')}
-            className="h-11 w-full rounded-2xl border border-line bg-surface px-4 text-[15px] outline-none focus:border-moss"
+            className="h-11 w-full rounded-2xl border border-line-strong bg-surface px-4 text-[15px] outline-none focus:border-moss"
           />
         </label>
         <button

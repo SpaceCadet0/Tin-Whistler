@@ -426,7 +426,7 @@ export default function TuneEditor() {
       <Card className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_minmax(0,1.6fr)_minmax(0,0.7fr)_minmax(0,0.7fr)_minmax(0,1.2fr)]">
         <label className="flex flex-col gap-1 text-sm font-semibold text-ink-soft">
           {t('import.name')}
-          <input value={tune.title} onChange={(e) => commit({ ...tune, title: e.target.value })} className="h-11 rounded-xl border border-line bg-surface px-3 text-ink" />
+          <input value={tune.title} onChange={(e) => commit({ ...tune, title: e.target.value })} className="h-11 rounded-xl border border-line-strong bg-surface px-3 text-ink" />
         </label>
         <label className="flex flex-col gap-1 text-sm font-semibold text-ink-soft">
           {t('editor.type')}
@@ -434,11 +434,11 @@ export default function TuneEditor() {
         </label>
         <label className="flex flex-col gap-1 text-sm font-semibold text-ink-soft">
           BPM
-          <input type="number" min={30} max={300} value={tune.bpm} onChange={(e) => commit({ ...tune, bpm: Math.max(30, Number(e.target.value) || 90) })} className="h-11 rounded-xl border border-line bg-surface px-3 text-ink" />
+          <input type="number" min={30} max={300} value={tune.bpm} onChange={(e) => commit({ ...tune, bpm: Math.max(30, Number(e.target.value) || 90) })} className="h-11 rounded-xl border border-line-strong bg-surface px-3 text-ink" />
         </label>
         <label className="flex flex-col gap-1 text-sm font-semibold text-ink-soft">
           {t('tune.difficulty')}
-          <input type="number" min={1} max={5} value={tune.difficulty} onChange={(e) => commit({ ...tune, difficulty: Math.max(1, Math.min(5, Number(e.target.value) || 1)) })} className="h-11 rounded-xl border border-line bg-surface px-3 text-ink" />
+          <input type="number" min={1} max={5} value={tune.difficulty} onChange={(e) => commit({ ...tune, difficulty: Math.max(1, Math.min(5, Number(e.target.value) || 1)) })} className="h-11 rounded-xl border border-line-strong bg-surface px-3 text-ink" />
         </label>
         <label className="flex flex-col gap-1 text-sm font-semibold text-ink-soft" title={t('editor.whistleHint')}>
           {t('editor.whistle')}
@@ -544,7 +544,7 @@ export default function TuneEditor() {
           ) : (
             <div className="flex flex-col gap-3">
               <p className="text-sm text-ink-soft">{t('editor.textHelp')}</p>
-              <textarea value={text} onChange={(e) => setText(e.target.value)} rows={10} spellCheck={false} aria-label={t('editor.text')} className="rounded-2xl border border-line bg-surface-2/50 p-3 font-mono text-sm" />
+              <textarea value={text} onChange={(e) => setText(e.target.value)} rows={10} spellCheck={false} aria-label={t('editor.text')} className="rounded-2xl border border-line-strong bg-surface-2/50 p-3 font-mono text-sm" />
               {textError && <p className="text-bad">{textError}</p>}
               <div className="flex gap-2">
                 <Button onClick={applyText} icon="check">

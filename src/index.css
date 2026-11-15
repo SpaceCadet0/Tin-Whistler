@@ -18,6 +18,7 @@
   --color-surface: var(--c-surface);
   --color-surface-2: var(--c-surface-2);
   --color-line: var(--c-line);
+  --color-line-strong: var(--c-line-strong);
   --color-ink: var(--c-ink);
   --color-ink-soft: var(--c-ink-soft);
   --color-ink-faint: var(--c-ink-faint);
@@ -27,6 +28,7 @@
   --color-on-moss: var(--c-on-moss);
   --color-brass: var(--c-brass);
   --color-brass-soft: var(--c-brass-soft);
+  --color-on-brass: var(--c-on-brass);
   --color-good: var(--c-good);
   --color-good-soft: var(--c-good-soft);
   --color-warn: var(--c-warn);
@@ -36,6 +38,12 @@
   --color-hole: var(--c-hole);
   --color-metal: var(--c-metal);
   --color-metal-2: var(--c-metal-2);
+
+  /* accent colours as text need more contrast than as fills: text-brass, text-good… read these */
+  --text-color-brass: var(--c-brass-ink);
+  --text-color-good: var(--c-good-ink);
+  --text-color-warn: var(--c-warn-ink);
+  --text-color-bad: var(--c-bad-ink);
 
   --radius-card: 1.25rem;
   --shadow-soft: 0 1px 2px rgb(20 40 30 / 0.05), 0 10px 28px -14px rgb(20 40 30 / 0.22);
@@ -61,20 +69,27 @@
   --c-surface: #fbfbf7;
   --c-surface-2: #e8e8df;
   --c-line: #dcdcd0;
+  /* the edge of a field you type in: 3:1 against the page, unlike the decorative line */
+  --c-line-strong: #898982;
   --c-ink: #17201c;
   --c-ink-soft: #505b55;
-  --c-ink-faint: #858d88;
+  --c-ink-faint: #626865;
   --c-moss: #1d5a40;
   --c-moss-strong: #164431;
   --c-moss-soft: #d9e7dd;
   --c-on-moss: #fbf8f0;
-  --c-brass: #b3761a;
+  --c-brass: #9f6917;
+  --c-brass-ink: #8a5b14;
+  --c-on-brass: #ffffff;
   --c-brass-soft: #f1e3c4;
   --c-good: #2f7a4b;
+  --c-good-ink: #2d7648;
   --c-good-soft: #dcefe1;
   --c-warn: #a86a12;
+  --c-warn-ink: #905b0f;
   --c-warn-soft: #f6e6c8;
   --c-bad: #b0473b;
+  --c-bad-ink: #a64338;
   --c-bad-soft: #f5dcd6;
   --c-hole: #1c2622;
   --c-metal: #d7c28f;
@@ -87,20 +102,26 @@
   --c-surface: #19211d;
   --c-surface-2: #222c27;
   --c-line: #2e3a34;
+  --c-line-strong: #646d69;
   --c-ink: #ece5d6;
   --c-ink-soft: #a9b1ab;
-  --c-ink-faint: #737d77;
+  --c-ink-faint: #8c948f;
   --c-moss: #62b08a;
   --c-moss-strong: #7cc6a0;
   --c-moss-soft: #1f3a2d;
   --c-on-moss: #0e1a14;
   --c-brass: #e0a64a;
+  --c-brass-ink: #e0a64a;
+  --c-on-brass: #1c1508;
   --c-brass-soft: #3a2e1a;
   --c-good: #6cc28d;
+  --c-good-ink: #6cc28d;
   --c-good-soft: #1d3527;
   --c-warn: #e6ae52;
+  --c-warn-ink: #e6ae52;
   --c-warn-soft: #3a2f1b;
   --c-bad: #e8836f;
+  --c-bad-ink: #e8836f;
   --c-bad-soft: #3d231f;
   --c-hole: #0b0f0d;
   --c-metal: #b9a574;

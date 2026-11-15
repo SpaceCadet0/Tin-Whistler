@@ -1,3 +1,4 @@
+import { markActivity } from '../lib/activity'
 import { Emitter } from '../lib/emitter'
 import { flattenPartner, flattenSecondVoice, flattenTune } from '../music/tune'
 import type { TimedNote, Tune, TuneNote } from '../music/types'
@@ -200,6 +201,8 @@ export class TunePlayer {
 
   private tick(): void {
     const now = audioEngine.now
+    // listening to or playing along with a tune is practice
+    markActivity()
     if (this.state === 'counting' && now >= this.passStart) this.setState('playing')
     if (now >= this.endTime) {
       this.stop()
@@ -300,7 +303,9 @@ export class TunePlayer {
   /** Where the playhead is at an AudioContext time. */
   positionAt(time: number): PlayerPosition {
     const [from, to] = this.range
-    const passTime = time - this.passStart
+    let passTime = time - this.passStart
+    // a repeat is scheduled a little ahead: until it starts, the playhead is still at the end of the pass before
+    if (passTime < 0 && this.pass > 0) passTime += this.passDuration
     if (this.state === 'stopped' || !this.timeline.length) {
       return { state: this.state, index: from, progress: 0, countdown: 0, passTime: 0 }
     }

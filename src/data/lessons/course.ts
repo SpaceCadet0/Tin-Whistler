@@ -12,7 +12,7 @@ export const LESSONS: Lesson[] = [
     id: 'l01-first-note',
     level: 1,
     title: { en: 'Your first note', ru: 'Ваша первая нота', ga: 'Do chéad nóta' },
-    description: { en: 'Hold the whistle and play a clean B with one finger.', ru: 'Держим флейту и играем чистую B одним пальцем.', ga: 'Coinnigh an fheadóg agus seinn B glan le méar amháin.' },
+    description: { en: 'Hold the whistle and play a clean B with one finger.', ru: 'Держим флейту и играем чистую ноту B одним пальцем.', ga: 'Coinnigh an fheadóg agus seinn B glan le méar amháin.' },
     duration: 4,
     difficulty: 1,
     prerequisites: [],
