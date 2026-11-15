@@ -1,7 +1,9 @@
 import { useEffect } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
+import { collectionById, COLLECTIONS } from '../../engine/collections'
 import { useT } from '../../i18n'
 import { isDuet, partName } from '../../music/duet'
+import { isSet } from '../../music/tuneSet'
 import { tuneDurationSec, usedNotes } from '../../music/tune'
 import { TUNE_TYPES, type Tune, type TuneType } from '../../music/types'
 import { getWhistle, WHISTLE_KEYS } from '../../music/whistles'
@@ -15,6 +17,7 @@ import { rememberLibrarySearch } from './libraryReturn'
 import { SelectFilter } from './FilterMenu'
 import { TypeFilter } from './TypeFilter'
 import { Stagger } from '../../ui/motion'
+import { usePlayerContext } from './playerContext'
 import { stopPreview, togglePreview, usePreview } from './preview'
 
 /** "D whistle" → "D", "Low D whistle" → "Low D". */
@@ -54,6 +57,7 @@ function TuneCard({ tune }: { tune: Tune }) {
           {isDuet(tune) ? tune.duet!.parts.map((p) => partName(p.whistle)).join(' + ') : whistleShort(tune.whistle)}
         </span>
         {isDuet(tune) && <Chip tone="moss">{t('duet.badge')}</Chip>}
+        {isSet(tune) && <Chip tone="moss">{t('set.badge')}</Chip>}
         <span className="tabular">{tune.bpm} BPM</span>
         <span>
           {tune.sections.length} {t('tune.sectionsShort')} · ~{mins} {t('common.min')}
@@ -121,14 +125,14 @@ function matchesLevel(tune: Tune, level: Level): boolean {
 }
 
 /**
- * The library's filters live in the URL (?q=&level=&whistle=&types=&fav=1), so coming back from a
+ * The library's filters live in the URL (?q=&level=&whistle=&types=&set=&fav=1), so coming back from a
  * tune keeps them and a filtered list can be shared or bookmarked.
  */
 function useLibraryFilters() {
   const [params, setParams] = useSearchParams()
   const level = (LEVELS as string[]).includes(params.get('level') ?? '') ? (params.get('level') as Level) : 'all'
   const types = (params.get('types') ?? '').split(',').filter((x): x is TuneType => (TUNE_TYPES as readonly string[]).includes(x))
-  const filters = { query: params.get('q') ?? '', level, whistle: params.get('whistle') ?? 'all', types, favorites: params.get('fav') === '1' }
+  const filters = { query: params.get('q') ?? '', level, whistle: params.get('whistle') ?? 'all', types, collection: collectionById(params.get('set') ?? '')?.id ?? 'all', favorites: params.get('fav') === '1' }
   const update = (patch: Partial<typeof filters>) => {
     const next = { ...filters, ...patch }
     const p = new URLSearchParams()
@@ -136,18 +140,20 @@ function useLibraryFilters() {
     if (next.level !== 'all') p.set('level', next.level)
     if (next.whistle !== 'all') p.set('whistle', next.whistle)
     if (next.types.length) p.set('types', next.types.join(','))
+    if (next.collection !== 'all') p.set('set', next.collection)
     if (next.favorites) p.set('fav', '1')
     setParams(p, { replace: true })
   }
-  const active = Boolean(filters.query || filters.level !== 'all' || filters.whistle !== 'all' || filters.types.length || filters.favorites)
+  const active = Boolean(filters.query || filters.level !== 'all' || filters.whistle !== 'all' || filters.types.length || filters.collection !== 'all' || filters.favorites)
   return { ...filters, update, active, reset: () => setParams(new URLSearchParams(), { replace: true }) }
 }
 
 const pill = (on: boolean) => cn('h-10 shrink-0 cursor-pointer rounded-2xl px-4 text-sm font-semibold whitespace-nowrap transition', on ? 'bg-ink text-bg' : 'bg-surface-2 text-ink-soft hover:text-ink')
 
 export default function TuneLibrary() {
-  const { t } = useT()
+  const { t, L } = useT()
   const tunes = useAllTunes()
+  const player = usePlayerContext()
   const favoriteIds = useSettings((s) => s.favoriteTunes)
   const f = useLibraryFilters()
   const { search } = useLocation()
@@ -159,12 +165,16 @@ export default function TuneLibrary() {
   const typeCounts = TUNE_TYPES.map((type) => ({ type, count: tunes.filter((x) => x.type === type).length })).filter((x) => x.count > 0)
   const levelCounts = LEVELS.filter((l) => l !== 'all').map((l) => ({ value: l, label: t(`tunes.level.${l}`), count: tunes.filter((x) => matchesLevel(x, l)).length }))
   const favorites = tunes.filter((x) => favoriteIds.includes(x.id)).length
+  // a shelf with nothing on it (e.g. "within your reach" before the first lesson) is not offered
+  const collectionCounts = COLLECTIONS.map((c) => ({ value: c.id, label: L(c.title), count: tunes.filter((x) => c.matches(x, player)).length })).filter((c) => c.count > 0 || c.value === f.collection)
+  const collection = collectionById(f.collection)
   const query = f.query.toLowerCase()
   const filtered = tunes.filter((x) => {
     if (query && !`${x.title} ${x.composer ?? ''} ${t(`tuneType.${x.type}`)}`.toLowerCase().includes(query)) return false
     if (f.whistle === DUET_FILTER ? !isDuet(x) : f.whistle !== 'all' && !playsOn(x, f.whistle)) return false
     if (f.types.length && !f.types.includes(x.type)) return false
     if (f.favorites && !favoriteIds.includes(x.id)) return false
+    if (collection && !collection.matches(x, player)) return false
     return matchesLevel(x, f.level)
   })
   const builtin = filtered.filter((x) => x.origin === 'builtin')
@@ -204,6 +214,7 @@ export default function TuneLibrary() {
           <Icon name="heart" size={18} filled={f.favorites} className={f.favorites ? undefined : 'text-moss'} />
           <span className="tabular">{favorites}</span>
         </button>
+        <SelectFilter name={t('tunes.collection')} icon="collection" allValue="all" allLabel={t('tunes.anyCollection')} value={f.collection} options={collectionCounts} onChange={(c) => f.update({ collection: c })} />
         <TypeFilter options={typeCounts} selected={f.types} onChange={(types) => f.update({ types })} />
         <SelectFilter
           name={t('tune.difficulty')}

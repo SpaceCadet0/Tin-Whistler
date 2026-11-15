@@ -51,7 +51,7 @@ Runs in the browser or as an Android app. Your progress stays on your device.
     <td><img src="docs/screenshots/practice.webp" alt="Practice hub with trainers and games" /></td>
   </tr>
   <tr>
-    <td><b>A course that starts from zero.</b> 4 levels and 19 short lessons, from the first B to the second octave and ornaments. Each lesson has one goal.</td>
+    <td><b>A course that starts from zero.</b> 7 levels and 30 short lessons, from the first B to the second octave, breathing, dance rhythms, rolls and trills. Each lesson has one goal.</td>
     <td><b>Trainers and games.</b> Play the Note, Sequences, Ear Training, Rhythm, a chromatic Tuner, Falling Notes, Free Practice with a recorder, and a Fingering Explorer.</td>
   </tr>
   <tr>
@@ -59,7 +59,7 @@ Runs in the browser or as an Android app. Your progress stays on your device.
     <td><img src="docs/screenshots/progress.webp" alt="Progress: level, streak, practice calendar, note mastery" /></td>
   </tr>
   <tr>
-    <td><b>86 built-in tunes.</b> Search them, filter by difficulty or whistle key, and preview any tune right from its card.</td>
+    <td><b>96 built-in tunes and 4 ready-made sets.</b> Search them, filter by difficulty, whistle key or themed collection, preview any tune right from its card, and string tunes into sets of your own.</td>
     <td><b>See yourself improve.</b> XP and levels, streaks, a 12-week calendar, mastery for every note, and Smart Practice, which drills the note you miss most.</td>
   </tr>
 </table>

@@ -40,6 +40,8 @@ import {
   twinkle,
 } from './popularTunes'
 import { SESSION_TUNES } from './sessionTunes'
+import { SETS } from './sets'
+import { MORE_SESSION_TUNES } from './moreSessionTunes'
 import { JIGS } from './jigs'
 import { SLIP_JIGS_AND_HORNPIPES } from './slipJigsAndHornpipes'
 import { aStoryYouWontBelieve } from './aStoryYouWontBelieve'
@@ -103,6 +105,8 @@ const CURATED: Tune[] = [
   ...SESSION_TUNES,
   ...JIGS,
   ...SLIP_JIGS_AND_HORNPIPES,
+  ...MORE_SESSION_TUNES,
+  ...SETS,
 ]
 
 /** Ordered from easiest to hardest. */

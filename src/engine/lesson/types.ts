@@ -1,4 +1,4 @@
-import type { LocalizedText } from '../../music/types'
+import type { LocalizedText, OrnamentType } from '../../music/types'
 
 /** Visual cue shown with an explanation step. */
 export type Illustration = 'hold' | 'cover' | 'breath' | 'blow' | 'tongue' | 'overblow' | 'cut' | 'bounce' | 'slide' | 'posture'
@@ -83,7 +83,7 @@ export interface FreePlayExercise extends ExerciseBase {
   seconds: number
   prompt: LocalizedText
   /** Example to listen to first. */
-  demo?: { notes: string[]; ornament?: 'cut' | 'bounce' | 'slide' }
+  demo?: { notes: string[]; ornament?: OrnamentType }
 }
 
 export type Exercise =

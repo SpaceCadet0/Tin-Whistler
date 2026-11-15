@@ -28,6 +28,7 @@ const TuneDetail = lazy(() => import('./features/tunes/TuneDetail'))
 const TunePlayerPage = lazy(() => import('./features/tunes/TunePlayerPage'))
 const TuneImport = lazy(() => import('./features/tunes/TuneImport'))
 const TuneEditor = lazy(() => import('./features/tunes/TuneEditor'))
+const TuneSetBuilder = lazy(() => import('./features/tunes/TuneSetBuilder'))
 const ProgressPage = lazy(() => import('./features/progress/ProgressPage'))
 const SettingsPage = lazy(() => import('./features/settings/SettingsPage'))
 
@@ -80,6 +81,7 @@ const router = createBrowserRouter(
         <Route path="/daily" element={<DailyPractice />} />
         <Route path="/tunes" element={<TuneLibrary />} />
         <Route path="/tunes/import" element={<TuneImport />} />
+        <Route path="/tunes/set" element={<TuneSetBuilder />} />
         <Route path="/tunes/:tuneId" element={<TuneDetail />} />
         <Route path="/tunes/:tuneId/play" element={<TunePlayerPage />} />
         <Route path="/tunes/:tuneId/edit" element={<TuneEditor />} />

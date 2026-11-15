@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { BUILTIN_TUNES } from '../../data/tunes'
 import { COURSE_LEVELS } from '../../data/lessons/course'
 import { smartSuggestion } from '../../engine/adaptive/smartPractice'
+import { tuneOfTheDay, WITHIN_REACH, withinReach } from '../../engine/collections'
 import { courseProgress, nextLesson } from '../../engine/lesson/course'
 import { computeStreak, levelFromXp } from '../../engine/progress/levels'
 import { useT } from '../../i18n'
@@ -12,6 +13,7 @@ import { useAllTunes } from '../../state/tunes'
 import { Icon } from '../../ui/Icon'
 import { ButtonLink, Card, Difficulty, ProgressBar, ProgressRing, Stat } from '../../ui/primitives'
 import { AnimatedNumber, Stagger } from '../../ui/motion'
+import { usePlayerContext } from '../tunes/playerContext'
 
 export default function Home() {
   const { t, L } = useT()
@@ -36,6 +38,10 @@ export default function Home() {
     .filter(Boolean)
     .slice(0, 3)
   const featured = recent.length ? recent : BUILTIN_TUNES.slice(0, 3)
+  const player = usePlayerContext()
+  const mastered = new Set(Object.keys(p.tunes).filter((id) => p.tunes[id].mastered))
+  const daily = tuneOfTheDay(BUILTIN_TUNES, todayKey(), { ...player, level, mastered })
+  const reachable = BUILTIN_TUNES.filter((x) => withinReach(x, player)).length
   const hour = new Date().getHours()
   const greeting = t(hour < 12 ? 'home.morning' : hour < 18 ? 'home.afternoon' : 'home.evening')
 
@@ -141,6 +147,30 @@ export default function Home() {
           >
             {t('smart.go')}
           </ButtonLink>
+        </Card>
+      )}
+
+      {daily && (
+        <Card className="flex flex-wrap items-center gap-4">
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-moss-soft text-moss">
+            <Icon name="sparkles" />
+          </span>
+          <div className="min-w-0 flex-1 basis-52">
+            <p className="text-sm font-semibold tracking-wide text-brass uppercase">{t('home.tuneOfDay')}</p>
+            <p className="font-display text-xl font-semibold">{daily.title}</p>
+            <p className="line-clamp-2 text-ink-soft">{L(daily.description) || t(`tuneType.${daily.type}`)}</p>
+            {reachable > 0 && (
+              <Link to={`/tunes?set=${WITHIN_REACH}`} className="mt-1 inline-block py-1 text-sm font-semibold text-moss hover:underline">
+                {t('home.withinReach', { n: reachable })}
+              </Link>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <Difficulty value={daily.difficulty} label={t('tune.difficulty')} />
+            <ButtonLink to={`/tunes/${daily.id}`} variant="secondary" iconRight="next">
+              {t('lesson.openTune')}
+            </ButtonLink>
+          </div>
         </Card>
       )}
 

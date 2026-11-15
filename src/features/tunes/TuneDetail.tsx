@@ -7,6 +7,8 @@ import { toast } from '../../lib/toast'
 import { noteFingering } from '../../music/ornaments'
 import { sectionToTabText } from '../../music/tabText'
 import { flattenTune, tuneDurationSec, usedNotes } from '../../music/tune'
+import { isDuet } from '../../music/duet'
+import { isSet } from '../../music/tuneSet'
 import type { Tune } from '../../music/types'
 import { whistleLabel } from '../../music/whistles'
 import { useProgress } from '../../state/progress'
@@ -231,6 +233,11 @@ export default function TuneDetail() {
           <Button variant="secondary" icon="edit" onClick={duplicate}>
             {t('tune.duplicate')}
           </Button>
+        )}
+        {!isDuet(tune) && !isSet(tune) && (
+          <Link to={`/tunes/set?first=${encodeURIComponent(tune.id)}`} className="inline-flex h-11 items-center gap-2 rounded-2xl px-4 font-semibold text-ink-soft hover:bg-surface-2">
+            <Icon name="collection" size={20} /> {t('set.build')}
+          </Link>
         )}
         <Link to={`/practice/game?tune=${tune.id}`} className="inline-flex h-11 items-center gap-2 rounded-2xl px-4 font-semibold text-ink-soft hover:bg-surface-2">
           <Icon name="gamepad" size={20} /> {t('tune.playGame')}

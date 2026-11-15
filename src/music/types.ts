@@ -166,6 +166,8 @@ export interface Tune {
   /** A duet for two whistles: its parts (`whistle` is the first part's). */
   duet?: { parts: DuetPart[] }
   tags?: string[]
+  /** A set: the ids of the tunes it strings together, in playing order. */
+  setOf?: string[]
   createdAt?: number
   updatedAt?: number
 }

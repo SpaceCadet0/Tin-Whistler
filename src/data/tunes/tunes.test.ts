@@ -10,6 +10,9 @@ import { kidOnTheMountain, kingOfTheFairies, SLIP_JIGS_AND_HORNPIPES } from './s
 import { AIRS_AND_MARCHES, charlieHesMyDarling, lochLomond } from './airsAndMarches'
 import { musicalPriest, SESSION_TUNES, siegeOfEnnis, tamLin, windThatShakesTheBarley } from './sessionTunes'
 import { thePrayer } from './thePrayer'
+import { MORE_SESSION_TUNES, siBheagSiMhor, skyeBoatSong, soldiersJoy } from './moreSessionTunes'
+import { SETS } from './sets'
+import { fingeringForMidi } from '../../music/whistles'
 
 const labels = (t: typeof saints, n: number) =>
   t.sections.flatMap(sectionNotes).filter((x) => x.pitch != null).slice(0, n).map((x) => whistleLabel(x.pitch!, t.whistle))
@@ -49,7 +52,7 @@ describe('ABC-defined built-in tunes', () => {
   it('are unique and ordered by difficulty', () => {
     const ids = BUILTIN_TUNES.map((t) => t.id)
     expect(new Set(ids).size).toBe(ids.length)
-    expect(BUILTIN_TUNES).toHaveLength(86)
+    expect(BUILTIN_TUNES).toHaveLength(100)
     const levels = BUILTIN_TUNES.map((t) => t.difficulty)
     expect(levels).toEqual([...levels].sort((a, b) => a - b))
   })
@@ -207,5 +210,52 @@ describe('Slip jigs and hornpipes written out from the MIDI files in reference/a
     expect(kidOnTheMountain.sections.flatMap(sectionNotes).filter((n) => n.ornament?.type === 'roll')).toHaveLength(7)
     expect(labels(kingOfTheFairies, 1)).toEqual(['B'])
     expect(kingOfTheFairies.sections[1].phrases.flat().some((n) => n.beats === 1.5)).toBe(true)
+  })
+})
+
+describe('More session tunes', () => {
+  it('adds ten tunes of the expected kinds', () => {
+    expect(MORE_SESSION_TUNES.map((t) => t.type)).toEqual(['polka', 'jig', 'song', 'jig', 'jig', 'jig', 'reel', 'reel', 'reel', 'waltz'])
+    expect(siBheagSiMhor.meter).toBe('3/4')
+    expect(skyeBoatSong.sections.map((s) => s.name)).toEqual(['Chorus', 'Verse', 'Chorus'])
+  })
+
+  it('keeps every part to whole bars, give or take a pickup', () => {
+    for (const t of MORE_SESSION_TUNES) {
+      for (const s of t.sections) {
+        const total = sectionNotes(s).reduce((a, n) => a + n.beats, 0)
+        const rem = total % t.beatsPerBar!
+        const pickup = t.beatsPerBar! / 2
+        expect(rem < 1e-6 || t.beatsPerBar! - rem < 1e-6 || rem <= pickup + 1e-6 || t.beatsPerBar! - rem <= pickup + 1e-6, `${t.id} ${s.name}: ${total} beats`).toBe(true)
+      }
+    }
+  })
+
+  it('gives each part of a dance tune four, eight or sixteen bars', () => {
+    for (const t of MORE_SESSION_TUNES.filter((x) => ['polka', 'jig', 'reel'].includes(x.type))) {
+      for (const s of t.sections) {
+        const bars = sectionNotes(s).reduce((a, n) => a + n.beats, 0) / t.beatsPerBar!
+        expect([4, 8, 16].some((n) => Math.abs(bars - n) < 0.6), `${t.id} ${s.name}: ${bars.toFixed(2)} bars`).toBe(true)
+      }
+    }
+  })
+
+  it('stays on the whistle: every note has a fingering', () => {
+    for (const t of MORE_SESSION_TUNES) {
+      for (const n of t.sections.flatMap(sectionNotes)) if (n.pitch != null) expect(fingeringForMidi(n.pitch, t.whistle), `${t.id}: ${whistleLabel(n.pitch, t.whistle)}`).toBeDefined()
+    }
+    expect(labels(soldiersJoy, 4)).toEqual(['F#', 'G', 'A', 'F#'])
+  })
+})
+
+describe('Built-in sets', () => {
+  it('string library tunes together and stay playable', () => {
+    expect(SETS).toHaveLength(4)
+    for (const set of SETS) {
+      expect(set.setOf!.length).toBeGreaterThanOrEqual(2)
+      for (const id of set.setOf!) expect(BUILTIN_TUNES.some((t) => t.id === id), `${set.id} → ${id}`).toBe(true)
+      expect(set.origin).toBe('builtin')
+      expect(set.description?.ru).toBeTruthy()
+    }
   })
 })

@@ -3,6 +3,7 @@ import { whistleSynth, WhistleVoice } from '../../audio/WhistleSynth'
 import type { ExerciseResult, FreePlayExercise } from '../../engine/lesson/types'
 import { usePitch } from '../../hooks/audio'
 import { useT } from '../../i18n'
+import type { OrnamentType } from '../../music/types'
 import { noteById } from '../../music/whistles'
 import { useSession } from '../../state/session'
 import { MicControl } from '../../ui/feedback/MicControl'
@@ -14,7 +15,7 @@ import { useStepFooter } from './stepFooter'
 import { audioEngine } from '../../audio/AudioEngine'
 
 /** Play a short demo with (and without) an ornament so the learner can hear the difference. */
-function playDemo(notes: string[], ornament?: 'cut' | 'bounce' | 'slide') {
+function playDemo(notes: string[], ornament?: OrnamentType) {
   void audioEngine.resume()
   const voice = new WhistleVoice(audioEngine.output, whistleSynth.settings.a4)
   let t = audioEngine.now + 0.05
