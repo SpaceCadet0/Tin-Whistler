@@ -80,15 +80,26 @@ describe('Popular public-domain tunes', () => {
   })
 })
 
-describe('Tragic Love (transcribed from video, low D)', () => {
-  const notes = tragicLove.sections.flatMap(sectionNotes)
-  const [lo, hi] = whistleRange('lowD')
+describe('Tragic Love (transcribed from video, a low D and high D duet)', () => {
+  const partNotes = (part: number) => tragicLove.sections.map((s) => s.parts![part].phrases.flat())
+  const beats = (notes: { beats: number }[]) => notes.reduce((a, n) => a + n.beats, 0)
 
-  it('follows the three tab pages, every note playable on the low D', () => {
-    expect(tragicLove.whistle).toBe('lowD')
-    expect(tragicLove.sections.map((s) => sectionNotes(s).filter((n) => n.pitch != null).length)).toEqual([32, 28, 45])
-    expect(notes.every((n) => n.pitch == null || (n.pitch >= lo && n.pitch <= hi))).toBe(true)
+  it('splits the three tab pages by colour into two parts that take turns', () => {
+    expect(tragicLove.duet!.parts.map((p) => p.whistle)).toEqual(['lowD', 'D'])
+    const pitched = (part: number) => partNotes(part).map((ns) => ns.filter((n) => n.pitch != null).length)
+    // 32, 28 and 45 tab columns: page 1 is the low D alone
+    expect(pitched(0)).toEqual([32, 9, 24])
+    expect(pitched(1)).toEqual([0, 19, 21])
+    partNotes(0).forEach((low, i) => expect(beats(partNotes(1)[i])).toBe(beats(low)))
     expect(labels(tragicLove, 7)).toEqual(['B', "B'", "G'", "F#'", "E'", "D'", 'B'])
+  })
+
+  it('keeps each part in its whistle, the high D running up to its top B', () => {
+    tragicLove.duet!.parts.forEach((p, i) => {
+      const [lo, hi] = whistleRange(p.whistle)
+      expect(partNotes(i).flat().every((n) => n.pitch == null || (n.pitch >= lo && n.pitch <= hi))).toBe(true)
+    })
+    expect(Math.max(...partNotes(1)[2].map((n) => n.pitch ?? 0))).toBe(95)
   })
 
   it('keeps the ornaments the pages name in words', () => {
