@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { sectionNotes } from '../../music/tune'
-import { getWhistle, whistleLabel } from '../../music/whistles'
+import { getWhistle, whistleLabel, whistleRange } from '../../music/whistles'
 import { BUILTIN_TUNES } from '.'
 import { auldLangSyne, butterfly, cooleysReel, saints, scarboroughFair } from './abcTunes'
 import { drunkenSailor, greensleeves, joyToTheWorld, POPULAR_TUNES, silentNight, twinkle } from './popularTunes'
@@ -10,6 +10,7 @@ import { kidOnTheMountain, kingOfTheFairies, SLIP_JIGS_AND_HORNPIPES } from './s
 import { AIRS_AND_MARCHES, charlieHesMyDarling, lochLomond } from './airsAndMarches'
 import { musicalPriest, SESSION_TUNES, siegeOfEnnis, tamLin, windThatShakesTheBarley } from './sessionTunes'
 import { thePrayer } from './thePrayer'
+import { tragicLove } from './tragicLove'
 import { MORE_SESSION_TUNES, siBheagSiMhor, skyeBoatSong, soldiersJoy } from './moreSessionTunes'
 import { SETS } from './sets'
 import { fingeringForMidi } from '../../music/whistles'
@@ -52,7 +53,7 @@ describe('ABC-defined built-in tunes', () => {
   it('are unique and ordered by difficulty', () => {
     const ids = BUILTIN_TUNES.map((t) => t.id)
     expect(new Set(ids).size).toBe(ids.length)
-    expect(BUILTIN_TUNES).toHaveLength(100)
+    expect(BUILTIN_TUNES).toHaveLength(101)
     const levels = BUILTIN_TUNES.map((t) => t.difficulty)
     expect(levels).toEqual([...levels].sort((a, b) => a - b))
   })
@@ -76,6 +77,25 @@ describe('Popular public-domain tunes', () => {
     expect(labels(silentNight, 4)).toEqual(['A', 'B', 'A', 'F#'])
     expect(labels(greensleeves, 4)).toEqual(['A', 'C', "D'", "E'"])
     expect(labels(drunkenSailor, 8)).toEqual(['B', 'B', 'B', 'B', 'B', 'B', 'B', 'E'])
+  })
+})
+
+describe('Tragic Love (transcribed from video, low D)', () => {
+  const notes = tragicLove.sections.flatMap(sectionNotes)
+  const [lo, hi] = whistleRange('lowD')
+
+  it('follows the three tab pages, every note playable on the low D', () => {
+    expect(tragicLove.whistle).toBe('lowD')
+    expect(tragicLove.sections.map((s) => sectionNotes(s).filter((n) => n.pitch != null).length)).toEqual([32, 28, 45])
+    expect(notes.every((n) => n.pitch == null || (n.pitch >= lo && n.pitch <= hi))).toBe(true)
+    expect(labels(tragicLove, 7)).toEqual(['B', "B'", "G'", "F#'", "E'", "D'", 'B'])
+  })
+
+  it('keeps the ornaments the pages name in words', () => {
+    const first = sectionNotes(tragicLove.sections[0])
+    expect(first[4].ornament).toMatchObject({ type: 'cut', hole: 4 })
+    expect(first[6].ornament).toMatchObject({ type: 'cut', hole: 1 })
+    expect(first.filter((n) => n.ornament?.type === 'bounce')).toHaveLength(1)
   })
 })
 

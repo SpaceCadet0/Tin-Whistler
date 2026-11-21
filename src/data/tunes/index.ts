@@ -49,6 +49,7 @@ import { hope } from './hope'
 import { kaerMorhen } from './kaerMorhen'
 import { shepardsFlute } from './shepardsFlute'
 import { thePrayer } from './thePrayer'
+import { tragicLove } from './tragicLove'
 
 /** Curated order within each difficulty level; the list is then sorted (stably) by difficulty. */
 const CURATED: Tune[] = [
@@ -97,6 +98,7 @@ const CURATED: Tune[] = [
   shepardsFlute,
   thePrayer,
   kaerMorhen,
+  tragicLove,
   aStoryYouWontBelieve,
   hope,
   rockyRoadToDublin,
